@@ -77,7 +77,8 @@ const data = sheet.getDataRange().getValues();
       deleteEventByIdOrTitle(calendar, deliveryEventId, project, "｜データ納品");
 
 
-      sheet.getRange(row, 9).setValue("削除済");
+      sheet.getRange(row, 9).setValue("削除済");   // I：同期
+      sheet.getRange(row, 10).setValue("中止");     // J：状態（削除済になったら中止）
       sheet.getRange(row, 15, 1, 4).clearContent();
       continue;
     }
@@ -326,7 +327,6 @@ function setSheetCameraTasks() {
   const jRange = sheet.getRange(2, 10, totalRows, 1);
   const jDropdownRule = SpreadsheetApp.newDataValidation()
     .requireValueInList([
-      "決行",
       "中止",
       "撮影終了"
     ])
@@ -458,13 +458,6 @@ function setStatusColors(sheet, totalRows) {
       .whenTextEqualTo("削除済")
       .setBackground("#b7b7b7")
       .setRanges([iRange])
-      .build(),
-
-
-    SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo("決行")
-      .setBackground("#b6d7a8")
-      .setRanges([jRange])
       .build(),
 
 
