@@ -5,8 +5,10 @@
 ## ファイル
 
 ```
-src/camera_management.gs   撮影管理シート × Googleカレンダー連携
-src/line_hub.gs            LINE貼付ハブ（修正管理・修正完了ログ・納品完了ログ）
+src/camera_management.gs     撮影管理シート × Googleカレンダー連携
+src/line_hub_analyze.gs      LINE貼付ハブ：解析（共通設定・解析・照合・日付・正規化）
+src/line_hub_fix.gs          LINE貼付ハブ：修正管理（修正管理＋修正完了ログ＋実行ボタン）
+src/line_hub_delivery.gs     LINE貼付ハブ：納品完了（納品完了ログ）
 ```
 
 ---
@@ -63,7 +65,12 @@ Google スプレッドシート「撮影管理」シートと Google カレン�
 
 # LINE貼付ハブ GAS
 
-「LINE貼付」シートに種別を選んでLINE本文を貼ると、種別ごとに解析して各シートへ振り分ける仕組みです（`src/line_hub.gs`）。
+「LINE貼付」シートに種別を選んでLINE本文を貼ると、種別ごとに解析して各シートへ振り分ける仕組みです。
+機能ごとに3ファイルに分割しています（**すべて同じGASプロジェクトに置いてください**。グローバル設定 `LINE_HUB_CONFIG` などを共有します）：
+
+- `line_hub_analyze.gs` … 解析（共通設定・LINE貼付の解析・軽量版照合・日付・正規化）
+- `line_hub_fix.gs` … 修正管理（実行ボタン `runLineHub` ほか・修正管理・修正完了ログ・表示）
+- `line_hub_delivery.gs` … 納品完了（納品完了ログ）
 
 ## 種別と転記先
 
