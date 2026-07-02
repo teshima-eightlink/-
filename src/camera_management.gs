@@ -806,6 +806,70 @@ function checkSyncCameraTasks() {
 }
 
 
+/**
+ * 【編集時に自動実行】撮影終了・納品・UP（K〜M列）のいずれかにチェックが入ったら、
+ * その行の J列（状態）を「撮影終了」に自動変更する。
+ *
+ * ※ 関数名は onEdit ではないため、他のGASの onEdit と衝突しません。
+ *   この関数は「インストール型トリガー」で編集時に呼ばれます。
+ *   → 初回のみメニュー「【初回のみ】編集時の自動反映を設定」を実行してください。
+ */
+function handleCheckboxEdit(e) {
+  if (!e || !e.range) return;
+
+  const sheet = e.range.getSheet();
+  if (sheet.getName() !== "撮影管理") return;
+
+  const startRow = e.range.getRow();
+  const startCol = e.range.getColumn();
+  const numRows = e.range.getNumRows();
+  const endCol = startCol + e.range.getNumColumns() - 1;
+
+  // 編集範囲に K(11)撮影終了 / L(12)納品 / M(13)UP のいずれかを含むか
+  if (endCol < 11 || startCol > 13) return;
+
+  for (let r = 0; r < numRows; r++) {
+    const row = startRow + r;
+    if (row < 2) continue;
+
+    const shootDone = sheet.getRange(row, 11).getValue() === true; // K：撮影終了
+    const delivered = sheet.getRange(row, 12).getValue() === true; // L：納品
+    const uploaded = sheet.getRange(row, 13).getValue() === true;  // M：UP
+
+    if (shootDone || delivered || uploaded) {
+      const statusCell = sheet.getRange(row, 10); // J：状態
+      if (statusCell.getValue() !== "撮影終了") {
+        statusCell.setValue("撮影終了");
+      }
+    }
+  }
+}
+
+
+/**
+ * 編集時の自動反映（handleCheckboxEdit）をインストール型トリガーとして登録する。
+ * 初回のみ実行すればOK。重複しないよう既存の同名トリガーは削除してから作り直す。
+ */
+function installEditTrigger() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+
+  // 既存の handleCheckboxEdit トリガーを削除（重複防止）
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === "handleCheckboxEdit") {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+
+  ScriptApp.newTrigger("handleCheckboxEdit")
+    .forSpreadsheet(ss)
+    .onEdit()
+    .create();
+
+  ui.alert("設定完了", "編集時の自動反映を有効にしました。\nK〜M（撮影終了・納品・UP）にチェックを入れると、J列が自動で「撮影終了」になります。", ui.ButtonSet.OK);
+}
+
+
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("撮影管理")
@@ -814,5 +878,6 @@ function onOpen() {
     .addSeparator()
     .addItem("同期の診断（登録されない原因を確認）", "checkSyncCameraTasks")
     .addItem("【初期設定】シートの環境を整える", "setSheetCameraTasks")
+    .addItem("【初回のみ】編集時の自動反映を設定", "installEditTrigger")
     .addToUi();
 }
