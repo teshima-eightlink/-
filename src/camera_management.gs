@@ -11,7 +11,8 @@
  *   syncCameraTasks()     … カレンダー同期（メニュー）
  *   setSheetCameraTasks() … 初期設定（メニュー）
  *   moveFinishedDown()    … 「撮影終了」の行を下に移動（メニュー）
- *   onEdit(e)             … 撮影終了/納品/UP のいずれかにチェックで J列を「撮影終了」に自動変更
+ *   applyFinishedStatus() … 撮影終了/納品/UP のいずれかにチェックで J列を「撮影終了」に更新
+ *                           （同期・並べ替えメニューの実行時に自動で呼ばれる）
  */
 
 function syncCameraTasks() {
@@ -40,6 +41,10 @@ function syncCameraTasks() {
 
 // 他の人が実行するとA列保護でエラーになるため、同期時は保護・フィルター再設定しない
 // updateFilterAndProtection(sheet);
+
+
+// 撮影終了・納品・UP のチェックを状態（J列）に反映してから同期する
+applyFinishedStatus(sheet);
 
 
 const data = sheet.getDataRange().getValues();
@@ -534,44 +539,41 @@ function updateFilterAndProtection(sheet) {
 
 
 /**
- * 撮影終了・納品・UP のいずれかにチェックが入ったら、
- * その行の J列（状態）を「撮影終了」に自動変更する。
- * ※ シート編集時に自動実行される簡易トリガー（onEdit）
+ * 撮影終了・納品・UP（K〜M列）のいずれかにチェックが入っている行の
+ * J列（状態）を「撮影終了」に更新する。
+ * ※ onEdit（自動トリガー）は他のGASと競合するため使わず、
+ *   メニュー実行時（同期・並べ替え）にまとめて適用する。
  */
-function onEdit(e) {
-  if (!e || !e.range) return;
+function applyFinishedStatus(sheet) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
 
 
-  const sheet = e.range.getSheet();
-  if (sheet.getName() !== "撮影管理") return;
+  const totalRows = lastRow - 1;
 
 
-  const startRow = e.range.getRow();
-  const startCol = e.range.getColumn();
-  const numRows = e.range.getNumRows();
-  const endCol = startCol + e.range.getNumColumns() - 1;
+  // J〜M列（10〜13）をまとめて読み書き
+  const range = sheet.getRange(2, 10, totalRows, 4);
+  const values = range.getValues();
+  let changed = false;
 
 
-  // 編集範囲に K(11)撮影終了 / L(12)納品 / M(13)UP のいずれかを含むか
-  if (endCol < 11 || startCol > 13) return;
+  for (let i = 0; i < values.length; i++) {
+    const status = values[i][0];    // J：状態
+    const shootDone = values[i][1]; // K：撮影終了
+    const delivered = values[i][2]; // L：納品
+    const uploaded = values[i][3];  // M：UP
 
 
-  for (let r = 0; r < numRows; r++) {
-    const row = startRow + r;
-    if (row < 2) continue;
-
-
-    const shootDone = sheet.getRange(row, 11).getValue() === true; // K：撮影終了
-    const delivered = sheet.getRange(row, 12).getValue() === true; // L：納品
-    const uploaded = sheet.getRange(row, 13).getValue() === true;  // M：UP
-
-
-    if (shootDone || delivered || uploaded) {
-      const statusCell = sheet.getRange(row, 10); // J：状態
-      if (statusCell.getValue() !== "撮影終了") {
-        statusCell.setValue("撮影終了");
-      }
+    if ((shootDone === true || delivered === true || uploaded === true) && status !== "撮影終了") {
+      values[i][0] = "撮影終了";
+      changed = true;
     }
+  }
+
+
+  if (changed) {
+    range.setValues(values);
   }
 }
 
@@ -590,6 +592,10 @@ function moveFinishedDown() {
     SpreadsheetApp.getUi().alert("エラー: 「" + SHEET_NAME + "」シートが見つかりません。");
     return;
   }
+
+
+  // まず撮影終了・納品・UP のチェックを状態に反映してから並べ替える
+  applyFinishedStatus(sheet);
 
 
   const lastRow = sheet.getLastRow();
