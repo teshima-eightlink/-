@@ -736,12 +736,90 @@ function isHolidayOrWeekend(date) {
 }
 
 
+/**
+ * 診断用：syncCameraTasks で各行が登録されるか／されない理由を確認する。
+ * カレンダーの接続確認と、行ごとの判定結果をポップアップ＆ログに出す。
+ */
+function checkSyncCameraTasks() {
+  const SHEET_NAME = "撮影管理";
+  const CALENDAR_ID = "a318a9f9c5467e98191e3441af7c94084983ab5c40624dae2581dea4fc333520@group.calendar.google.com";
+  const ui = SpreadsheetApp.getUi();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+
+
+  if (!sheet) {
+    ui.alert("エラー: 「" + SHEET_NAME + "」シートが見つかりません。シート名を確認してください。");
+    return;
+  }
+
+
+  const lines = [];
+
+
+  // 1) カレンダー接続チェック
+  const calendar = CalendarApp.getCalendarById(CALENDAR_ID);
+  if (!calendar) {
+    lines.push("■カレンダー：接続NG（IDが違う or 権限なし）");
+    lines.push("  → カレンダー設定でこのアカウントに共有・編集権限があるか確認してください。");
+  } else {
+    lines.push("■カレンダー：接続OK（" + calendar.getName() + "）");
+  }
+
+
+  // 2) 行ごとの判定
+  const data = sheet.getDataRange().getValues();
+  lines.push("■データ行数：" + (data.length - 1));
+
+
+  let okCount = 0;
+
+
+  for (let i = 1; i < data.length; i++) {
+    const row = i + 1;
+    const project = data[i][1];        // B
+    const shootDate = data[i][3];      // D
+    const shootTime = data[i][4];      // E
+    const cameraman = data[i][6];      // G
+    const calendarAction = data[i][8]; // I
+
+
+    // 完全な空行はスキップ表示しない
+    if (!project && !shootDate && !shootTime && !cameraman && !calendarAction) continue;
+
+
+    const reasons = [];
+    if (calendarAction !== "登録・更新する") reasons.push("I列が「登録・更新する」でない（現在:「" + (calendarAction || "空欄") + "」）");
+    if (!project) reasons.push("B列 案件名 が空");
+    if (!shootDate) reasons.push("D列 撮影日 が空");
+    if (!shootTime) reasons.push("E列 時間 が空");
+    if (!cameraman) reasons.push("G列 カメラマン が空");
+
+
+    if (reasons.length === 0) {
+      okCount++;
+      lines.push(row + "行目：✅ 登録対象（案件:" + project + "）");
+    } else {
+      lines.push(row + "行目：⛔ スキップ → " + reasons.join(" / "));
+    }
+  }
+
+
+  lines.push("■登録対象の行数：" + okCount);
+
+
+  const message = lines.join("\n");
+  Logger.log(message);
+  ui.alert("同期診断結果", message, ui.ButtonSet.OK);
+}
+
+
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("撮影管理")
     .addItem("カレンダー同期", "syncCameraTasks")
     .addItem("撮影終了を下に移動", "moveFinishedDown")
     .addSeparator()
+    .addItem("同期の診断（登録されない原因を確認）", "checkSyncCameraTasks")
     .addItem("【初期設定】シートの環境を整える", "setSheetCameraTasks")
     .addToUi();
 }
