@@ -491,7 +491,7 @@ function formatLineHubRows_() {
   if (deliverySheet) {
     const lastRow = Math.max(deliverySheet.getLastRow(), 2);
     deliverySheet.getRange("E:E").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // 案件名
-    deliverySheet.getRange("F:F").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // URL
+    deliverySheet.getRange("G:G").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // URL
     deliverySheet.getRange("H:H").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // CMSログイン先
     deliverySheet.setRowHeights(2, lastRow - 1, 36);
   }

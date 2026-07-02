@@ -37,8 +37,8 @@ function setupDeliveryLogSheet_(ss) {
     "区分",
     "状態",
     "案件名",
-    "URL",
     "制作担当",
+    "URL",
     "CMSログイン先",
     "ドキュメント",
     "備考",
@@ -53,8 +53,8 @@ function setupDeliveryLogSheet_(ss) {
   sheet.setColumnWidth(3, 90);   // 区分
   sheet.setColumnWidth(4, 110);  // 状態
   sheet.setColumnWidth(5, 240);  // 案件名
-  sheet.setColumnWidth(6, 260);  // URL
-  sheet.setColumnWidth(7, 120);  // 制作担当
+  sheet.setColumnWidth(6, 120);  // 制作担当
+  sheet.setColumnWidth(7, 260);  // URL
   sheet.setColumnWidth(8, 240);  // CMSログイン先
   sheet.setColumnWidth(9, 200);  // ドキュメント
   sheet.setColumnWidth(10, 260); // 備考
@@ -84,9 +84,9 @@ function setupDeliveryLogSheet_(ss) {
     .build();
   sheet.getRange("D2:D").setDataValidation(statusRule);
 
-  sheet.getRange("E:E").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
-  sheet.getRange("F:F").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
-  sheet.getRange("H:H").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+  sheet.getRange("E:E").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // 案件名
+  sheet.getRange("G:G").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // URL
+  sheet.getRange("H:H").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // CMSログイン先
   sheet.getRange("I:J").setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
 
   // K・L（レコードID・元LINE行）を非表示
@@ -167,10 +167,10 @@ function rebuildDeliveryLog_() {
       type,                   // B：種別
       scope,                  // C：区分
       keep.status || "未対応", // D：状態
-      projectName,            // E：案件名 ★
-      finalUrl,               // F：URL
-      tanto,                  // G：制作担当 ★
-      cms,                    // H：CMSログイン先 ★
+      projectName,            // E：案件名
+      tanto,                  // F：制作担当
+      finalUrl,               // G：URL
+      cms,                    // H：CMSログイン先
       keep.document || "",    // I：ドキュメント
       keep.note || "",        // J：備考
       id,                     // K：レコードID（非表示）
