@@ -26,7 +26,15 @@ const LINE_HUB_CONFIG = {
   FIX_DATA_START_ROW: 3,
   LIMIT_BUSINESS_DAYS: 10,
 
-  TYPES: ["修正依頼", "修正完了", "納品完了", "その他"]
+  TYPES: [
+    "修正依頼",
+    "修正完了",
+    "TOP制作完了",
+    "全ページ制作完了",
+    "納品前最終チェック",
+    "納品完了",
+    "その他"
+  ]
 };
 
 let LIGHTWEIGHT_MAP_CACHE_ = null;
@@ -38,6 +46,25 @@ let HOLIDAY_DATE_SET_CACHE_ = null;
 
 function getLineHubSpreadsheet_() {
   return SpreadsheetApp.openById(LINE_HUB_CONFIG.SPREADSHEET_ID);
+}
+
+//==================================================
+// 種別プルダウンだけを更新（既存データに触れない）
+//   TYPES を増やしたあと、これを1回実行すればA列の選択肢が更新されます。
+//==================================================
+
+function refreshTypeDropdown() {
+  const ss = getLineHubSpreadsheet_();
+  const sheet = ss.getSheetByName(LINE_HUB_CONFIG.LINE_SHEET_NAME);
+  if (!sheet) throw new Error("LINE貼付シートがありません。");
+
+  const typeRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(LINE_HUB_CONFIG.TYPES, true)
+    .setAllowInvalid(false)
+    .build();
+
+  sheet.getRange("A2:A").setDataValidation(typeRule);
+  Logger.log("種別プルダウンを更新しました：" + LINE_HUB_CONFIG.TYPES.join(" / "));
 }
 
 //==================================================
