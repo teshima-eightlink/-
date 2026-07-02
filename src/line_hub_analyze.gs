@@ -364,8 +364,8 @@ function getLightweightMap_() {
     "HPURL"
   ]);
 
-  // 制作担当は軽量版案件一覧の H列（8列目・固定）から取得
-  const tantoCol = 7;
+  // 制作担当は軽量版案件一覧の F列（6列目・固定）から取得
+  const tantoCol = 5;
 
   const cmsCol = findHeaderIndex_(headers, [
     "CMSログイン先",
@@ -405,7 +405,7 @@ function getLightweightMap_() {
 }
 
 function checkLightweight_(projectName, url, lightweightMap) {
-  const empty = { lightProjectName: "", lightUrl: "", lightTanto: "", lightCms: "" };
+  const empty = { matched: false, lightProjectName: "", lightUrl: "", lightTanto: "", lightCms: "" };
 
   if (lightweightMap.error) {
     return Object.assign({ result: lightweightMap.error }, empty);
@@ -418,6 +418,7 @@ function checkLightweight_(projectName, url, lightweightMap) {
     const hit = lightweightMap.byUrl[nUrl];
     return {
       result: "OK",
+      matched: true,
       lightProjectName: hit.projectName,
       lightUrl: hit.url,
       lightTanto: hit.tanto || "",
@@ -429,6 +430,7 @@ function checkLightweight_(projectName, url, lightweightMap) {
     const hit = lightweightMap.byProject[nProject];
     return {
       result: nUrl ? "URL要確認" : "URLなし・案件名一致",
+      matched: true,
       lightProjectName: hit.projectName,
       lightUrl: hit.url,
       lightTanto: hit.tanto || "",

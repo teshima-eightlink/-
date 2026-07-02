@@ -151,7 +151,9 @@ function rebuildDeliveryLog_() {
     // ★案件名・制作担当・CMSログイン先は軽量版案件一覧からURL照合で取得
     // （軽量版に無い場合、案件名は本文からの抽出をフォールバックに使う）
     const projectName = check.lightProjectName || row[3] || parsed.projectName;
-    const tanto = check.lightTanto || "自社割賦"; // H列が空白なら「自社割賦」
+    // 制作担当：軽量版に一致したとき F列を採用。F列が空白なら「自社割賦」。
+    //           一致しなかったときは空欄のまま。
+    const tanto = check.matched ? (check.lightTanto || "自社割賦") : "";
     const cms = check.lightCms || "";
 
     const scope = resolveScope_(type, raw);
@@ -176,13 +178,82 @@ function rebuildDeliveryLog_() {
     ]);
   });
 
+  // 「対応完了」を下へ（未完了 → 空行1行 → 対応完了）並べてから書き込む
+  const ordered = orderDeliveryRows_(output);
+  writeDeliveryRows_(sheet, ordered, oldLastRow);
+}
+
+//==================================================
+// ボタン／時間トリガー用：対応完了の行を下へ移動
+//   rebuild せず、いまの「制作チェック」を並べ替えるだけ。
+//   未完了 → 空行1行 → 対応完了 の順に並べます。
+//   （ボタンに割り当ててもよいし、時間主導トリガーに設定してもOK）
+//==================================================
+
+function moveDoneDeliveryDown() {
+  const ss = getLineHubSpreadsheet_();
+  const sheet = ss.getSheetByName(LINE_HUB_CONFIG.DELIVERY_LOG_SHEET_NAME);
+  if (!sheet) return;
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 3) return; // 並べ替え対象が2行未満なら何もしない
+
+  const rows = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
+  const ordered = orderDeliveryRows_(rows);
+  writeDeliveryRows_(sheet, ordered, lastRow);
+}
+
+/**
+ * 制作チェックの行を「未完了 → 空行1行 → 対応完了」の順に並べ替える。
+ * ・中身のある行だけを対象にし、空行は無視して上に詰める
+ * ・状態（D列）が「対応完了」の行を下へ
+ */
+function orderDeliveryRows_(rows) {
+  const STATUS_IDX = 3;  // D：状態
+  const NAME_IDX = 4;    // E：案件名
+  const ID_IDX = 10;     // K：レコードID
+
+  const active = [];
+  const done = [];
+
+  rows.forEach(r => {
+    const hasData =
+      String(r[ID_IDX] || "").trim() !== "" ||
+      String(r[NAME_IDX] || "").trim() !== "";
+    if (!hasData) return; // 空行は無視
+
+    if (r[STATUS_IDX] === "対応完了") {
+      done.push(r);
+    } else {
+      active.push(r);
+    }
+  });
+
+  const result = active.slice();
+  if (done.length > 0) {
+    result.push(new Array(12).fill("")); // 未完了と対応完了の間に空行を1行
+    done.forEach(r => result.push(r));
+  }
+  return result;
+}
+
+/**
+ * 制作チェックへ書き込む共通処理。
+ * 旧データをクリアし、必要なら行を足してから ordered を書き込む。
+ */
+function writeDeliveryRows_(sheet, ordered, oldLastRow) {
   if (oldLastRow >= 2) {
     sheet.getRange(2, 1, oldLastRow - 1, 12).clearContent();
   }
 
-  if (output.length > 0) {
-    sheet.getRange(2, 1, output.length, 12).setValues(output);
+  if (!ordered || ordered.length === 0) return;
+
+  const neededMaxRow = 1 + ordered.length; // 見出し1行 + データ
+  if (sheet.getMaxRows() < neededMaxRow) {
+    sheet.insertRowsAfter(sheet.getMaxRows(), neededMaxRow - sheet.getMaxRows());
   }
+
+  sheet.getRange(2, 1, ordered.length, 12).setValues(ordered);
 }
 
 /**
