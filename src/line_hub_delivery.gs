@@ -24,6 +24,77 @@ function setupDeliveryLogOnly() {
 }
 
 //==================================================
+// 診断：制作担当（軽量版F列）が取れているか確認
+//   実行ログ（表示 > ログ）に結果が出ます。UIがあればポップアップも表示。
+//==================================================
+
+function checkDeliveryTanto() {
+  const lines = [];
+  const map = getLightweightMap_();
+
+  // 1) 軽量版の読み込み状況
+  if (map.error) {
+    lines.push("■軽量版：NG（" + map.error + "）");
+  } else {
+    lines.push("■軽量版：OK（URL登録 " + Object.keys(map.byUrl).length + " 件）");
+  }
+
+  // 2) 軽量版シートの見出しと F列の中身サンプル
+  try {
+    const lw = SpreadsheetApp.openById(LINE_HUB_CONFIG.LIGHTWEIGHT_SPREADSHEET_ID)
+      .getSheetByName(LINE_HUB_CONFIG.LIGHTWEIGHT_SHEET_NAME);
+    if (lw) {
+      const headers = lw.getRange(1, 1, 1, Math.max(lw.getLastColumn(), 6)).getValues()[0];
+      lines.push("■軽量版 見出し：A=" + headers[0] + " / F=" + (headers[5] || "(なし)"));
+
+      const n = Math.min(lw.getLastRow() - 1, 5);
+      if (n > 0) {
+        const fvals = lw.getRange(2, 6, n, 1).getValues().map(r => "「" + String(r[0] || "") + "」");
+        lines.push("■軽量版 F列サンプル：" + fvals.join(" , "));
+      }
+    }
+  } catch (e) {
+    lines.push("■軽量版 見出し取得エラー：" + e.message);
+  }
+
+  // 3) LINE貼付の制作/納品系の行を照合してみる
+  const ss = getLineHubSpreadsheet_();
+  const lineSheet = ss.getSheetByName(LINE_HUB_CONFIG.LINE_SHEET_NAME);
+  const lastRow = lineSheet ? lineSheet.getLastRow() : 0;
+
+  let n = 0;
+  if (lastRow >= 2) {
+    const rows = lineSheet.getRange(2, 1, lastRow - 1, 8).getValues();
+    rows.forEach((row, i) => {
+      const type = row[0];
+      const raw = row[1];
+      if (!isDeliveryType_(type) || !raw || n >= 10) return;
+      n++;
+
+      const parsed = parseLineText_(raw, type);
+      const url = row[4] || parsed.url;
+      const check = checkLightweight_(parsed.projectName, url, map);
+      const tanto = check.matched ? (check.lightTanto || "自社割賦") : "（空欄：不一致）";
+
+      lines.push(
+        (i + 2) + "行 [" + type + "] URL=" + (url || "(なし)") +
+        " / 照合=" + check.result +
+        " / 制作担当=" + tanto
+      );
+    });
+  }
+  if (n === 0) lines.push("※ 制作/納品系（TOP制作完了・全ページ制作完了・納品前最終チェック・納品完了）の行が見つかりません。種別を確認してください。");
+
+  const message = lines.join("\n");
+  Logger.log(message);
+  try {
+    SpreadsheetApp.getUi().alert("制作担当 診断", message, SpreadsheetApp.getUi().ButtonSet.OK);
+  } catch (e) {
+    // UIが使えない実行方法のときはログのみ
+  }
+}
+
+//==================================================
 // 初期セットアップ（制作チェック）
 //==================================================
 
