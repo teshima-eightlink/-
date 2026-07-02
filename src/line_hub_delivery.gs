@@ -187,22 +187,26 @@ function rebuildDeliveryLog_() {
 
   const lightweightMap = getLightweightMap_();
 
-  // 既存の手入力（状態・ドキュメント・備考）をレコードIDで保持
-  const keepMap = {};
+  // 既存の手入力をレコードIDで保持
+  //   ・状態(D)：プレーン値
+  //   ・ドキュメント(I)・備考(J)：リッチテキスト（URLリンクを保持）
+  const keepStatus = {};
+  const keepDoc = {};
+  const keepNote = {};
   const oldLastRow = sheet.getLastRow();
 
   if (oldLastRow >= 2) {
-    const old = sheet.getRange(2, 1, oldLastRow - 1, 12).getValues();
+    const n = oldLastRow - 1;
+    const vals = sheet.getRange(2, 1, n, 12).getValues();
+    const docRich = sheet.getRange(2, 9, n, 1).getRichTextValues();   // I列
+    const noteRich = sheet.getRange(2, 10, n, 1).getRichTextValues(); // J列
 
-    old.forEach(row => {
-      const id = row[10]; // K：レコードID
+    vals.forEach((row, i) => {
+      const id = String(row[10] || "").trim(); // K：レコードID
       if (!id) return;
-
-      keepMap[id] = {
-        status: row[3],    // D：状態
-        document: row[8],  // I：ドキュメント
-        note: row[9]       // J：備考
-      };
+      keepStatus[id] = row[3];
+      keepDoc[id] = docRich[i][0];
+      keepNote[id] = noteRich[i][0];
     });
   }
 
@@ -216,7 +220,7 @@ function rebuildDeliveryLog_() {
   }
 
   const rows = lineSheet.getRange(2, 1, lastRow - 1, 8).getValues();
-  const output = [];
+  const records = [];
 
   rows.forEach((row, index) => {
     const sourceRow = index + 2;
@@ -242,33 +246,39 @@ function rebuildDeliveryLog_() {
     const pastedAt = row[6] || new Date();
 
     const id = `CHK-${String(sourceRow).padStart(5, "0")}`;
-    const keep = keepMap[id] || {};
+    const status = keepStatus[id] || "未対応";
 
-    output.push([
-      pastedAt,               // A：貼り付け日
-      type,                   // B：種別
-      scope,                  // C：区分
-      keep.status || "未対応", // D：状態
-      projectName,            // E：案件名
-      tanto,                  // F：制作担当
-      finalUrl,               // G：URL
-      cms,                    // H：CMSログイン先
-      keep.document || "",    // I：ドキュメント
-      keep.note || "",        // J：備考
-      id,                     // K：レコードID（非表示）
-      sourceRow               // L：元LINE行（非表示）
-    ]);
+    records.push({
+      status: status,
+      doc: keepDoc[id] || null,   // I：ドキュメント（リッチテキスト）
+      note: keepNote[id] || null, // J：備考（リッチテキスト）
+      values: [
+        pastedAt,     // A：貼り付け日
+        type,         // B：種別
+        scope,        // C：区分
+        status,       // D：状態
+        projectName,  // E：案件名
+        tanto,        // F：制作担当
+        finalUrl,     // G：URL
+        cms,          // H：CMSログイン先
+        "",           // I：ドキュメント（後でリッチテキストで復元）
+        "",           // J：備考（後でリッチテキストで復元）
+        id,           // K：レコードID（非表示）
+        sourceRow     // L：元LINE行（非表示）
+      ]
+    });
   });
 
-  // 「対応完了」を下へ（未完了 → 空行1行 → 対応完了）並べてから書き込む
-  const ordered = orderDeliveryRows_(output);
-  writeDeliveryRows_(sheet, ordered, oldLastRow);
+  // 「対応完了」を下へ（未完了 → 空行1行 → 対応完了）並べて書き込む
+  const ordered = orderDeliveryRecords_(records);
+  writeDeliveryRecords_(sheet, ordered, oldLastRow);
 }
 
 //==================================================
 // ボタン／時間トリガー用：対応完了の行を下へ移動
 //   rebuild せず、いまの「制作チェック」を並べ替えるだけ。
 //   未完了 → 空行1行 → 対応完了 の順に並べます。
+//   ・ドキュメント(I)・備考(J)のURLリンクは保持されます。
 //   （ボタンに割り当ててもよいし、時間主導トリガーに設定してもOK）
 //==================================================
 
@@ -280,40 +290,46 @@ function moveDoneDeliveryDown() {
   const lastRow = sheet.getLastRow();
   if (lastRow < 3) return; // 並べ替え対象が2行未満なら何もしない
 
-  const rows = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
-  const ordered = orderDeliveryRows_(rows);
-  writeDeliveryRows_(sheet, ordered, lastRow);
+  const n = lastRow - 1;
+  const vals = sheet.getRange(2, 1, n, 12).getValues();
+  const docRich = sheet.getRange(2, 9, n, 1).getRichTextValues();   // I列
+  const noteRich = sheet.getRange(2, 10, n, 1).getRichTextValues(); // J列
+
+  const records = [];
+  vals.forEach((row, i) => {
+    const hasData =
+      String(row[10] || "").trim() !== "" ||
+      String(row[4] || "").trim() !== "";
+    if (!hasData) return; // 空行は無視
+
+    records.push({
+      status: row[3],
+      doc: docRich[i][0],
+      note: noteRich[i][0],
+      values: row
+    });
+  });
+
+  const ordered = orderDeliveryRecords_(records);
+  writeDeliveryRecords_(sheet, ordered, lastRow);
 }
 
 /**
- * 制作チェックの行を「未完了 → 空行1行 → 対応完了」の順に並べ替える。
- * ・中身のある行だけを対象にし、空行は無視して上に詰める
- * ・状態（D列）が「対応完了」の行を下へ
+ * レコードを「未完了 → 空行1行 → 対応完了」の順に並べ替える。
+ * record = { status, doc(RichText|null), note(RichText|null), values(12列配列) }
  */
-function orderDeliveryRows_(rows) {
-  const STATUS_IDX = 3;  // D：状態
-  const NAME_IDX = 4;    // E：案件名
-  const ID_IDX = 10;     // K：レコードID
-
+function orderDeliveryRecords_(records) {
   const active = [];
   const done = [];
 
-  rows.forEach(r => {
-    const hasData =
-      String(r[ID_IDX] || "").trim() !== "" ||
-      String(r[NAME_IDX] || "").trim() !== "";
-    if (!hasData) return; // 空行は無視
-
-    if (r[STATUS_IDX] === "対応完了") {
-      done.push(r);
-    } else {
-      active.push(r);
-    }
+  records.forEach(r => {
+    if (r.status === "対応完了") done.push(r);
+    else active.push(r);
   });
 
   const result = active.slice();
   if (done.length > 0) {
-    result.push(new Array(12).fill("")); // 未完了と対応完了の間に空行を1行
+    result.push({ status: "", doc: null, note: null, values: new Array(12).fill("") });
     done.forEach(r => result.push(r));
   }
   return result;
@@ -321,9 +337,10 @@ function orderDeliveryRows_(rows) {
 
 /**
  * 制作チェックへ書き込む共通処理。
- * 旧データをクリアし、必要なら行を足してから ordered を書き込む。
+ * ・プレーン値を setValues
+ * ・ドキュメント(I)・備考(J)は setRichTextValues でリンクごと復元
  */
-function writeDeliveryRows_(sheet, ordered, oldLastRow) {
+function writeDeliveryRecords_(sheet, ordered, oldLastRow) {
   if (oldLastRow >= 2) {
     sheet.getRange(2, 1, oldLastRow - 1, 12).clearContent();
   }
@@ -335,7 +352,13 @@ function writeDeliveryRows_(sheet, ordered, oldLastRow) {
     sheet.insertRowsAfter(sheet.getMaxRows(), neededMaxRow - sheet.getMaxRows());
   }
 
-  sheet.getRange(2, 1, ordered.length, 12).setValues(ordered);
+  const emptyRich = SpreadsheetApp.newRichTextValue().setText("").build();
+
+  sheet.getRange(2, 1, ordered.length, 12).setValues(ordered.map(r => r.values));
+  sheet.getRange(2, 9, ordered.length, 1)
+    .setRichTextValues(ordered.map(r => [r.doc || emptyRich]));   // I：ドキュメント
+  sheet.getRange(2, 10, ordered.length, 1)
+    .setRichTextValues(ordered.map(r => [r.note || emptyRich]));  // J：備考
 }
 
 /**
