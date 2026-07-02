@@ -151,7 +151,7 @@ function rebuildDeliveryLog_() {
     // ★案件名・制作担当・CMSログイン先は軽量版案件一覧からURL照合で取得
     // （軽量版に無い場合、案件名は本文からの抽出をフォールバックに使う）
     const projectName = check.lightProjectName || row[3] || parsed.projectName;
-    const tanto = check.lightTanto || "";
+    const tanto = check.lightTanto || "自社割賦"; // H列が空白なら「自社割賦」
     const cms = check.lightCms || "";
 
     const scope = resolveScope_(type, raw);

@@ -364,13 +364,8 @@ function getLightweightMap_() {
     "HPURL"
   ]);
 
-  const tantoCol = findHeaderIndex_(headers, [
-    "制作担当",
-    "制作担当者",
-    "制作者",
-    "担当",
-    "担当者"
-  ]);
+  // 制作担当は軽量版案件一覧の H列（8列目・固定）から取得
+  const tantoCol = 7;
 
   const cmsCol = findHeaderIndex_(headers, [
     "CMSログイン先",
