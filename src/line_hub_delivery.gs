@@ -148,7 +148,7 @@ function rebuildDeliveryLog_() {
 
     const check = checkLightweight_(parsed.projectName, finalUrl, lightweightMap);
 
-    // ★案件名・制作担当・CMSログイン先は軽量版案件一覧からURL照合で取得
+    // 案件名・制作担当・CMSログイン先は軽量版案件一覧からURL照合で取得
     // （軽量版に無い場合、案件名は本文からの抽出をフォールバックに使う）
     const projectName = check.lightProjectName || row[3] || parsed.projectName;
     // 制作担当：軽量版に一致したとき F列を採用。F列が空白なら「自社割賦」。
