@@ -593,27 +593,57 @@ function moveFinishedDown() {
 
   const START_COL = 2;   // B列
   const NUM_COLS = 18;   // B〜S列（2〜19）
-  const STATUS_IDX = 10 - START_COL; // J列（10）の配列内インデックス = 8
+  const STATUS_IDX = 8;  // J列（配列内インデックス：B起点で10-2=8）
+  // 中身のある行の判定に使う列：B(案件名)=0 / D(撮影日)=2 / G(カメラマン)=5
+  const DATA_IDX = [0, 2, 5];
 
 
   const range = sheet.getRange(2, START_COL, lastRow - 1, NUM_COLS);
   const values = range.getValues();
 
 
-  const notFinished = [];
-  const finished = [];
+  const active = [];   // 未終了（中身あり）
+  const finished = []; // 撮影終了（中身あり）
 
 
   values.forEach(rowValues => {
+    const hasData = DATA_IDX.some(idx => String(rowValues[idx]).trim() !== "");
+    if (!hasData) return; // 空行は無視
+
+
     if (rowValues[STATUS_IDX] === "撮影終了") {
       finished.push(rowValues);
     } else {
-      notFinished.push(rowValues);
+      active.push(rowValues);
     }
   });
 
 
-  range.setValues(notFinished.concat(finished));
+  const blankRow = new Array(NUM_COLS).fill("");
+  const result = active.slice();
+
+
+  if (finished.length > 0) {
+    result.push(blankRow.slice()); // 未終了と撮影終了の間に空行を1行
+    finished.forEach(rowValues => result.push(rowValues));
+  }
+
+
+  // 書き込む行数を決定（元の行数より増える場合はシートの行を追加）
+  const numRowsToWrite = Math.max(values.length, result.length);
+  const neededMaxRow = 1 + numRowsToWrite; // 見出し1行 + データ
+  if (sheet.getMaxRows() < neededMaxRow) {
+    sheet.insertRowsAfter(sheet.getMaxRows(), neededMaxRow - sheet.getMaxRows());
+  }
+
+
+  // 残りを空行で埋める
+  while (result.length < numRowsToWrite) {
+    result.push(blankRow.slice());
+  }
+
+
+  sheet.getRange(2, START_COL, numRowsToWrite, NUM_COLS).setValues(result);
 }
 
 
