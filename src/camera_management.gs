@@ -12,7 +12,7 @@
  *   setSheetCameraTasks() … 初期設定（メニュー）
  *   moveFinishedDown()    … 「撮影終了」の行を下に移動（メニュー）
  *   applyFinishedStatus() … 撮影終了/納品/UP のいずれかにチェックで J列を「撮影終了」に更新
- *                           （同期・並べ替えメニューの実行時に自動で呼ばれる）
+ *                           （「撮影終了を下に移動」メニューの実行時に呼ばれる）
  */
 
 function syncCameraTasks() {
@@ -41,10 +41,6 @@ function syncCameraTasks() {
 
 // 他の人が実行するとA列保護でエラーになるため、同期時は保護・フィルター再設定しない
 // updateFilterAndProtection(sheet);
-
-
-// 撮影終了・納品・UP のチェックを状態（J列）に反映してから同期する
-applyFinishedStatus(sheet);
 
 
 const data = sheet.getDataRange().getValues();
@@ -542,7 +538,7 @@ function updateFilterAndProtection(sheet) {
  * 撮影終了・納品・UP（K〜M列）のいずれかにチェックが入っている行の
  * J列（状態）を「撮影終了」に更新する。
  * ※ onEdit（自動トリガー）は他のGASと競合するため使わず、
- *   メニュー実行時（同期・並べ替え）にまとめて適用する。
+ *   「撮影終了を下に移動」メニューの実行時に呼ばれる。
  */
 function applyFinishedStatus(sheet) {
   const lastRow = sheet.getLastRow();
