@@ -17,7 +17,7 @@ const LINE_HUB_CONFIG = {
   LINE_SHEET_NAME: "LINE貼付",
   FIX_SHEET_NAME: "修正管理",
   DONE_LOG_SHEET_NAME: "修正完了ログ",
-  DELIVERY_LOG_SHEET_NAME: "納品完了ログ",
+  DELIVERY_LOG_SHEET_NAME: "制作チェック",
 
   LIGHTWEIGHT_SPREADSHEET_ID: "17okkRhyvkfrzVdTlC2Z5lmOXcm_wEweaqah8CNAHUMw",
   LIGHTWEIGHT_SHEET_NAME: "軽量版案件一覧",
@@ -34,6 +34,14 @@ const LINE_HUB_CONFIG = {
     "納品前最終チェック",
     "納品完了",
     "その他"
+  ],
+
+  // 「制作チェック」シートに転記する種別
+  DELIVERY_TYPES: [
+    "TOP制作完了",
+    "全ページ制作完了",
+    "納品前最終チェック",
+    "納品完了"
   ]
 };
 
@@ -194,7 +202,7 @@ function parseLineText_(text, type) {
   let staff = "";
   let projectName = "";
 
-  if (type === "納品完了") {
+  if (isDeliveryType_(type)) {
     // 案件名は「URLの直前の行」を基本に抽出（区切り線・メンションのみの行は飛ばす）
     const urlLineIdx = lines.findIndex(line => /https?:\/\//.test(line));
     let name = "";
@@ -273,7 +281,12 @@ function cleanProjectName_(value) {
     .trim();
 }
 
-// 納品完了メッセージ用：案件名の行から敬称・完了文言・記号を除去
+// 「制作チェック」へ転記する種別か（TOP制作完了・全ページ制作完了・納品前最終チェック・納品完了）
+function isDeliveryType_(type) {
+  return LINE_HUB_CONFIG.DELIVERY_TYPES.indexOf(type) >= 0;
+}
+
+// 制作完了・納品系メッセージ用：案件名の行から敬称・完了文言・記号を除去
 function cleanDeliveryProjectName_(value) {
   let s = String(value || "").trim();
 

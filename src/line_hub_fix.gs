@@ -412,7 +412,8 @@ function rebuildFixManagement_() {
   const reflectNow = new Date();
   const reflectValues = lineRows.map(row => {
     const type = row[0];
-    return (type === "修正依頼" || type === "修正完了" || type === "納品完了") ? [reflectNow] : [row[7]];
+    const reflect = (type === "修正依頼" || type === "修正完了" || isDeliveryType_(type));
+    return reflect ? [reflectNow] : [row[7]];
   });
 
   lineSheet.getRange(2, 8, reflectValues.length, 1).setValues(reflectValues);
@@ -489,8 +490,9 @@ function formatLineHubRows_() {
   const deliverySheet = ss.getSheetByName(LINE_HUB_CONFIG.DELIVERY_LOG_SHEET_NAME);
   if (deliverySheet) {
     const lastRow = Math.max(deliverySheet.getLastRow(), 2);
-    deliverySheet.getRange("E:E").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
-    deliverySheet.getRange("G:G").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+    deliverySheet.getRange("E:E").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // 案件名
+    deliverySheet.getRange("F:F").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // URL
+    deliverySheet.getRange("H:H").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // CMSログイン先
     deliverySheet.setRowHeights(2, lastRow - 1, 36);
   }
 }
