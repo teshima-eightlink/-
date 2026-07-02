@@ -20,6 +20,10 @@ const LINE_HUB_CONFIG = {
   DONE_LOG_SHEET_NAME: "修正完了ログ",
   DELIVERY_LOG_SHEET_NAME: "制作チェック",
 
+  // 制作チェックのドキュメント列(I)は、このシートを案件名(E)で XLOOKUP して表示
+  //   =XLOOKUP(E{行}, '納品前案件'!A:A, '納品前案件'!H:H, "なし", 0)
+  DOC_LOOKUP_SHEET_NAME: "納品前案件",
+
   LIGHTWEIGHT_SPREADSHEET_ID: "17okkRhyvkfrzVdTlC2Z5lmOXcm_wEweaqah8CNAHUMw",
   LIGHTWEIGHT_SHEET_NAME: "軽量版案件一覧",
 

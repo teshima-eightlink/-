@@ -189,23 +189,21 @@ function rebuildDeliveryLog_() {
 
   // 既存の手入力をレコードIDで保持
   //   ・状態(D)：プレーン値
-  //   ・ドキュメント(I)・備考(J)：リッチテキスト（URLリンクを保持）
+  //   ・備考(J)：リッチテキスト（URLリンクを保持）
+  //   ・ドキュメント(I)は '納品前案件' を案件名で XLOOKUP する数式なので毎回自動生成
   const keepStatus = {};
-  const keepDoc = {};
   const keepNote = {};
   const oldLastRow = sheet.getLastRow();
 
   if (oldLastRow >= 2) {
     const n = oldLastRow - 1;
     const vals = sheet.getRange(2, 1, n, 12).getValues();
-    const docRich = sheet.getRange(2, 9, n, 1).getRichTextValues();   // I列
     const noteRich = sheet.getRange(2, 10, n, 1).getRichTextValues(); // J列
 
     vals.forEach((row, i) => {
       const id = String(row[10] || "").trim(); // K：レコードID
       if (!id) return;
       keepStatus[id] = row[3];
-      keepDoc[id] = docRich[i][0];
       keepNote[id] = noteRich[i][0];
     });
   }
@@ -250,7 +248,6 @@ function rebuildDeliveryLog_() {
 
     records.push({
       status: status,
-      doc: keepDoc[id] || null,   // I：ドキュメント（リッチテキスト）
       note: keepNote[id] || null, // J：備考（リッチテキスト）
       values: [
         pastedAt,     // A：貼り付け日
@@ -261,7 +258,7 @@ function rebuildDeliveryLog_() {
         tanto,        // F：制作担当
         finalUrl,     // G：URL
         cms,          // H：CMSログイン先
-        "",           // I：ドキュメント（後でリッチテキストで復元）
+        "",           // I：ドキュメント（後で XLOOKUP 数式をセット）
         "",           // J：備考（後でリッチテキストで復元）
         id,           // K：レコードID（非表示）
         sourceRow     // L：元LINE行（非表示）
@@ -292,7 +289,6 @@ function moveDoneDeliveryDown() {
 
   const n = lastRow - 1;
   const vals = sheet.getRange(2, 1, n, 12).getValues();
-  const docRich = sheet.getRange(2, 9, n, 1).getRichTextValues();   // I列
   const noteRich = sheet.getRange(2, 10, n, 1).getRichTextValues(); // J列
 
   const records = [];
@@ -304,7 +300,6 @@ function moveDoneDeliveryDown() {
 
     records.push({
       status: row[3],
-      doc: docRich[i][0],
       note: noteRich[i][0],
       values: row
     });
@@ -316,7 +311,7 @@ function moveDoneDeliveryDown() {
 
 /**
  * レコードを「未完了 → 空行1行 → 対応完了」の順に並べ替える。
- * record = { status, doc(RichText|null), note(RichText|null), values(12列配列) }
+ * record = { status, note(RichText|null), values(12列配列) }
  */
 function orderDeliveryRecords_(records) {
   const active = [];
@@ -329,7 +324,7 @@ function orderDeliveryRecords_(records) {
 
   const result = active.slice();
   if (done.length > 0) {
-    result.push({ status: "", doc: null, note: null, values: new Array(12).fill("") });
+    result.push({ status: "", note: null, values: new Array(12).fill("") });
     done.forEach(r => result.push(r));
   }
   return result;
@@ -338,7 +333,8 @@ function orderDeliveryRecords_(records) {
 /**
  * 制作チェックへ書き込む共通処理。
  * ・プレーン値を setValues
- * ・ドキュメント(I)・備考(J)は setRichTextValues でリンクごと復元
+ * ・ドキュメント(I)は '納品前案件' を案件名で XLOOKUP する数式を各行にセット
+ * ・備考(J)は setRichTextValues でリンクごと復元
  */
 function writeDeliveryRecords_(sheet, ordered, oldLastRow) {
   if (oldLastRow >= 2) {
@@ -354,11 +350,29 @@ function writeDeliveryRecords_(sheet, ordered, oldLastRow) {
 
   const emptyRich = SpreadsheetApp.newRichTextValue().setText("").build();
 
+  // プレーン値（I・J は仮置き）
   sheet.getRange(2, 1, ordered.length, 12).setValues(ordered.map(r => r.values));
-  sheet.getRange(2, 9, ordered.length, 1)
-    .setRichTextValues(ordered.map(r => [r.doc || emptyRich]));   // I：ドキュメント
+
+  // I：ドキュメント（データ行だけ XLOOKUP 数式。空行は空）
+  const docFormulas = ordered.map((r, i) => {
+    const sheetRow = 2 + i;
+    const isData = String(r.values[10] || "").trim() !== "";
+    return [isData ? deliveryDocFormula_(sheetRow) : ""];
+  });
+  sheet.getRange(2, 9, ordered.length, 1).setFormulas(docFormulas);
+
+  // J：備考（リッチテキストでリンク保持）
   sheet.getRange(2, 10, ordered.length, 1)
-    .setRichTextValues(ordered.map(r => [r.note || emptyRich]));  // J：備考
+    .setRichTextValues(ordered.map(r => [r.note || emptyRich]));
+}
+
+/**
+ * 制作チェック I列（ドキュメント）の数式を作る。
+ * 指定行の案件名(E)で '納品前案件' を XLOOKUP し、H列の値を返す（無ければ「なし」）。
+ */
+function deliveryDocFormula_(row) {
+  const sh = LINE_HUB_CONFIG.DOC_LOOKUP_SHEET_NAME;
+  return `=XLOOKUP(E${row}, '${sh}'!A:A, '${sh}'!H:H, "なし", 0)`;
 }
 
 /**
