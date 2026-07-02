@@ -1,13 +1,14 @@
 // @ts-nocheck
 //==================================================
-// LINE貼付ハブ ― 解析パート
+// LINE貼付ハブ ― 解析パート（＝入口）
 //   ・共通設定（LINE_HUB_CONFIG）
+//   ・実行ボタン（runLineHub / setupLineHubSheets ほか）＝全体の入口
 //   ・LINE貼付シートの解析（analyzeLineHub_）
 //   ・LINE本文の解析（parseLineText_ ほか）
 //   ・軽量版案件一覧の照合（getLightweightMap_ / checkLightweight_）
 //   ・日付・営業日・正規化のユーティリティ
 //
-//   ※ 修正管理パート（line_hub_fix.gs）・納品完了パート（line_hub_delivery.gs）
+//   ※ 修正管理パート（line_hub_fix.gs）・制作チェックパート（line_hub_delivery.gs）
 //     と同じGASプロジェクトに置いてください。グローバルを共有します。
 //==================================================
 
@@ -47,6 +48,40 @@ const LINE_HUB_CONFIG = {
 
 let LIGHTWEIGHT_MAP_CACHE_ = null;
 let HOLIDAY_DATE_SET_CACHE_ = null;
+
+//==================================================
+// 実行ボタン（全体の入口）
+//   ・runLineHub          … 解析＋全転記（修正管理・修正完了ログ・制作チェック）
+//   ・setupLineHubSheets  … 全シートの初期セットアップ
+//   ・runStatusFilter     … 修正管理の絞り込み再適用
+//   ・runFormatLineHubRows… 各シートの見た目を整える
+//==================================================
+
+function runLineHub() {
+  analyzeLineHub_();
+  rebuildDoneLog_();
+  rebuildFixManagement_();
+  rebuildDeliveryLog_();
+}
+
+function setupLineHubSheets() {
+  const ss = getLineHubSpreadsheet_();
+
+  setupLinePasteSheet_(ss);
+  setupFixManagementSheet_(ss);
+  setupDoneLogSheet_(ss);
+  setupDeliveryLogSheet_(ss);
+  formatLineHubRows_();
+  applyStatusFilter_();
+}
+
+function runStatusFilter() {
+  applyStatusFilter_();
+}
+
+function runFormatLineHubRows() {
+  formatLineHubRows_();
+}
 
 //==================================================
 // 基本

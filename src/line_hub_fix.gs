@@ -1,43 +1,14 @@
 // @ts-nocheck
 //==================================================
 // LINE貼付ハブ ― 修正管理パート
-//   ・実行ボタン（runLineHub ほか）
 //   ・修正管理シート／修正完了ログの初期化・再構築
 //   ・表示・色・フィルター
 //
-//   ※ 解析パート（line_hub_analyze.gs）・納品完了パート（line_hub_delivery.gs）
+//   ※ 実行ボタン（runLineHub ほか）は解析パート（line_hub_analyze.gs）に
+//     まとめています。
+//   ※ 解析パート（line_hub_analyze.gs）・制作チェックパート（line_hub_delivery.gs）
 //     と同じGASプロジェクトに置いてください。グローバルを共有します。
 //==================================================
-
-//==================================================
-// ボタン用
-//==================================================
-
-function runLineHub() {
-  analyzeLineHub_();
-  rebuildDoneLog_();
-  rebuildFixManagement_();
-  rebuildDeliveryLog_();
-}
-
-function runStatusFilter() {
-  applyStatusFilter_();
-}
-
-function runFormatLineHubRows() {
-  formatLineHubRows_();
-}
-
-function setupLineHubSheets() {
-  const ss = getLineHubSpreadsheet_();
-
-  setupLinePasteSheet_(ss);
-  setupFixManagementSheet_(ss);
-  setupDoneLogSheet_(ss);
-  setupDeliveryLogSheet_(ss);
-  formatLineHubRows_();
-  applyStatusFilter_();
-}
 
 //==================================================
 // 初期セットアップ（修正管理・修正完了ログ）
