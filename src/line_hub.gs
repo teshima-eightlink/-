@@ -6,6 +6,7 @@ const LINE_HUB_CONFIG = {
   LINE_SHEET_NAME: "LINE貼付",
   FIX_SHEET_NAME: "修正管理",
   DONE_LOG_SHEET_NAME: "修正完了ログ",
+  DELIVERY_LOG_SHEET_NAME: "納品完了ログ",
 
   LIGHTWEIGHT_SPREADSHEET_ID: "17okkRhyvkfrzVdTlC2Z5lmOXcm_wEweaqah8CNAHUMw",
   LIGHTWEIGHT_SHEET_NAME: "軽量版案件一覧",
@@ -14,7 +15,7 @@ const LINE_HUB_CONFIG = {
   FIX_DATA_START_ROW: 3,
   LIMIT_BUSINESS_DAYS: 10,
 
-  TYPES: ["修正依頼", "修正完了", "その他"]
+  TYPES: ["修正依頼", "修正完了", "納品完了", "その他"]
 };
 
 let LIGHTWEIGHT_MAP_CACHE_ = null;
@@ -28,6 +29,7 @@ function runLineHub() {
   analyzeLineHub_();
   rebuildDoneLog_();
   rebuildFixManagement_();
+  rebuildDeliveryLog_();
 }
 
 function runStatusFilter() {
@@ -44,6 +46,7 @@ function setupLineHubSheets() {
   setupLinePasteSheet_(ss);
   setupFixManagementSheet_(ss);
   setupDoneLogSheet_(ss);
+  setupDeliveryLogSheet_(ss);
   formatLineHubRows_();
   applyStatusFilter_();
 }
@@ -200,6 +203,62 @@ function setupDoneLogSheet_(ss) {
   sheet.getRange("A1:I1").setFontWeight("bold").setBackground("#ead1dc");
 }
 
+function setupDeliveryLogSheet_(ss) {
+  let sheet = ss.getSheetByName(LINE_HUB_CONFIG.DELIVERY_LOG_SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(LINE_HUB_CONFIG.DELIVERY_LOG_SHEET_NAME);
+
+  sheet.getRange(1, 1, 1, 11).setValues([[
+    "貼り付け日",
+    "区分",
+    "状態",
+    "案件名",
+    "URL",
+    "制作担当",
+    "CMSログイン先",
+    "ドキュメント",
+    "備考",
+    "納品ID",
+    "元LINE行"
+  ]]);
+
+  sheet.setFrozenRows(1);
+
+  sheet.setColumnWidth(1, 110);
+  sheet.setColumnWidth(2, 90);
+  sheet.setColumnWidth(3, 110);
+  sheet.setColumnWidth(4, 240);
+  sheet.setColumnWidth(5, 260);
+  sheet.setColumnWidth(6, 120);
+  sheet.setColumnWidth(7, 240);
+  sheet.setColumnWidth(8, 200);
+  sheet.setColumnWidth(9, 260);
+
+  sheet.getRange("A:K").setVerticalAlignment("top");
+  sheet.getRange("A1:K1").setFontWeight("bold").setBackground("#fce5cd");
+  sheet.getRange("A2:A").setNumberFormat("yyyy/MM/dd");
+
+  // B列：区分（TOP/全ページ）
+  const scopeRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(["TOP", "全ページ"], true)
+    .setAllowInvalid(false)
+    .build();
+  sheet.getRange("B2:B").setDataValidation(scopeRule);
+
+  // C列：状態（未対応/対応中/対応完了）
+  const statusRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(["未対応", "対応中", "対応完了"], true)
+    .setAllowInvalid(false)
+    .build();
+  sheet.getRange("C2:C").setDataValidation(statusRule);
+
+  sheet.getRange("E:E").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+  sheet.getRange("G:G").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+  sheet.getRange("H:I").setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+
+  // J・K（納品ID・元LINE行）を非表示
+  sheet.hideColumns(10, 2);
+}
+
 //==================================================
 // LINE貼付解析：G列が空白の行だけ解析
 //==================================================
@@ -336,6 +395,111 @@ function rebuildDoneLog_() {
   if (output.length > 0) {
     doneSheet.getRange(2, 1, output.length, 9).setValues(output);
   }
+}
+
+//==================================================
+// 納品完了ログ再構築
+//==================================================
+
+function rebuildDeliveryLog_() {
+  const ss = getLineHubSpreadsheet_();
+  const lineSheet = ss.getSheetByName(LINE_HUB_CONFIG.LINE_SHEET_NAME);
+  const sheet = ss.getSheetByName(LINE_HUB_CONFIG.DELIVERY_LOG_SHEET_NAME);
+  if (!sheet) return;
+
+  const lightweightMap = getLightweightMap_();
+
+  // 既存の手入力（状態・ドキュメント・備考）を納品IDで保持
+  const keepMap = {};
+  const oldLastRow = sheet.getLastRow();
+
+  if (oldLastRow >= 2) {
+    const old = sheet.getRange(2, 1, oldLastRow - 1, 11).getValues();
+
+    old.forEach(row => {
+      const id = row[9]; // J：納品ID
+      if (!id) return;
+
+      keepMap[id] = {
+        status: row[2],    // C：状態
+        document: row[7],  // H：ドキュメント
+        note: row[8]       // I：備考
+      };
+    });
+  }
+
+  const lastRow = lineSheet.getLastRow();
+
+  if (lastRow < 2) {
+    if (oldLastRow >= 2) {
+      sheet.getRange(2, 1, oldLastRow - 1, 11).clearContent();
+    }
+    return;
+  }
+
+  const rows = lineSheet.getRange(2, 1, lastRow - 1, 8).getValues();
+  const output = [];
+
+  rows.forEach((row, index) => {
+    const sourceRow = index + 2;
+    const type = row[0];
+    const raw = row[1];
+
+    if (type !== "納品完了" || !raw) return;
+
+    const parsed = parseLineText_(raw, type);
+    const finalUrl = row[4] || parsed.url;
+
+    const check = checkLightweight_(parsed.projectName, finalUrl, lightweightMap);
+
+    // ★案件名・制作担当・CMSログイン先は軽量版案件一覧からURL照合で取得
+    // （軽量版に無い場合、案件名は本文からの抽出をフォールバックに使う）
+    const projectName = check.lightProjectName || row[3] || parsed.projectName;
+    const tanto = check.lightTanto || "";
+    const cms = check.lightCms || "";
+
+    const scope = detectDeliveryScope_(raw);
+    const pastedAt = row[6] || new Date();
+
+    const id = `DLV-${String(sourceRow).padStart(5, "0")}`;
+    const keep = keepMap[id] || {};
+
+    output.push([
+      pastedAt,               // A：貼り付け日
+      scope,                  // B：区分
+      keep.status || "未対応", // C：状態
+      projectName,            // D：案件名 ★
+      finalUrl,               // E：URL
+      tanto,                  // F：制作担当 ★
+      cms,                    // G：CMSログイン先 ★
+      keep.document || "",    // H：ドキュメント
+      keep.note || "",        // I：備考
+      id,                     // J：納品ID（非表示）
+      sourceRow               // K：元LINE行（非表示）
+    ]);
+  });
+
+  if (oldLastRow >= 2) {
+    sheet.getRange(2, 1, oldLastRow - 1, 11).clearContent();
+  }
+
+  if (output.length > 0) {
+    sheet.getRange(2, 1, output.length, 11).setValues(output);
+  }
+}
+
+/**
+ * 本文から「TOP / 全ページ」の区分を判定する。
+ * ・「全ページ」の記載あり → 全ページ
+ * ・「TOP」の記載あり → TOP
+ * ・どちらの記載もない → 全ページ
+ */
+function detectDeliveryScope_(text) {
+  const raw = String(text || "");
+
+  if (/全ページ|全ぺージ/.test(raw)) return "全ページ";
+  if (/TOP|ＴＯＰ|トップ/i.test(raw)) return "TOP";
+  return "全ページ";
 }
 
 //==================================================
@@ -534,7 +698,7 @@ function rebuildFixManagement_() {
   const reflectNow = new Date();
   const reflectValues = lineRows.map(row => {
     const type = row[0];
-    return (type === "修正依頼" || type === "修正完了") ? [reflectNow] : [row[7]];
+    return (type === "修正依頼" || type === "修正完了" || type === "納品完了") ? [reflectNow] : [row[7]];
   });
 
   lineSheet.getRange(2, 8, reflectValues.length, 1).setValues(reflectValues);
@@ -606,6 +770,14 @@ function formatLineHubRows_() {
     const lastRow = Math.max(doneSheet.getLastRow(), 2);
     doneSheet.getRange("D:D").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
     doneSheet.setRowHeights(2, lastRow - 1, 36);
+  }
+
+  const deliverySheet = ss.getSheetByName(LINE_HUB_CONFIG.DELIVERY_LOG_SHEET_NAME);
+  if (deliverySheet) {
+    const lastRow = Math.max(deliverySheet.getLastRow(), 2);
+    deliverySheet.getRange("E:E").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+    deliverySheet.getRange("G:G").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+    deliverySheet.setRowHeights(2, lastRow - 1, 36);
   }
 }
 
@@ -700,7 +872,28 @@ function parseLineText_(text, type) {
   let staff = "";
   let projectName = "";
 
-  if (type === "修正完了") {
+  if (type === "納品完了") {
+    // 案件名は「URLの直前の行」を基本に抽出（区切り線・メンションのみの行は飛ばす）
+    const urlLineIdx = lines.findIndex(line => /https?:\/\//.test(line));
+    let name = "";
+
+    if (urlLineIdx >= 0) {
+      for (let i = urlLineIdx - 1; i >= 0; i--) {
+        const line = lines[i];
+        if (isDividerLine_(line) || isMentionOnly_(line)) continue;
+        name = cleanDeliveryProjectName_(line);
+        if (name) break;
+      }
+    }
+
+    if (!name) {
+      const cand = lines.find(line => !isDividerLine_(line) && !isMentionOnly_(line) && !/https?:\/\//.test(line));
+      name = cleanDeliveryProjectName_(cand || "");
+    }
+
+    staff = extractStaffFromText_(raw);
+    projectName = name;
+  } else if (type === "修正完了") {
     const firstLine = lines[0] || "";
     const staffMatch = firstLine.match(/【(.+?)】/);
     staff = staffMatch ? staffMatch[1].trim() : firstLine.replace(/[【】]/g, "").trim();
@@ -758,6 +951,42 @@ function cleanProjectName_(value) {
     .trim();
 }
 
+// 納品完了メッセージ用：案件名の行から敬称・完了文言・記号を除去
+function cleanDeliveryProjectName_(value) {
+  let s = String(value || "").trim();
+
+  s = s.replace(/^(@\S+\s*)+/, "").trim();      // 先頭の @メンション
+  s = s.replace(/^【.+?】/, "").trim();          // 先頭の【タグ】
+  s = s.replace(/[！!。、\s]+$/, "");             // 末尾の記号・空白
+  s = s.replace(/(完了(です|しました|いたしました|でした)?)$/, "").trim(); // 末尾の完了文言
+  s = s.replace(/(様|さま|さん)$/, "").trim();    // 末尾の敬称
+
+  return s;
+}
+
+// 区切り線（ーーーーー、＝＝＝ など）だけの行か
+function isDividerLine_(line) {
+  return /^[ー－—\-＝=~〜_＿\s]+$/.test(String(line || ""));
+}
+
+// @メンションのみの行か
+function isMentionOnly_(line) {
+  return /^(@\S+\s*)+$/.test(String(line || "").trim());
+}
+
+// 本文から担当者情報（@メンション、無ければ【タグ】）を抽出
+function extractStaffFromText_(text) {
+  const raw = String(text || "");
+
+  const mentions = raw.match(/@\S+/g);
+  if (mentions && mentions.length > 0) {
+    return mentions.join(" ");
+  }
+
+  const tagMatch = raw.match(/【(.+?)】/);
+  return tagMatch ? tagMatch[1].trim() : "";
+}
+
 //==================================================
 // 軽量版照合
 //==================================================
@@ -800,6 +1029,27 @@ function getLightweightMap_() {
     "HPURL"
   ]);
 
+  const tantoCol = findHeaderIndex_(headers, [
+    "制作担当",
+    "制作担当者",
+    "制作者",
+    "担当",
+    "担当者"
+  ]);
+
+  const cmsCol = findHeaderIndex_(headers, [
+    "CMSログイン先",
+    "CMSログイン",
+    "CMS URL",
+    "CMSURL",
+    "管理画面URL",
+    "管理画面",
+    "ログインURL",
+    "ログイン先",
+    "WP管理画面",
+    "wp-admin"
+  ]);
+
   const byUrl = {};
   const byProject = {};
 
@@ -808,12 +1058,16 @@ function getLightweightMap_() {
 
     const projectName = projectCol >= 0 ? String(row[projectCol] || "").trim() : "";
     const url = urlCol >= 0 ? String(row[urlCol] || "").trim() : "";
+    const tanto = tantoCol >= 0 ? String(row[tantoCol] || "").trim() : "";
+    const cms = cmsCol >= 0 ? String(row[cmsCol] || "").trim() : "";
+
+    const entry = { projectName, url, tanto, cms };
 
     const nProject = normalizeText_(projectName);
     const nUrl = normalizeUrl_(url);
 
-    if (nUrl) byUrl[nUrl] = { projectName, url };
-    if (nProject) byProject[nProject] = { projectName, url };
+    if (nUrl) byUrl[nUrl] = entry;
+    if (nProject) byProject[nProject] = entry;
   }
 
   LIGHTWEIGHT_MAP_CACHE_ = { byUrl, byProject, error: "" };
@@ -821,8 +1075,10 @@ function getLightweightMap_() {
 }
 
 function checkLightweight_(projectName, url, lightweightMap) {
+  const empty = { lightProjectName: "", lightUrl: "", lightTanto: "", lightCms: "" };
+
   if (lightweightMap.error) {
-    return { result: lightweightMap.error, lightProjectName: "", lightUrl: "" };
+    return Object.assign({ result: lightweightMap.error }, empty);
   }
 
   const nProject = normalizeText_(projectName);
@@ -830,7 +1086,13 @@ function checkLightweight_(projectName, url, lightweightMap) {
 
   if (nUrl && lightweightMap.byUrl[nUrl]) {
     const hit = lightweightMap.byUrl[nUrl];
-    return { result: "OK", lightProjectName: hit.projectName, lightUrl: hit.url };
+    return {
+      result: "OK",
+      lightProjectName: hit.projectName,
+      lightUrl: hit.url,
+      lightTanto: hit.tanto || "",
+      lightCms: hit.cms || ""
+    };
   }
 
   if (nProject && lightweightMap.byProject[nProject]) {
@@ -838,19 +1100,17 @@ function checkLightweight_(projectName, url, lightweightMap) {
     return {
       result: nUrl ? "URL要確認" : "URLなし・案件名一致",
       lightProjectName: hit.projectName,
-      lightUrl: hit.url
+      lightUrl: hit.url,
+      lightTanto: hit.tanto || "",
+      lightCms: hit.cms || ""
     };
   }
 
   if (!nUrl && !nProject) {
-    return { result: "案件名・URLなし", lightProjectName: "", lightUrl: "" };
+    return Object.assign({ result: "案件名・URLなし" }, empty);
   }
 
-  return {
-    result: nUrl ? "該当なし" : "URLなし・該当なし",
-    lightProjectName: "",
-    lightUrl: ""
-  };
+  return Object.assign({ result: nUrl ? "該当なし" : "URLなし・該当なし" }, empty);
 }
 
 function findHeaderIndex_(headers, candidates) {
