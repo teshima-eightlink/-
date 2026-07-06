@@ -46,9 +46,12 @@ const WORKLOAD_CATEGORY_RULES = {
 
 //==================================================
 // メニュー
+//   ※ onOpen（シンプルトリガー）は他のGASと衝突するため使わない。
+//     buildWorkloadMenu を「インストール型トリガー（開いたとき）」で呼ぶ。
+//     → 初回だけ installWorkloadMenu を実行してトリガーを登録してください。
 //==================================================
 
-function onOpen() {
+function buildWorkloadMenu() {
   SpreadsheetApp.getUi()
     .createMenu("業務量ログ")
     .addItem("更新（カレンダー同期＋集計）", "updateWorkload")
@@ -56,6 +59,26 @@ function onOpen() {
     .addSeparator()
     .addItem("【初回】2週間シートを作成", "setupWorkload2WeeksSheet")
     .addToUi();
+}
+
+// 「開いたときにメニューを作る」インストール型トリガーを登録（初回のみ実行）
+function installWorkloadMenu() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // 既存の同名トリガーを削除（重複防止）
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === "buildWorkloadMenu") {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+
+  ScriptApp.newTrigger("buildWorkloadMenu")
+    .forSpreadsheet(ss)
+    .onOpen()
+    .create();
+
+  buildWorkloadMenu(); // いま開いているシートにもすぐ表示
+  SpreadsheetApp.getActive().toast("メニューを設定しました（次回以降も自動表示）", "完了", 5);
 }
 
 //==================================================
