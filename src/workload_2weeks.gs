@@ -61,13 +61,17 @@ function buildWorkloadMenu() {
     .addToUi();
 }
 
-// 「開いたときにメニューを作る」インストール型トリガーを登録（初回のみ実行）
+// インストール型トリガーを登録（初回のみ実行）
+//   ・buildWorkloadMenu … 開いたときにメニューを作る
+//   ・handleWorkloadEdit … B/C列を編集したら合計を自動再計算
+//   ※ onOpen / onEdit という名前は使わないので他のGASと衝突しません。
 function installWorkloadMenu() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
   // 既存の同名トリガーを削除（重複防止）
   ScriptApp.getProjectTriggers().forEach(t => {
-    if (t.getHandlerFunction() === "buildWorkloadMenu") {
+    const fn = t.getHandlerFunction();
+    if (fn === "buildWorkloadMenu" || fn === "handleWorkloadEdit") {
       ScriptApp.deleteTrigger(t);
     }
   });
@@ -77,8 +81,30 @@ function installWorkloadMenu() {
     .onOpen()
     .create();
 
+  ScriptApp.newTrigger("handleWorkloadEdit")
+    .forSpreadsheet(ss)
+    .onEdit()
+    .create();
+
   buildWorkloadMenu(); // いま開いているシートにもすぐ表示
-  SpreadsheetApp.getActive().toast("メニューを設定しました（次回以降も自動表示）", "完了", 5);
+  SpreadsheetApp.getActive().toast("メニューと自動再計算を設定しました", "完了", 5);
+}
+
+// 【編集時に自動実行】B列(やった時間)・C列(やれなかった時間)を編集したら合計を再計算
+//   ※ 関数名は onEdit ではないため他のGASと衝突しません。
+function handleWorkloadEdit(e) {
+  if (!e || !e.range) return;
+
+  const sheet = e.range.getSheet();
+  if (sheet.getName() !== WORKLOAD_2W_CONFIG.SHEET_NAME) return;
+
+  const startCol = e.range.getColumn();
+  const endCol = startCol + e.range.getNumColumns() - 1;
+
+  // 編集範囲に B(2) / C(3) を含むときだけ再計算
+  if (endCol < 2 || startCol > 3) return;
+
+  recalcWorkload2Weeks();
 }
 
 //==================================================
