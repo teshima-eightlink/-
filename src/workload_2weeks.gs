@@ -339,13 +339,11 @@ function writeWorkloadAggregates_(sheet, vals, days) {
   const weeks = [days.slice(0, 7), days.slice(7, 14)];
   weekAvgRows.forEach((r, idx) => {
     const wk = weeks[idx] || [];
-    const avg = wk.length ? Math.round(wk.reduce((s, d) => s + d.notDoneMin, 0) / wk.length) : 0;
-    sheet.getRange(r, 2).setValue(formatWorkloadTime_(avg));
+    sheet.getRange(r, 2).setValue(formatWorkloadTime_(avgNotDoneWeekdays_(wk)));
   });
 
   if (twoWeekRow > 0) {
-    const avg = days.length ? Math.round(days.reduce((s, d) => s + d.notDoneMin, 0) / days.length) : 0;
-    sheet.getRange(twoWeekRow, 2).setValue(formatWorkloadTime_(avg));
+    sheet.getRange(twoWeekRow, 2).setValue(formatWorkloadTime_(avgNotDoneWeekdays_(days)));
   }
 
   if (overtimeRow > 0) {
@@ -362,6 +360,16 @@ function writeWorkloadAggregates_(sheet, vals, days) {
     }, 0);
     sheet.getRange(holidayRow, 2).setValue(formatWorkloadTime_(hol));
   }
+}
+
+// やれなかった時間の平均：平日（土日を除く）だけで平均する
+//   ※ 全7日で割りたい場合は、weekday判定を外して list.length で割ってください。
+function avgNotDoneWeekdays_(list) {
+  const weekdays = list.filter(d =>
+    d.date && d.date.getDay() !== 0 && d.date.getDay() !== 6
+  );
+  if (weekdays.length === 0) return 0;
+  return Math.round(weekdays.reduce((s, d) => s + d.notDoneMin, 0) / weekdays.length);
 }
 
 //==================================================
