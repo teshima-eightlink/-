@@ -1,22 +1,23 @@
 // @ts-nocheck
 //==================================================
 // 業務量ログ（2週間）
-//   ・「○時間○分」で手入力 → GASで集計して値を書き込む方式
-//   ・カスタム関数は使わない（#NAME? が起きない／時間トリガーでも動く）
+//   ・打ち合わせ用カレンダー＋業務ログ用カレンダーから自動集計
+//   ・カレンダーは「全期間を1回だけ」取得、シートは一括読み書き（高速）
+//   ・カスタム関数は使わない（#NAME? が起きない）
 //
-//   実行：setupWorkload2WeeksSheet（初回作成）
-//        syncWorkloadMeetings（打ち合わせをカレンダーから同期）
-//        recalcWorkload2Weeks（合計・平均・サビ残・休日稼働を再計算）
-//   ※ タスクの時間を入力したら「再計算」を実行してください（メニューからも可）。
+//   メニュー「業務量ログ」から：
+//     更新（カレンダー同期＋集計） / 再計算（手入力を反映） / 【初回】シート作成
+//   ※ 業務ログ用カレンダーのタイトルに含むキーワードで項目に振り分けます。
 //==================================================
 
 const WORKLOAD_2W_CONFIG = {
   SHEET_NAME: "業務量ログ_2週間",
-  CALENDAR_ID: "primary",
-  WORK_START_HOUR: 9,
-  WORK_END_HOUR: 18,
+
+  MEETING_CALENDAR_ID: "primary",
+  WORK_LOG_CALENDAR_ID: "250d56987c5dc48caa13cf1327ddb2ae3e85dba487f780ab3a7101a698a3f58b@group.calendar.google.com",
+
   EXCLUDE_KEYWORDS: ["休憩", "昼休み", "移動", "有給", "欠勤"],
-  DAILY_WORK_MINUTES: 480 // 1日の所定（8時間）。これを超えた分がサビ残
+  DAILY_WORK_MINUTES: 480 // 1日の所定（8時間）。超えた分がサビ残
 };
 
 const WORKLOAD_TASKS = [
@@ -31,6 +32,18 @@ const WORKLOAD_TASKS = [
   "改善業務"
 ];
 
+// 業務ログ用カレンダーのタイトル → 項目 振り分けルール
+const WORKLOAD_CATEGORY_RULES = {
+  "LINE対応": ["LINE", "line", "ライン", "らいん"],
+  "修正関連": ["修正"],
+  "打ち合わせ準備": ["準備"],
+  "納品前チェック": ["納品前"],
+  "撮影関連": ["撮影"],
+  "社内連絡": ["社内"],
+  "その他": ["その他"],
+  "改善業務": ["改善", "GAS", "マニュアル"]
+};
+
 //==================================================
 // メニュー
 //==================================================
@@ -38,8 +51,8 @@ const WORKLOAD_TASKS = [
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("業務量ログ")
-    .addItem("再計算", "recalcWorkload2Weeks")
-    .addItem("打ち合わせを同期", "syncWorkloadMeetings")
+    .addItem("更新（カレンダー同期＋集計）", "updateWorkload")
+    .addItem("再計算（手入力を反映）", "recalcWorkload2Weeks")
     .addSeparator()
     .addItem("【初回】2週間シートを作成", "setupWorkload2WeeksSheet")
     .addToUi();
@@ -62,48 +75,38 @@ function setupWorkload2WeeksSheet() {
   sheet.getRange("A1").setValue("業務量ログ（2週間）");
   sheet.getRange("A2").setValue("開始日");
   sheet.getRange("B2").setValue(startDate).setNumberFormat("yyyy/mm/dd（aaa）");
-  sheet.getRange("D2").setValue("※B2だけ変更すれば日付・曜日が連動します（変更後は「再計算」を実行）");
+  sheet.getRange("D2").setValue("※B2だけ変更すれば日付・曜日が連動します（変更後は「更新」を実行）");
 
   let row = 4;
 
   for (let week = 0; week < 2; week++) {
     sheet.getRange(row, 1, 1, 4).merge();
     sheet.getRange(row, 1).setValue(`${week + 1}週目`);
-    sheet.getRange(row, 1, 1, 4)
-      .setFontWeight("bold")
-      .setBackground("#d9eaf7");
+    sheet.getRange(row, 1, 1, 4).setFontWeight("bold").setBackground("#d9eaf7");
     row++;
 
     for (let i = 0; i < 7; i++) {
       const dayIndex = week * 7 + i;
       const blockStart = row;
 
-      // 日付行（B列は開始日からの連動：ネイティブ数式なのでOK）
+      // 日付行（B列は開始日連動：ネイティブ数式なのでOK）
       sheet.getRange(row, 1).setValue("日付");
       sheet.getRange(row, 2)
         .setFormula(`=$B$2+${dayIndex}`)
         .setNumberFormat("yyyy/mm/dd（aaa）");
-      sheet.getRange(row, 1, 1, 4)
-        .setFontWeight("bold")
-        .setBackground("#eadcf8");
+      sheet.getRange(row, 1, 1, 4).setFontWeight("bold").setBackground("#eadcf8");
       row++;
 
       // ヘッダー
       sheet.getRange(row, 1, 1, 4).setValues([[
-        "項目",
-        "やった時間",
-        "やれなかった時間",
-        "やれなかった内容"
+        "項目", "やった時間", "やれなかった時間", "やれなかった内容"
       ]]);
-      sheet.getRange(row, 1, 1, 4)
-        .setFontWeight("bold")
-        .setBackground("#d9ead3");
+      sheet.getRange(row, 1, 1, 4).setFontWeight("bold").setBackground("#d9ead3");
       row++;
 
       // タスク行
       WORKLOAD_TASKS.forEach(task => {
         sheet.getRange(row, 1).setValue(task);
-
         if (task === "打ち合わせ") {
           sheet.getRange(row, 2).setValue("0分（0件）");
           sheet.getRange(row, 3).setValue("-");
@@ -112,55 +115,38 @@ function setupWorkload2WeeksSheet() {
         row++;
       });
 
-      // 合計行（値はGASで計算。ここでは仮置き）
+      // 合計行（値はGASで計算。仮置き）
       sheet.getRange(row, 1).setValue("合計");
       sheet.getRange(row, 2).setValue("0分");
       sheet.getRange(row, 3).setValue("0分");
-      sheet.getRange(row, 1, 1, 4)
-        .setFontWeight("bold")
-        .setBackground("#fff2cc");
+      sheet.getRange(row, 1, 1, 4).setFontWeight("bold").setBackground("#fff2cc");
 
       row += 2;
-
       sheet.getRange(blockStart, 1, row - blockStart - 1, 4)
         .setBorder(true, true, true, true, true, true);
     }
 
-    // 週の平均（値はGASで計算）
     sheet.getRange(row, 1).setValue(`${week + 1}週目 やれなかった時間 平均`);
     sheet.getRange(row, 2).setValue("0分");
-    sheet.getRange(row, 1, 1, 2)
-      .setFontWeight("bold")
-      .setBackground("#fce5cd");
-
+    sheet.getRange(row, 1, 1, 2).setFontWeight("bold").setBackground("#fce5cd");
     row += 3;
   }
 
-  // 2週間全体 平均
   sheet.getRange(row, 1).setValue("2週間全体 やれなかった時間 平均");
   sheet.getRange(row, 2).setValue("0分");
-  sheet.getRange(row, 1, 1, 2)
-    .setFontWeight("bold")
-    .setBackground("#f4cccc");
+  sheet.getRange(row, 1, 1, 2).setFontWeight("bold").setBackground("#f4cccc");
   row++;
 
-  // 業務時間外稼働（サビ残分）
   sheet.getRange(row, 1).setValue("業務時間外稼働（サビ残分）");
   sheet.getRange(row, 2).setValue("0分");
-  sheet.getRange(row, 1, 1, 2)
-    .setFontWeight("bold")
-    .setBackground("#fce5cd");
+  sheet.getRange(row, 1, 1, 2).setFontWeight("bold").setBackground("#fce5cd");
   row++;
 
-  // 休日稼働
   sheet.getRange(row, 1).setValue("休日稼働");
   sheet.getRange(row, 2).setValue("0分");
-  sheet.getRange(row, 1, 1, 2)
-    .setFontWeight("bold")
-    .setBackground("#fce5cd");
+  sheet.getRange(row, 1, 1, 2).setFontWeight("bold").setBackground("#fce5cd");
 
   sheet.setFrozenRows(2);
-
   sheet.setColumnWidth(1, 150);
   sheet.setColumnWidth(2, 150);
   sheet.setColumnWidth(3, 170);
@@ -170,102 +156,124 @@ function setupWorkload2WeeksSheet() {
   sheet.getRange("A1:D1").setBackground("#eadcf8");
   sheet.getRange("A:D").setWrap(true).setVerticalAlignment("top");
 
-  // 打ち合わせ同期 → 再計算
-  syncWorkloadMeetings();
+  updateWorkload();
 
   SpreadsheetApp.getActive().toast("2週間分の業務量ログを作成しました", "完了", 5);
 }
 
 //==================================================
-// 打ち合わせ欄をカレンダーから同期
+// 更新：カレンダー同期（打ち合わせ＋業務ログ）＋集計
+//   カレンダーは全期間を1回ずつ取得、シートは一括書き込み
 //==================================================
 
-function syncWorkloadMeetings() {
+function updateWorkload() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(WORKLOAD_2W_CONFIG.SHEET_NAME);
-
-  if (!sheet) {
-    throw new Error("業務量ログ_2週間 シートがありません。先に setupWorkload2WeeksSheet を実行してください。");
-  }
-
-  const calendar = CalendarApp.getCalendarById(WORKLOAD_2W_CONFIG.CALENDAR_ID);
-  if (!calendar) {
-    throw new Error("カレンダーが取得できません。CALENDAR_IDを確認してください。");
-  }
-
-  const lastRow = sheet.getLastRow();
-  const values = sheet.getRange(1, 1, lastRow, 4).getValues();
-
-  for (let rowIndex = 0; rowIndex < values.length; rowIndex++) {
-    const row = rowIndex + 1;
-
-    if (values[rowIndex][0] !== "日付") continue;
-
-    const date = sheet.getRange(row, 2).getValue();
-    if (!(date instanceof Date)) continue;
-
-    const taskRow = row + 2; // 日付→ヘッダー→打ち合わせ
-    if (sheet.getRange(taskRow, 1).getValue() !== "打ち合わせ") continue;
-
-    const meeting = getMeetingSummaryFor2W_(calendar, date);
-
-    sheet.getRange(taskRow, 2).setValue(
-      formatWorkloadTime_(meeting.minutes) + `（${meeting.count}件）`
-    );
-    sheet.getRange(taskRow, 3).setValue("-");
-    sheet.getRange(taskRow, 4).setValue("自動取得");
-  }
-
-  // 同期後に集計を更新
-  recalcWorkload2Weeks();
-
-  SpreadsheetApp.getActive().toast("打ち合わせ時間を同期しました", "完了", 5);
-}
-
-//==================================================
-// 再計算：合計・平均・サビ残・休日稼働をGASで計算して書き込む
-//==================================================
-
-function recalcWorkload2Weeks() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(WORKLOAD_2W_CONFIG.SHEET_NAME);
-  if (!sheet) {
-    throw new Error("業務量ログ_2週間 シートがありません。");
-  }
+  const sheet = getWorkloadSheet_();
+  const tz = ss.getSpreadsheetTimeZone();
 
   const lastRow = sheet.getLastRow();
   const vals = sheet.getRange(1, 1, lastRow, 4).getValues();
+  const blocks = parseWorkloadBlocks_(vals);
+  if (blocks.length === 0) return;
 
-  const days = []; // { date, doneMin, notDoneMin }
+  const first = blocks[0].date;
+  const last = blocks[blocks.length - 1].date;
+  if (!first || !last) throw new Error("日付が取得できません。B2を確認してください。");
 
-  // 各日ブロックを走査して合計を書き込む
-  for (let i = 0; i < vals.length; i++) {
-    if (vals[i][0] !== "日付") continue;
+  const rangeStart = new Date(first); rangeStart.setHours(0, 0, 0, 0);
+  const rangeEnd = new Date(last); rangeEnd.setHours(23, 59, 59, 999);
 
-    const date = vals[i][1] instanceof Date ? vals[i][1] : null;
+  const meetCal = CalendarApp.getCalendarById(WORKLOAD_2W_CONFIG.MEETING_CALENDAR_ID);
+  if (!meetCal) throw new Error("打ち合わせ用カレンダーが取得できません。");
+  const workCal = CalendarApp.getCalendarById(WORKLOAD_2W_CONFIG.WORK_LOG_CALENDAR_ID);
+  if (!workCal) throw new Error("業務ログ用カレンダーが取得できません。WORK_LOG_CALENDAR_ID を確認してください。");
 
-    // タスクはヘッダー(i+1)の次(i+2)から「合計」の手前まで
-    let j = i + 2;
-    let doneMin = 0;
-    let notDoneMin = 0;
+  const meetingByDay = bucketMeetings_(meetCal, rangeStart, rangeEnd, tz);
+  const worklogByDay = bucketWorklogs_(workCal, rangeStart, rangeEnd, tz);
 
-    while (j < vals.length && vals[j][0] !== "合計") {
-      doneMin += timeTextToMinutes_(vals[j][1]);    // やった時間
-      notDoneMin += timeTextToMinutes_(vals[j][2]); // やれなかった時間
-      j++;
+  const days = [];
+
+  blocks.forEach(b => {
+    const key = b.date ? Utilities.formatDate(b.date, tz, "yyyy-MM-dd") : "";
+    const meet = meetingByDay[key] || { count: 0, minutes: 0 };
+    const work = worklogByDay[key] || {};
+
+    let totalDone = 0;
+    let totalNot = 0;
+    const rows = []; // [B, C] を firstTaskRow から順に
+
+    b.taskNames.forEach((name, idx) => {
+      let doneMin = 0;
+      let doneText;
+      let cVal = b.taskC[idx];
+
+      if (name === "打ち合わせ") {
+        doneMin = meet.minutes;
+        doneText = formatWorkloadTime_(meet.minutes) + `（${meet.count}件）`;
+        cVal = "-";
+      } else {
+        doneMin = work[name] || 0;
+        doneText = formatWorkloadTime_(doneMin);
+      }
+
+      totalDone += doneMin;
+      totalNot += timeTextToMinutes_(cVal);
+      rows.push([doneText, cVal]);
+    });
+
+    rows.push([formatWorkloadTime_(totalDone), formatWorkloadTime_(totalNot)]); // 合計
+
+    if (b.totalRow) {
+      sheet.getRange(b.firstTaskRow, 2, rows.length, 2).setValues(rows);
     }
 
-    if (j < vals.length && vals[j][0] === "合計") {
-      const totalRow = j + 1; // 0-based → シート行
-      sheet.getRange(totalRow, 2).setValue(formatWorkloadTime_(doneMin));
-      sheet.getRange(totalRow, 3).setValue(formatWorkloadTime_(notDoneMin));
+    days.push({ date: b.date, doneMin: totalDone, notDoneMin: totalNot });
+  });
+
+  writeWorkloadAggregates_(sheet, vals, days);
+  SpreadsheetApp.getActive().toast("カレンダーから更新しました", "完了", 5);
+}
+
+//==================================================
+// 再計算：カレンダーは見ず、いまのセル値だけで集計し直す
+//   （やれなかった時間などを手入力した後に使う）
+//==================================================
+
+function recalcWorkload2Weeks() {
+  const sheet = getWorkloadSheet_();
+  const lastRow = sheet.getLastRow();
+  const vals = sheet.getRange(1, 1, lastRow, 4).getValues();
+  const blocks = parseWorkloadBlocks_(vals);
+
+  const days = [];
+
+  blocks.forEach(b => {
+    let totalDone = 0;
+    let totalNot = 0;
+
+    b.taskNames.forEach((name, idx) => {
+      const r = (b.firstTaskRow - 1) + idx; // vals のインデックス
+      totalDone += timeTextToMinutes_(vals[r][1]);
+      totalNot += timeTextToMinutes_(vals[r][2]);
+    });
+
+    if (b.totalRow) {
+      sheet.getRange(b.totalRow, 2).setValue(formatWorkloadTime_(totalDone));
+      sheet.getRange(b.totalRow, 3).setValue(formatWorkloadTime_(totalNot));
     }
 
-    days.push({ date, doneMin, notDoneMin });
-    i = j; // 合計行まで進める
-  }
+    days.push({ date: b.date, doneMin: totalDone, notDoneMin: totalNot });
+  });
 
-  // 集計行（ラベルで探して書き込む）
+  writeWorkloadAggregates_(sheet, vals, days);
+  SpreadsheetApp.getActive().toast("集計を再計算しました", "完了", 5);
+}
+
+//==================================================
+// 集計行（週平均・2週平均・サビ残・休日稼働）を書き込む
+//==================================================
+
+function writeWorkloadAggregates_(sheet, vals, days) {
   const weekAvgRows = [];
   let twoWeekRow = -1;
   let overtimeRow = -1;
@@ -279,81 +287,149 @@ function recalcWorkload2Weeks() {
     else if (a.indexOf("休日稼働") >= 0) holidayRow = i + 1;
   }
 
-  // 週平均（前7日＝1週目、次7日＝2週目）
   const weeks = [days.slice(0, 7), days.slice(7, 14)];
   weekAvgRows.forEach((r, idx) => {
     const wk = weeks[idx] || [];
-    const avg = wk.length
-      ? Math.round(wk.reduce((s, d) => s + d.notDoneMin, 0) / wk.length)
-      : 0;
+    const avg = wk.length ? Math.round(wk.reduce((s, d) => s + d.notDoneMin, 0) / wk.length) : 0;
     sheet.getRange(r, 2).setValue(formatWorkloadTime_(avg));
   });
 
-  // 2週間全体 平均
   if (twoWeekRow > 0) {
-    const avg = days.length
-      ? Math.round(days.reduce((s, d) => s + d.notDoneMin, 0) / days.length)
-      : 0;
+    const avg = days.length ? Math.round(days.reduce((s, d) => s + d.notDoneMin, 0) / days.length) : 0;
     sheet.getRange(twoWeekRow, 2).setValue(formatWorkloadTime_(avg));
   }
 
-  // サビ残（各日の やった時間 が所定を超えた分の合計）
   if (overtimeRow > 0) {
     const limit = WORKLOAD_2W_CONFIG.DAILY_WORK_MINUTES;
     const ot = days.reduce((s, d) => s + (d.doneMin > limit ? d.doneMin - limit : 0), 0);
     sheet.getRange(overtimeRow, 2).setValue(formatWorkloadTime_(ot));
   }
 
-  // 休日稼働（土日の やった時間 の合計）
   if (holidayRow > 0) {
     const hol = days.reduce((s, d) => {
       if (!d.date) return s;
-      const day = d.date.getDay(); // 0=日, 6=土
+      const day = d.date.getDay();
       return s + ((day === 0 || day === 6) ? d.doneMin : 0);
     }, 0);
     sheet.getRange(holidayRow, 2).setValue(formatWorkloadTime_(hol));
   }
-
-  SpreadsheetApp.getActive().toast("集計を再計算しました", "完了", 5);
 }
 
 //==================================================
-// カレンダー集計
+// シート構造の解析（1回の getValues 結果から日ブロックを抽出）
 //==================================================
 
-function getMeetingSummaryFor2W_(calendar, date) {
-  const start = new Date(date);
-  start.setHours(WORKLOAD_2W_CONFIG.WORK_START_HOUR, 0, 0, 0);
+function parseWorkloadBlocks_(vals) {
+  const blocks = [];
 
-  const end = new Date(date);
-  end.setHours(WORKLOAD_2W_CONFIG.WORK_END_HOUR, 0, 0, 0);
+  for (let i = 0; i < vals.length; i++) {
+    if (vals[i][0] !== "日付") continue;
 
-  const events = calendar.getEvents(start, end);
+    const date = vals[i][1] instanceof Date ? vals[i][1] : null;
 
-  let count = 0;
-  let minutes = 0;
+    const taskNames = [];
+    const taskC = [];
+    let j = i + 2; // 日付(i)→ヘッダー(i+1)→タスク開始(i+2)
+
+    while (j < vals.length && vals[j][0] !== "合計") {
+      taskNames.push(vals[j][0]);
+      taskC.push(vals[j][2]);
+      j++;
+    }
+
+    const totalRow = (j < vals.length && vals[j][0] === "合計") ? j + 1 : null;
+
+    blocks.push({
+      date: date,
+      taskNames: taskNames,
+      taskC: taskC,
+      firstTaskRow: i + 3, // シート行（タスク先頭）
+      totalRow: totalRow
+    });
+
+    i = j; // 合計行まで進める
+  }
+
+  return blocks;
+}
+
+//==================================================
+// カレンダー集計（全期間を1回取得して日付ごとにバケット）
+//==================================================
+
+function bucketMeetings_(calendar, rangeStart, rangeEnd, tz) {
+  const events = calendar.getEvents(rangeStart, rangeEnd);
+  const by = {};
 
   events.forEach(event => {
     const title = event.getTitle() || "";
+    if (WORKLOAD_2W_CONFIG.EXCLUDE_KEYWORDS.some(k => title.includes(k))) return;
 
-    const excluded = WORKLOAD_2W_CONFIG.EXCLUDE_KEYWORDS.some(keyword =>
-      title.includes(keyword)
-    );
-    if (excluded) return;
-
-    const duration = Math.round((event.getEndTime() - event.getStartTime()) / 1000 / 60);
+    const duration = Math.round((event.getEndTime() - event.getStartTime()) / 60000);
     if (duration <= 0) return;
 
-    count++;
-    minutes += duration;
+    const key = Utilities.formatDate(event.getStartTime(), tz, "yyyy-MM-dd");
+    if (!by[key]) by[key] = { count: 0, minutes: 0 };
+    by[key].count++;
+    by[key].minutes += duration;
   });
 
-  return { count, minutes };
+  return by;
+}
+
+function bucketWorklogs_(calendar, rangeStart, rangeEnd, tz) {
+  const events = calendar.getEvents(rangeStart, rangeEnd);
+  const by = {};
+
+  events.forEach(event => {
+    const title = event.getTitle() || "";
+    const category = detectWorkloadCategory_(title);
+    if (!category) return;
+
+    const duration = Math.round((event.getEndTime() - event.getStartTime()) / 60000);
+    if (duration <= 0) return;
+
+    const key = Utilities.formatDate(event.getStartTime(), tz, "yyyy-MM-dd");
+    if (!by[key]) by[key] = {};
+    by[key][category] = (by[key][category] || 0) + duration;
+  });
+
+  return by;
+}
+
+function detectWorkloadCategory_(title) {
+  const normalizedTitle = normalizeWorkloadText_(title);
+
+  for (const category of Object.keys(WORKLOAD_CATEGORY_RULES)) {
+    const keywords = WORKLOAD_CATEGORY_RULES[category];
+    const matched = keywords.some(keyword =>
+      normalizedTitle.includes(normalizeWorkloadText_(keyword))
+    );
+    if (matched) return category;
+  }
+
+  return "";
+}
+
+function normalizeWorkloadText_(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .replace(/\s+/g, "")
+    .toLowerCase();
 }
 
 //==================================================
-// 時間テキストのユーティリティ（内部用・カスタム関数ではない）
+// 補助
 //==================================================
+
+function getWorkloadSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(WORKLOAD_2W_CONFIG.SHEET_NAME);
+  if (!sheet) {
+    throw new Error("業務量ログ_2週間 シートがありません。先に setupWorkload2WeeksSheet を実行してください。");
+  }
+  return sheet;
+}
 
 // 「○時間○分」/「○分」/ 数字 → 分
 function timeTextToMinutes_(value) {
@@ -365,14 +441,12 @@ function timeTextToMinutes_(value) {
   if (!text || text === "-") return 0;
 
   let minutes = 0;
-
   const hourMatch = text.match(/(\d+)\s*時間/);
   const minuteMatch = text.match(/(\d+)\s*分/);
 
   if (hourMatch) minutes += Number(hourMatch[1]) * 60;
   if (minuteMatch) minutes += Number(minuteMatch[1]);
 
-  // 数字だけ入力された場合は「分」として扱う
   if (!hourMatch && !minuteMatch && /^\d+$/.test(text)) {
     minutes += Number(text);
   }
