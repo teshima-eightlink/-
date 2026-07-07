@@ -1,0 +1,755 @@
+// @ts-nocheck
+//==================================================
+// 納品完了入力
+//   setupDeliveryInputSheet            最初だけ。入力シートとログシートを作る
+//   setupFollowSystemColumns           最初だけ。1年サポートにBA・BBを作る
+//   checkDeliveryInput                 顧客No・納品日を入力したら実行。内容確認用
+//   runDeliveryComplete                A列にチェックした案件だけ本番反映
+//   cleanupOldDeliveryInputRowsByMonth 毎月10日トリガー想定。古い反映済をログ退避→削除
+//
+//   ※ onOpen は使わない。図形ボタン or Apps Script から手動実行。
+//   ※ 本番は別ID。テストは PROJECT_SS_ID / FOLLOW_SS_ID を同じダミーIDにすればOK。
+//   ※ 入力シート・ログシートはこのスクリプトがバインドされたブック（＝アクティブ）に作成。
+//==================================================
+
+const DELIVERY_CONFIG = {
+  PROJECT_SS_ID: "1vQmZWABfGcE4AGJV7CWIKJwYdxJ-V1-V",
+  PROJECT_SHEET_NAME: "案件一覧",
+
+  FOLLOW_SS_ID: "1vQmZWABfGcE4AGJV7CWIKJwYdxJ-V1-V",
+  FOLLOW_SHEET_NAME: "1年サポート",
+
+  INPUT_SHEET_NAME: "納品完了入力",
+  LOG_SHEET_NAME: "納品完了ログ",
+
+  COLOR_DELIVERED: "#cfe2f3",
+
+  INPUT_COL: {
+    CHECK: 1,
+    CUSTOMER_NO: 2,
+    DELIVERY_DATE: 3,
+    PROJECT_CUSTOMER_NAME: 4,
+    PROJECT_STATUS: 5,
+    FOLLOW_STATUS: 6,
+    MEMO: 7,
+    REFLECT_STATUS: 8,
+    LAST_PROCESSED_AT: 9
+  },
+
+  PROJECT_COL: {
+    CUSTOMER_NO: 1,
+    CUSTOMER_NAME: 4,
+    DELIVERY_DATE: 11,
+    STATUS: 13,
+    REPORT: 38
+  },
+
+  FOLLOW_COL: {
+    CUSTOMER_NAME: 3,
+    DELIVERY_DATE: 12,
+    SUPPORT_END: 13,
+    CUSTOMER_NO: 53,
+    MEMO: 54
+  }
+};
+
+//==================================================
+// 初回セットアップ
+// 納品完了入力シート・ログシートを作成（初回のみ実行）
+// ※ ログシートは再実行しても消えません
+//==================================================
+function setupDeliveryInputSheet() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  let input = ss.getSheetByName(DELIVERY_CONFIG.INPUT_SHEET_NAME);
+
+  if (input && input.getLastRow() > 1) {
+    const result = ui.alert(
+      "確認",
+      "既存の納品完了入力シートがあります。\n初期化すると入力内容が消えます（ログは消えません）。\n\n初期化しますか？",
+      ui.ButtonSet.OK_CANCEL
+    );
+
+    if (result !== ui.Button.OK) {
+      ui.alert("初期化をキャンセルしました。");
+      return;
+    }
+  }
+
+  if (!input) input = ss.insertSheet(DELIVERY_CONFIG.INPUT_SHEET_NAME);
+  input.clear();
+
+  input.getRange(1, 1, 1, 9).setValues([[
+    "反映対象",
+    "顧客No",
+    "納品日",
+    "案件一覧：顧客名",
+    "案件一覧：現在の進捗",
+    "1年サポート一致状況",
+    "確認メモ",
+    "反映ステータス",
+    "最終処理日時"
+  ]]);
+
+  input.getRange("A2:A300").insertCheckboxes();
+
+  const dateRule = SpreadsheetApp.newDataValidation()
+    .requireDate()
+    .setAllowInvalid(false)
+    .build();
+
+  input.getRange("C2:C300").setDataValidation(dateRule);
+  input.getRange("C2:C300").setNumberFormat("yyyy/mm/dd");
+  input.getRange("I2:I300").setNumberFormat("yyyy/mm/dd HH:mm");
+
+  input.setFrozenRows(1);
+  input.getRange(1, 1, 1, 9).setFontWeight("bold").setBackground("#d9ead3");
+
+  input.setColumnWidth(1, 90);
+  input.setColumnWidth(2, 120);
+  input.setColumnWidth(3, 120);
+  input.setColumnWidth(4, 220);
+  input.setColumnWidth(5, 160);
+  input.setColumnWidth(6, 180);
+  input.setColumnWidth(7, 420);
+  input.setColumnWidth(8, 160);
+  input.setColumnWidth(9, 180);
+
+  // ログシートは存在保証のみ（中身は消さない）
+  setupLogSheetHeader_();
+
+  ui.alert("初回セットアップ完了！");
+}
+
+//==================================================
+// 1年サポート初期設定
+// BA：顧客No / BB：メモ の見出しを作成（初回のみ実行）
+//==================================================
+function setupFollowSystemColumns() {
+  const ss = SpreadsheetApp.openById(DELIVERY_CONFIG.FOLLOW_SS_ID);
+  const sheet = ss.getSheetByName(DELIVERY_CONFIG.FOLLOW_SHEET_NAME);
+  if (!sheet) throw new Error("1年サポートシートが見つかりません。");
+
+  sheet.getRange(1, DELIVERY_CONFIG.FOLLOW_COL.CUSTOMER_NO).setValue("顧客No");
+  sheet.getRange(1, DELIVERY_CONFIG.FOLLOW_COL.MEMO).setValue("メモ");
+
+  SpreadsheetApp.getUi().alert("1年サポートのBA/BB見出しを作成しました！");
+}
+
+//==================================================
+// 入力内容確認
+// 顧客Noから案件一覧・1年サポートを照合し、顧客名・進捗・警告内容を表示
+//==================================================
+function checkDeliveryInput() {
+  const ui = SpreadsheetApp.getUi();
+  const input = getInputSheet_();
+  const inputItems = getInputRowsWithCustomerNo_(input);
+
+  if (inputItems.length === 0) {
+    ui.alert("顧客Noが入力されている行がありません。");
+    return;
+  }
+
+  const projectMap = getProjectMap_();
+  const followMap = getFollowMap_();
+
+  let checked = 0;
+  let projectNg = 0;
+  let followNg = 0;
+  let dateNg = 0;
+  let sheetDeliveryWarning = 0;
+  let duplicateNg = 0;
+
+  inputItems.forEach(item => {
+    const now = new Date();
+    const project = projectMap[item.customerNo];
+
+    if (!project) {
+      input.getRange(item.row, 4, 1, 6).setValues([[
+        "",
+        "",
+        "未確認",
+        "案件一覧に顧客Noが見つかりません。番号を確認してください。",
+        "NG：案件一覧未一致",
+        now
+      ]]);
+      projectNg++;
+      return;
+    }
+
+    const follow = followMap[item.customerNo];
+    let memo = "";
+
+    if (!item.deliveryDate) {
+      memo += "納品日が未入力です。";
+      dateNg++;
+    }
+
+    if (project.duplicate) {
+      memo += " ⚠ 案件一覧で顧客Noが重複しています。";
+      duplicateNg++;
+    }
+
+    if (follow && follow.duplicate) {
+      memo += " ⚠ 1年サポートで顧客Noが重複しています。";
+      duplicateNg++;
+    }
+
+    if (project.status === "シート上納品") {
+      memo += " ⚠ 案件一覧の進捗が「シート上納品」です。";
+      sheetDeliveryWarning++;
+    }
+
+    if (!follow) {
+      memo += " 1年サポート側に顧客Noがありません。";
+      followNg++;
+    }
+
+    input.getRange(item.row, DELIVERY_CONFIG.INPUT_COL.PROJECT_CUSTOMER_NAME).setValue(project.customerName);
+    input.getRange(item.row, DELIVERY_CONFIG.INPUT_COL.PROJECT_STATUS).setValue(project.status);
+    input.getRange(item.row, DELIVERY_CONFIG.INPUT_COL.FOLLOW_STATUS).setValue(follow ? "顧客No一致" : "未一致");
+    input.getRange(item.row, DELIVERY_CONFIG.INPUT_COL.MEMO).setValue(memo.trim());
+    input.getRange(item.row, DELIVERY_CONFIG.INPUT_COL.REFLECT_STATUS).setValue("確認済");
+    input.getRange(item.row, DELIVERY_CONFIG.INPUT_COL.LAST_PROCESSED_AT).setValue(now);
+
+    checked++;
+  });
+
+  ui.alert(
+    "確認完了！\n\n" +
+    `確認済：${checked}件\n` +
+    `案件一覧未一致：${projectNg}件\n` +
+    `1年サポート未一致：${followNg}件\n` +
+    `納品日未入力：${dateNg}件\n` +
+    `シート上納品警告：${sheetDeliveryWarning}件\n` +
+    `顧客No重複警告：${duplicateNg}件`
+  );
+}
+
+//==================================================
+// 納品完了反映
+// チェック済みの案件だけ 案件一覧・1年サポートへ反映
+//==================================================
+function runDeliveryComplete() {
+  const ui = SpreadsheetApp.getUi();
+  const input = getInputSheet_();
+  const checkedItems = getCheckedInputRows_(input);
+
+  if (checkedItems.length === 0) {
+    ui.alert("A列の反映対象にチェックが入っている行がありません。");
+    return;
+  }
+
+  const projectMap = getProjectMap_();
+  const followMap = getFollowMap_();
+
+  const updateItems = [];
+  const projectNotFound = [];
+  const followNotFound = [];
+  const noDateItems = [];
+  const sheetDeliveryWarnings = [];
+  const duplicateItems = [];
+
+  checkedItems.forEach(item => {
+    const project = projectMap[item.customerNo];
+
+    if (!project) {
+      projectNotFound.push(item);
+      setInputNg_(input, item.row, "NG：案件一覧未一致", "案件一覧に顧客Noが見つかりません。番号を確認してください。");
+      return;
+    }
+
+    const follow = followMap[item.customerNo];
+
+    if (project.duplicate) {
+      duplicateItems.push({
+        row: item.row,
+        customerNo: item.customerNo,
+        customerName: project.customerName,
+        reason: "案件一覧で顧客No重複"
+      });
+      setInputNg_(input, item.row, "NG：案件一覧で顧客No重複", "案件一覧で同じ顧客Noが複数あります。更新を停止しました。");
+      return;
+    }
+
+    if (follow && follow.duplicate) {
+      duplicateItems.push({
+        row: item.row,
+        customerNo: item.customerNo,
+        customerName: project.customerName,
+        reason: "1年サポートで顧客No重複"
+      });
+      setInputNg_(input, item.row, "NG：1年サポートで顧客No重複", "1年サポートで同じ顧客Noが複数あります。更新を停止しました。");
+      return;
+    }
+
+    if (!item.deliveryDate) {
+      noDateItems.push({
+        row: item.row,
+        customerNo: item.customerNo,
+        customerName: project.customerName
+      });
+      setInputNg_(input, item.row, "NG：納品日未入力", "納品日を入力してください。");
+      return;
+    }
+
+    if (!follow) followNotFound.push(project);
+    if (project.status === "シート上納品") sheetDeliveryWarnings.push(project);
+
+    updateItems.push({
+      inputRow: item.row,
+      customerNo: item.customerNo,
+      customerName: project.customerName,
+      deliveryDate: item.deliveryDate,
+      project,
+      follow
+    });
+  });
+
+  if (updateItems.length === 0) {
+    ui.alert(
+      "更新できる行がありませんでした。\n\n" +
+      `案件一覧未一致：${projectNotFound.length}件\n` +
+      `納品日未入力：${noDateItems.length}件\n` +
+      `顧客No重複：${duplicateItems.length}件`
+    );
+    return;
+  }
+
+  const message = buildConfirmMessage_(updateItems, projectNotFound, followNotFound, noDateItems, sheetDeliveryWarnings, duplicateItems);
+
+  const result = ui.alert("納品完了反映 確認", message, ui.ButtonSet.OK_CANCEL);
+
+  if (result !== ui.Button.OK) {
+    ui.alert("反映をキャンセルしました。");
+    return;
+  }
+
+  applyDeliveryUpdates_(updateItems, input);
+
+  ui.alert(
+    "反映完了！\n\n" +
+    `更新：${updateItems.length}件\n` +
+    `案件一覧未一致：${projectNotFound.length}件\n` +
+    `納品日未入力：${noDateItems.length}件\n` +
+    `1年サポート未一致：${followNotFound.length}件\n` +
+    `顧客No重複：${duplicateItems.length}件`
+  );
+}
+
+//==================================================
+// 月次クリーンアップ（毎月10日トリガー想定）
+//   ・今月・先月分（納品日ベース）は入力シートに残す
+//   ・それ以前の「反映済」行はログへ退避して入力シートから削除
+//   ※ トリガー実行を想定し ui.alert は使わない
+//==================================================
+function cleanupOldDeliveryInputRowsByMonth() {
+  const input = getInputSheet_();
+  const logSheet = getLogSheet_();
+
+  const lastRow = input.getLastRow();
+  if (lastRow < 2) return;
+
+  const numRows = lastRow - 1;
+  const values = input.getRange(2, 1, numRows, 9).getValues();
+
+  const now = new Date();
+  const keepFrom = new Date(now.getFullYear(), now.getMonth() - 1, 1); // 先月1日
+  const user = getExecUser_();
+
+  const archiveRows = [];
+  const deleteRows = [];
+
+  for (let i = 0; i < numRows; i++) {
+    const row = i + 2;
+    const customerNo = values[i][DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NO - 1];
+    const deliveryDate = values[i][DELIVERY_CONFIG.INPUT_COL.DELIVERY_DATE - 1];
+    const customerName = values[i][DELIVERY_CONFIG.INPUT_COL.PROJECT_CUSTOMER_NAME - 1];
+    const projectStatus = values[i][DELIVERY_CONFIG.INPUT_COL.PROJECT_STATUS - 1];
+    const reflectStatus = values[i][DELIVERY_CONFIG.INPUT_COL.REFLECT_STATUS - 1];
+    const lastProcessed = values[i][DELIVERY_CONFIG.INPUT_COL.LAST_PROCESSED_AT - 1];
+
+    if (reflectStatus !== "反映済") continue;      // 反映済でない行は残す
+    if (!(deliveryDate instanceof Date)) continue; // 納品日が無い行は残す
+    if (deliveryDate >= keepFrom) continue;        // 今月・先月分は残す
+
+    archiveRows.push([
+      now,
+      customerNo,
+      customerName,
+      deliveryDate,
+      "",              // 案件一覧更新
+      "",              // 1年サポート更新
+      projectStatus,   // 元進捗
+      "",              // 新進捗
+      user,
+      "退避（クリーンアップ）",
+      row,
+      "入力シートから削除（最終処理 " + (lastProcessed instanceof Date ? formatDateTime_(lastProcessed) : "") + "）"
+    ]);
+    deleteRows.push(row);
+  }
+
+  if (archiveRows.length > 0) {
+    logSheet.getRange(logSheet.getLastRow() + 1, 1, archiveRows.length, 12).setValues(archiveRows);
+  }
+
+  // 下の行から削除（行番号ずれ防止）
+  deleteRows.sort((a, b) => b - a).forEach(r => input.deleteRow(r));
+
+  const msg = "クリーンアップ：反映済 " + deleteRows.length + " 行を退避・削除しました";
+  Logger.log(msg);
+  try {
+    SpreadsheetApp.getActiveSpreadsheet().toast(msg, "納品完了", 5);
+  } catch (e) {}
+}
+
+//==================================================
+// 確認メッセージ作成
+//==================================================
+function buildConfirmMessage_(updateItems, projectNotFound, followNotFound, noDateItems, sheetDeliveryWarnings, duplicateItems) {
+  let message = "";
+
+  message += "以下の内容で納品完了を反映します。\n\n";
+
+  message += "【件数】\n";
+  message += `更新予定：${updateItems.length}件\n`;
+  message += `案件一覧未一致：${projectNotFound.length}件\n`;
+  message += `納品日未入力：${noDateItems.length}件\n`;
+  message += `1年サポート未一致：${followNotFound.length}件\n`;
+  message += `シート上納品警告：${sheetDeliveryWarnings.length}件\n`;
+  message += `顧客No重複：${duplicateItems.length}件\n\n`;
+
+  message += "【更新内容】\n";
+  message += "案件一覧：K列 納品日 / M列 納品完了 / AL列 完了 / 行を水色\n";
+  message += "1年サポート：L列 納品日 / M列 サポート終了日 / BB列 メモ\n\n";
+
+  message += "【更新予定案件】\n";
+  updateItems.slice(0, 15).forEach(item => {
+    message += `・${item.customerNo}　${item.customerName}　${formatDateOnly_(item.deliveryDate)}\n`;
+  });
+  if (updateItems.length > 15) message += `ほか ${updateItems.length - 15} 件\n`;
+  message += "\n";
+
+  if (sheetDeliveryWarnings.length > 0) {
+    message += "【注意：シート上納品】\n";
+    sheetDeliveryWarnings.slice(0, 10).forEach(p => {
+      message += `・${p.customerNo}　${p.customerName}\n`;
+    });
+    message += "\n";
+  }
+
+  if (followNotFound.length > 0) {
+    message += "【注意：1年サポート未一致】\n";
+    message += "※案件一覧は更新しますが、1年サポートは更新しません。\n";
+    followNotFound.slice(0, 10).forEach(p => {
+      message += `・${p.customerNo}　${p.customerName}\n`;
+    });
+    message += "\n";
+  }
+
+  if (duplicateItems.length > 0) {
+    message += "【更新停止：顧客No重複】\n";
+    duplicateItems.slice(0, 10).forEach(item => {
+      message += `・入力行${item.row}　${item.customerNo} ${item.customerName}：${item.reason}\n`;
+    });
+    message += "\n";
+  }
+
+  if (projectNotFound.length > 0 || noDateItems.length > 0) {
+    message += "【更新しない行】\n";
+    projectNotFound.slice(0, 10).forEach(item => {
+      message += `・入力行${item.row}　${item.customerNo}：案件一覧未一致\n`;
+    });
+    noDateItems.slice(0, 10).forEach(item => {
+      message += `・入力行${item.row}　${item.customerNo} ${item.customerName}：納品日未入力\n`;
+    });
+    message += "\n";
+  }
+
+  message += "このまま更新しますか？";
+  return message;
+}
+
+//==================================================
+// 実更新処理
+//==================================================
+function applyDeliveryUpdates_(items, input) {
+  const projectSS = SpreadsheetApp.openById(DELIVERY_CONFIG.PROJECT_SS_ID);
+  const projectSheet = projectSS.getSheetByName(DELIVERY_CONFIG.PROJECT_SHEET_NAME);
+  if (!projectSheet) throw new Error("案件一覧シートが見つかりません。");
+
+  const followSS = SpreadsheetApp.openById(DELIVERY_CONFIG.FOLLOW_SS_ID);
+  const followSheet = followSS.getSheetByName(DELIVERY_CONFIG.FOLLOW_SHEET_NAME);
+  if (!followSheet) throw new Error("1年サポートシートが見つかりません。");
+
+  const logSheet = getLogSheet_();
+  const now = new Date();
+  const user = getExecUser_();
+
+  items.forEach(item => {
+    const deliveryDate = item.deliveryDate;
+
+    projectSheet
+      .getRange(item.project.row, 1, 1, projectSheet.getLastColumn())
+      .setBackground(DELIVERY_CONFIG.COLOR_DELIVERED);
+
+    projectSheet
+      .getRange(item.project.row, DELIVERY_CONFIG.PROJECT_COL.DELIVERY_DATE)
+      .setValue(deliveryDate);
+
+    projectSheet
+      .getRange(item.project.row, DELIVERY_CONFIG.PROJECT_COL.STATUS)
+      .setValue("納品完了");
+
+    projectSheet
+      .getRange(item.project.row, DELIVERY_CONFIG.PROJECT_COL.REPORT)
+      .setValue("完了");
+
+    let followResult = "未更新：顧客No未一致";
+
+    if (item.follow) {
+      followSheet
+        .getRange(item.follow.row, DELIVERY_CONFIG.FOLLOW_COL.DELIVERY_DATE)
+        .setValue(deliveryDate);
+
+      followSheet
+        .getRange(item.follow.row, DELIVERY_CONFIG.FOLLOW_COL.SUPPORT_END)
+        .setValue(addYears_(deliveryDate, 1));
+
+      followSheet
+        .getRange(item.follow.row, DELIVERY_CONFIG.FOLLOW_COL.MEMO)
+        .setValue("納品完了入力から更新：" + formatDateTime_(now));
+
+      followResult = "更新済";
+    }
+
+    input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.PROJECT_CUSTOMER_NAME).setValue(item.customerName);
+    input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.PROJECT_STATUS).setValue("納品完了");
+    input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.FOLLOW_STATUS).setValue(item.follow ? "顧客No一致・更新済" : "未一致・未更新");
+    input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.REFLECT_STATUS).setValue("反映済");
+    input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.LAST_PROCESSED_AT).setValue(now);
+
+    appendDeliveryLog_(logSheet, now, item, followResult, user, "完了");
+  });
+}
+
+//==================================================
+// 軽量版：案件一覧マップ取得（必要列だけ読む）
+//==================================================
+function getProjectMap_() {
+  const ss = SpreadsheetApp.openById(DELIVERY_CONFIG.PROJECT_SS_ID);
+  const sheet = ss.getSheetByName(DELIVERY_CONFIG.PROJECT_SHEET_NAME);
+  if (!sheet) throw new Error("案件一覧シートが見つかりません。");
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return {};
+
+  const numRows = lastRow - 1;
+
+  const customerNos = sheet.getRange(2, DELIVERY_CONFIG.PROJECT_COL.CUSTOMER_NO, numRows, 1).getValues();
+  const customerNames = sheet.getRange(2, DELIVERY_CONFIG.PROJECT_COL.CUSTOMER_NAME, numRows, 1).getValues();
+  const deliveryDates = sheet.getRange(2, DELIVERY_CONFIG.PROJECT_COL.DELIVERY_DATE, numRows, 1).getValues();
+  const statuses = sheet.getRange(2, DELIVERY_CONFIG.PROJECT_COL.STATUS, numRows, 1).getValues();
+
+  const map = {};
+
+  for (let i = 0; i < numRows; i++) {
+    const customerNo = normalizeCustomerNo_(customerNos[i][0]);
+    if (!customerNo) continue;
+
+    if (map[customerNo]) {
+      map[customerNo].duplicate = true;
+      continue;
+    }
+
+    map[customerNo] = {
+      row: i + 2,
+      customerNo,
+      customerName: customerNames[i][0],
+      status: statuses[i][0],
+      deliveryDate: deliveryDates[i][0],
+      duplicate: false
+    };
+  }
+
+  return map;
+}
+
+//==================================================
+// 軽量版：1年サポートマップ取得（必要列だけ読む）
+//==================================================
+function getFollowMap_() {
+  const ss = SpreadsheetApp.openById(DELIVERY_CONFIG.FOLLOW_SS_ID);
+  const sheet = ss.getSheetByName(DELIVERY_CONFIG.FOLLOW_SHEET_NAME);
+  if (!sheet) throw new Error("1年サポートシートが見つかりません。");
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return {};
+  if (sheet.getMaxColumns() < DELIVERY_CONFIG.FOLLOW_COL.CUSTOMER_NO) return {}; // BA列が無いなら照合なし
+
+  const numRows = lastRow - 1;
+
+  const customerNames = sheet.getRange(2, DELIVERY_CONFIG.FOLLOW_COL.CUSTOMER_NAME, numRows, 1).getValues();
+  const deliveryDates = sheet.getRange(2, DELIVERY_CONFIG.FOLLOW_COL.DELIVERY_DATE, numRows, 1).getValues();
+  const customerNos = sheet.getRange(2, DELIVERY_CONFIG.FOLLOW_COL.CUSTOMER_NO, numRows, 1).getValues();
+
+  const map = {};
+
+  for (let i = 0; i < numRows; i++) {
+    const customerNo = normalizeCustomerNo_(customerNos[i][0]);
+    if (!customerNo) continue;
+
+    if (map[customerNo]) {
+      map[customerNo].duplicate = true;
+      continue;
+    }
+
+    map[customerNo] = {
+      row: i + 2,
+      customerNo,
+      customerName: customerNames[i][0],
+      deliveryDate: deliveryDates[i][0],
+      duplicate: false
+    };
+  }
+
+  return map;
+}
+
+//==================================================
+// 入力系
+//==================================================
+function getInputSheet_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DELIVERY_CONFIG.INPUT_SHEET_NAME);
+  if (!sheet) throw new Error("納品完了入力シートがありません。setupDeliveryInputSheet を実行してください。");
+  return sheet;
+}
+
+function getInputRowsWithCustomerNo_(sheet) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  const values = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+
+  return values
+    .map((r, i) => ({
+      row: i + 2,
+      checked: r[0],
+      customerNo: normalizeCustomerNo_(r[1]),
+      deliveryDate: r[2]
+    }))
+    .filter(item => item.customerNo);
+}
+
+function getCheckedInputRows_(sheet) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  const values = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+
+  return values
+    .map((r, i) => ({
+      row: i + 2,
+      checked: r[0],
+      customerNo: normalizeCustomerNo_(r[1]),
+      deliveryDate: r[2]
+    }))
+    .filter(item => item.checked === true && item.customerNo);
+}
+
+//==================================================
+// ログ
+//==================================================
+function getLogSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(DELIVERY_CONFIG.LOG_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(DELIVERY_CONFIG.LOG_SHEET_NAME);
+    setupLogSheetHeader_();
+  }
+  return sheet;
+}
+
+function setupLogSheetHeader_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let log = ss.getSheetByName(DELIVERY_CONFIG.LOG_SHEET_NAME);
+  if (!log) log = ss.insertSheet(DELIVERY_CONFIG.LOG_SHEET_NAME);
+
+  // 既存ログは消さない：見出しが無いときだけ作る
+  if (log.getLastRow() === 0) {
+    log.getRange(1, 1, 1, 12).setValues([[
+      "日時",
+      "顧客No",
+      "顧客名",
+      "納品日",
+      "案件一覧更新",
+      "1年サポート更新",
+      "元進捗",
+      "新進捗",
+      "実行者",
+      "結果",
+      "入力行",
+      "メモ"
+    ]]);
+
+    log.getRange(1, 1, 1, 12).setFontWeight("bold").setBackground("#d9ead3");
+  }
+}
+
+function appendDeliveryLog_(logSheet, now, item, followResult, user, resultText) {
+  logSheet.appendRow([
+    now,
+    item.customerNo,
+    item.customerName,
+    item.deliveryDate,
+    "更新済",
+    followResult,
+    item.project.status,
+    "納品完了",
+    user,
+    resultText,
+    item.inputRow,
+    ""
+  ]);
+}
+
+//==================================================
+// 共通
+//==================================================
+function setInputNg_(input, row, status, memo) {
+  input.getRange(row, DELIVERY_CONFIG.INPUT_COL.REFLECT_STATUS).setValue(status);
+  input.getRange(row, DELIVERY_CONFIG.INPUT_COL.MEMO).setValue(memo);
+  input.getRange(row, DELIVERY_CONFIG.INPUT_COL.LAST_PROCESSED_AT).setValue(new Date());
+}
+
+function normalizeCustomerNo_(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .replace(/\s+/g, "")
+    .trim();
+}
+
+function addYears_(value, years) {
+  const d = new Date(value);
+  d.setFullYear(d.getFullYear() + years);
+  return d;
+}
+
+function getExecUser_() {
+  try {
+    return Session.getActiveUser().getEmail() || "";
+  } catch (e) {
+    return "";
+  }
+}
+
+function formatDateOnly_(value) {
+  if (!value) return "";
+  return Utilities.formatDate(new Date(value), "Asia/Tokyo", "yyyy/MM/dd");
+}
+
+function formatDateTime_(value) {
+  return Utilities.formatDate(new Date(value), "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
+}
