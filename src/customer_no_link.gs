@@ -134,11 +134,12 @@ function runApplyCustomerNo() {
 
     const followRow = r[1];              // B 1年サポート行番号
     const followName = r[2];             // C 顧客名
-    const candNo = clNormalizeNo_(r[4]); // E 候補顧客No
-    const verdict = String(r[8] || "");  // I 判定
+    const candNo = clNormalizeNo_(r[4]); // E 候補顧客No（手入力も可）
 
-    if (!candNo) { skipped.push(row + "行:候補顧客Noなし"); return; }
-    if (verdict.indexOf("⚫") >= 0 || verdict.indexOf("候補複数") >= 0) { skipped.push(row + "行:候補複数のため禁止"); return; }
+    // E列（候補顧客No）が空なら反映しない。
+    //   ⚫候補複数 / ×候補なし は自動ではE列が空なので、この時点で除外される。
+    //   人が正しいNoをE列に入れた行だけ反映対象になる（＝手動解決を許可）。
+    if (!candNo) { skipped.push(row + "行:候補顧客Noなし（⚫/×は正しいNoをE列に入力）"); return; }
     if (!followRow) { skipped.push(row + "行:1年サポート行番号なし"); return; }
     if (existingNos[candNo]) { skipped.push(row + "行:顧客No重複（既にBAに存在）"); return; }
     if (batchCount[candNo] > 1) { skipped.push(row + "行:顧客No重複（今回複数行）"); return; }
@@ -282,7 +283,7 @@ function clMatch_(target, index) {
   const nameMatches = fName ? (index.byName[fName] || []) : [];
 
   if (nameMatches.length >= 2) {
-    return clMulti_("顧客名が複数一致（" + nameMatches.length + "件）");
+    return clMulti_(nameMatches, "顧客名が複数一致");
   }
 
   if (nameMatches.length === 1) {
@@ -306,7 +307,7 @@ function clMatch_(target, index) {
   const repMatches = fRep ? (index.byRep[fRep] || []) : [];
 
   if (repMatches.length >= 2) {
-    return clMulti_("代表者が複数一致（" + repMatches.length + "件）");
+    return clMulti_(repMatches, "代表者が複数一致");
   }
 
   if (repMatches.length === 1) {
@@ -317,8 +318,13 @@ function clMatch_(target, index) {
   return { no: "", name: "", rep: "", score: 0, symbol: "×", reason: "候補なし" };
 }
 
-function clMulti_(reason) {
-  return { no: "", name: "", rep: "", score: 0, symbol: "⚫", reason: "候補複数：" + reason };
+function clMulti_(list, reasonHead) {
+  const detail = (list || []).slice(0, 5).map(p => p.no + ":" + p.name).join(" / ");
+  const more = (list && list.length > 5) ? " ほか" + (list.length - 5) + "件" : "";
+  return {
+    no: "", name: "", rep: "", score: 0, symbol: "⚫",
+    reason: "候補複数（" + reasonHead + "）→ 正しいNoをE列に手入力してチェック：" + detail + more
+  };
 }
 
 function clVerdictLabel_(symbol) {
