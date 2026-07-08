@@ -34,7 +34,14 @@ const MTG_REGISTER_CONFIG = {
   TARGET_PROJECT_NAME_COL: 3,    // C列：顧客名（表示用）
   TARGET_CUSTOMER_NO_COL: 53,    // BA列：顧客№（★照合キー）
   TARGET_MEETING_START_COL: 17,  // Q列：1回目
-  TARGET_MEETING_END_COL: 52     // 打ち合わせ列の上限（BA=53の手前まで）
+  TARGET_MEETING_END_COL: 52,    // 打ち合わせ列の上限（BA=53の手前まで）
+
+  // 軽量版案件一覧（B列プルダウンの元＆案件名→顧客№の逆引き）
+  LIGHT_SPREADSHEET_ID: "17okkRhyvkfrzVdTlC2Z5lmOXcm_wEweaqah8CNAHUMw",
+  LIGHT_SHEET_NAME: "軽量版案件一覧",
+  LIGHT_PROJECT_NAME_COL: 3,     // C列：案件名（プルダウンの元）
+  LIGHT_CUSTOMER_NO_COL: 0,      // 顧客№列（0=見出しから自動検出）
+  LIGHT_LIST_SHEET_NAME: "軽量版リスト" // 現スプシ内の隠しヘルパー（プルダウン元）
 };
 
 
@@ -51,7 +58,7 @@ function setMtgRegisterSheet() {
 
   const headers = ["登録", "顧客名", "顧客№", "登録済回数", "MTG日程", "登録予定回", "状態"];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  sheet.getRange("L1:M1").setValues([["抽出エラー種別", "抽出エラー詳細"]]);
+  sheet.getRange("L1:M1").setValues([["チェック種別", "チェック詳細"]]);
 
   sheet.setFrozenRows(1);
   sheet.getRange("A1:G1").setFontWeight("bold").setHorizontalAlignment("center").setVerticalAlignment("middle").setBackground("#d9ead3");
@@ -79,7 +86,15 @@ function setMtgRegisterSheet() {
   if (filter) filter.remove();
   sheet.getRange("A1:M1").createFilter();
 
-  SpreadsheetApp.getUi().alert("MTG日程登録シートの初期設定が完了しました。");
+  // 軽量版案件一覧の案件名リストを同期し、B列にプルダウンを設定
+  const listCount = syncLightweightList_();
+  applyProjectNameDropdown_(sheet);
+
+  SpreadsheetApp.getUi().alert(
+    "MTG日程登録シートの初期設定が完了しました。\n\n" +
+    "B列（顧客名）は軽量版案件一覧から選べるプルダウンにしました（" + listCount + "件）。\n" +
+    "案件名を選んだあと「lookupCustomerNoFromProjectNames」を実行すると、C列に顧客№を自動入力＆伝説シート照合します。"
+  );
 }
 
 
@@ -214,6 +229,8 @@ function extractMeetingDatesFromLatestReservation() {
     registerSheet.getRange(2, 4, rows.length, 1).setNumberFormat("0");
     registerSheet.getRange(2, 5, rows.length, 1).setNumberFormat("yyyy/mm/dd");
   }
+
+  applyProjectNameDropdown_(registerSheet);
 
   if (errorRows.length > 0) {
     registerSheet.getRange(2, 12, errorRows.length, 2).setValues(errorRows);
@@ -388,8 +405,241 @@ function findNextMeetingColumn_(targetSheet, targetRow, meetingDate) {
 
 
 // ============================================
+// 軽量版案件一覧 → 案件名リストを同期（B列プルダウンの元）
+//   現スプシ内の隠しシート「軽量版リスト」に 案件名 / 顧客№ を書き出す
+//   （別スプシの列は直接プルダウン元にできないためミラーする）
+// ============================================
+function syncLightweightProjectList() {
+  const count = syncLightweightList_();
+  SpreadsheetApp.getUi().alert("軽量版案件一覧の案件名リストを同期しました（" + count + "件）。");
+}
+
+function syncLightweightList_() {
+  const map = getLightweightNoMap_();
+  if (map.error) throw new Error(map.error);
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let listSheet = ss.getSheetByName(MTG_REGISTER_CONFIG.LIGHT_LIST_SHEET_NAME);
+  if (!listSheet) listSheet = ss.insertSheet(MTG_REGISTER_CONFIG.LIGHT_LIST_SHEET_NAME);
+
+  listSheet.clear();
+  listSheet.getRange(1, 1, 1, 2).setValues([["案件名", "顧客№"]]);
+
+  const entries = map.list; // [{name, no}]
+  if (entries.length > 0) {
+    const values = entries.map(e => [e.name, e.no]);
+    listSheet.getRange(2, 1, values.length, 2).setValues(values);
+  }
+
+  listSheet.hideSheet(); // 通常は隠す（プルダウン元としてだけ使う）
+  return entries.length;
+}
+
+// ============================================
+// 軽量版案件一覧を読み込み、案件名→顧客№ の逆引きを作る
+// ============================================
+function getLightweightNoMap_() {
+  const ss = SpreadsheetApp.openById(MTG_REGISTER_CONFIG.LIGHT_SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(MTG_REGISTER_CONFIG.LIGHT_SHEET_NAME);
+  if (!sheet) return { error: "軽量版案件一覧シートが見つかりません。", list: [], byName: new Map() };
+
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow < 2) return { error: "", list: [], byName: new Map() };
+
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || "").trim());
+
+  // 案件名列（設定優先、無ければ見出しから検出）
+  let nameCol = MTG_REGISTER_CONFIG.LIGHT_PROJECT_NAME_COL;
+  if (!nameCol) {
+    nameCol = findHeaderCol_(headers, ["案件名", "顧客名", "サイト名", "屋号名", "会社名"]) || 3;
+  }
+
+  // 顧客№列（設定が0なら見出しから自動検出）
+  let noCol = MTG_REGISTER_CONFIG.LIGHT_CUSTOMER_NO_COL;
+  if (!noCol) {
+    noCol = findHeaderCol_(headers, ["顧客№", "顧客No", "顧客ＮＯ", "顧客NO", "顧客番号", "№", "No", "顧客ナンバー", "案件№", "案件No"]);
+  }
+  if (!noCol) {
+    return {
+      error: "軽量版案件一覧で「顧客№」の列を特定できませんでした。\nコード上部の LIGHT_CUSTOMER_NO_COL に列番号（A=1,B=2,…）を指定してください。",
+      list: [], byName: new Map()
+    };
+  }
+
+  const width = Math.max(nameCol, noCol);
+  const data = sheet.getRange(2, 1, lastRow - 1, width).getValues();
+
+  const list = [];
+  const byName = new Map();
+  data.forEach(r => {
+    const name = String(r[nameCol - 1] || "").trim();
+    const no = String(r[noCol - 1] == null ? "" : r[noCol - 1]).trim();
+    if (!name) return;
+    const key = mtgNormalizeName_(name);
+    if (!key || byName.has(key)) return; // 案件名重複は先勝ち
+    const entry = { name, no };
+    byName.set(key, entry);
+    list.push(entry);
+  });
+
+  return { error: "", list, byName, nameCol, noCol };
+}
+
+function findHeaderCol_(headers, candidates) {
+  for (let i = 0; i < headers.length; i++) {
+    const h = mtgNormalizeName_(headers[i]);
+    for (let j = 0; j < candidates.length; j++) {
+      if (h === mtgNormalizeName_(candidates[j])) return i + 1;
+    }
+  }
+  return 0;
+}
+
+// ============================================
+// B列（顧客名）に軽量版リストのプルダウンを設定
+//   allowInvalid=true：抽出時の案件名などリスト外でも弾かず警告のみ
+// ============================================
+function applyProjectNameDropdown_(sheet) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const listSheet = ss.getSheetByName(MTG_REGISTER_CONFIG.LIGHT_LIST_SHEET_NAME);
+  if (!listSheet) return;
+  const listLast = listSheet.getLastRow();
+  if (listLast < 2) return;
+
+  const sourceRange = listSheet.getRange(2, 1, listLast - 1, 1); // 案件名列
+  const rule = SpreadsheetApp.newDataValidation()
+    .requireValueInRange(sourceRange, true)
+    .setAllowInvalid(true)
+    .build();
+
+  const rows = sheet.getMaxRows() - 1;
+  if (rows > 0) {
+    sheet.getRange(2, MTG_REGISTER_CONFIG.SOURCE_PROJECT_NAME_COL, rows, 1).setDataValidation(rule);
+  }
+}
+
+// ============================================
+// 案件名 → 顧客№ を引いてチェック
+//   ・B列で選んだ案件名から軽量版の顧客№を引き、C列が空なら自動入力（既存は上書きしない）
+//   ・その顧客№が伝説シートBA列に存在するか照合して、結果を L:M 列へ出力
+// ============================================
+function lookupCustomerNoFromProjectNames() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  const sheet = ss.getSheetByName(MTG_REGISTER_CONFIG.SOURCE_SHEET_NAME);
+  if (!sheet) { ui.alert("MTG日程登録シートが見つかりません。"); return; }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) { ui.alert("対象行がありません。"); return; }
+
+  const light = getLightweightNoMap_();
+  if (light.error) { ui.alert(light.error); return; }
+
+  // 伝説シートBA列の顧客№セット
+  const targetSS = SpreadsheetApp.openById(MTG_REGISTER_CONFIG.TARGET_SPREADSHEET_ID);
+  const densetsu = targetSS.getSheetByName(MTG_REGISTER_CONFIG.TARGET_SHEET_NAME);
+  const densetsuNoSet = new Set();
+  if (densetsu) {
+    const dLast = densetsu.getLastRow();
+    if (dLast >= 2 && densetsu.getMaxColumns() >= MTG_REGISTER_CONFIG.TARGET_CUSTOMER_NO_COL) {
+      densetsu.getRange(2, MTG_REGISTER_CONFIG.TARGET_CUSTOMER_NO_COL, dLast - 1, 1)
+        .getValues().forEach(r => {
+          const n = normalizeNo_(r[0]);
+          if (n) densetsuNoSet.add(n);
+        });
+    }
+  }
+
+  const num = lastRow - 1;
+  const names = sheet.getRange(2, MTG_REGISTER_CONFIG.SOURCE_PROJECT_NAME_COL, num, 1).getValues();
+  const curNos = sheet.getRange(2, MTG_REGISTER_CONFIG.SOURCE_CUSTOMER_NO_COL, num, 1).getValues();
+
+  const noOut = [];
+  const typeOut = [];
+  const detailOut = [];
+
+  let filled = 0, okCount = 0, notInDensetsu = 0, notInLight = 0, mismatch = 0;
+
+  for (let i = 0; i < num; i++) {
+    const name = String(names[i][0] || "").trim();
+    const curNo = String(curNos[i][0] == null ? "" : curNos[i][0]).trim();
+
+    if (!name) { noOut.push([curNo]); typeOut.push([""]); detailOut.push([""]); continue; }
+
+    const hit = light.byName.get(mtgNormalizeName_(name));
+    const lightNo = hit ? String(hit.no || "").trim() : "";
+
+    // C列に入れる番号：既存があれば尊重、無ければ軽量版から補完
+    let effectiveNo = curNo;
+    if (!effectiveNo && lightNo) { effectiveNo = lightNo; filled++; }
+    noOut.push([effectiveNo]);
+
+    // 判定
+    let type = "";
+    let detail = "";
+
+    if (!hit) {
+      type = "軽量版に案件名なし";
+      detail = "「" + name + "」が軽量版案件一覧にありません";
+      notInLight++;
+    } else if (!lightNo) {
+      type = "軽量版の顧客№空";
+      detail = "「" + name + "」は軽量版に顧客№が入っていません";
+    } else if (curNo && normalizeNo_(curNo) !== normalizeNo_(lightNo)) {
+      type = "⚠顧客№不一致";
+      detail = "C列:" + curNo + " / 軽量版:" + lightNo + "（C列を優先しました）";
+      mismatch++;
+    }
+
+    // 伝説シート照合（effectiveNo 基準）
+    if (effectiveNo) {
+      if (densetsuNoSet.has(normalizeNo_(effectiveNo))) {
+        if (!type) { type = "OK"; detail = "伝説シートBA列に存在"; }
+        okCount++;
+      } else {
+        const pre = type ? type + " / " : "";
+        type = pre + "伝説シート未登録";
+        detail = (detail ? detail + " / " : "") + "顧客№「" + effectiveNo + "」が伝説シートBA列にありません";
+        notInDensetsu++;
+      }
+    } else if (!type) {
+      type = "顧客№なし";
+      detail = "顧客№を特定できませんでした";
+    }
+
+    typeOut.push([type]);
+    detailOut.push([detail]);
+  }
+
+  sheet.getRange(2, MTG_REGISTER_CONFIG.SOURCE_CUSTOMER_NO_COL, num, 1).setValues(noOut);
+  sheet.getRange(2, 12, num, 1).setValues(typeOut);   // L列
+  sheet.getRange(2, 13, num, 1).setValues(detailOut); // M列
+
+  ui.alert(
+    "案件名→顧客№ チェック完了\n\n" +
+    "顧客№を自動入力：" + filled + "件\n" +
+    "伝説シートに存在(OK)：" + okCount + "件\n" +
+    "伝説シート未登録：" + notInDensetsu + "件\n" +
+    "軽量版に案件名なし：" + notInLight + "件\n" +
+    "顧客№不一致(要確認)：" + mismatch + "件\n\n" +
+    "詳細は L:M 列を確認してください。"
+  );
+}
+
+
+// ============================================
 // 表記ゆれ対策
 // ============================================
+function mtgNormalizeName_(value) {
+  return String(value == null ? "" : value)
+    .normalize("NFKC")
+    .replace(/[\s　]+/g, "")
+    .replace(/(株式会社|㈱|（株）|\(株\)|有限会社|㈲|（有）|\(有\))/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 function normalizeNo_(value) {
   let s = String(value == null ? "" : value).normalize("NFKC").replace(/[\s　]+/g, "").trim();
   if (/^\d+\.0+$/.test(s)) s = s.replace(/\.0+$/, ""); // 123.0 → 123
