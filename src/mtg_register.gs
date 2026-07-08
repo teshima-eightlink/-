@@ -40,7 +40,7 @@ const MTG_REGISTER_CONFIG = {
   LIGHT_SPREADSHEET_ID: "17okkRhyvkfrzVdTlC2Z5lmOXcm_wEweaqah8CNAHUMw",
   LIGHT_SHEET_NAME: "軽量版案件一覧",
   LIGHT_PROJECT_NAME_COL: 3,     // C列：案件名（プルダウンの元）
-  LIGHT_CUSTOMER_NO_COL: 0,      // 顧客№列（0=見出しから自動検出）
+  LIGHT_CUSTOMER_NO_COL: 2,      // B列：顧客№（0にすると見出しから自動検出）
   LIGHT_LIST_SHEET_NAME: "軽量版リスト" // 現スプシ内の隠しヘルパー（プルダウン元）
 };
 
