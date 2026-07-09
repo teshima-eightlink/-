@@ -678,7 +678,7 @@ function buildConfirmMessage_(updateItems, projectNotFound, followNotFound, noDa
   message += `顧客No重複：${duplicateItems.length}件\n\n`;
 
   message += "【更新内容】\n";
-  message += "案件一覧：K列 納品日 / M列 納品完了 / AL列 完了 / 行を水色\n";
+  message += "案件一覧：K列 納品日 / M列 納品完了 / AL列 完了 / 行をシアン\n";
   message += "1年サポート：L列 納品日 / M列 サポート終了日 / O列 URL / BB列 メモ\n\n";
 
   message += "【更新予定案件】\n";
