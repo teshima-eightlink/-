@@ -408,8 +408,8 @@ function checkDeliveryInput() {
       duplicateNg++;
     }
 
-    if (project.status === "シート上納品") {
-      memo += " ⚠ 案件一覧の進捗が「シート上納品」です。";
+    if (isSheetDelivery_(project.status)) {
+      memo += " ⚠ シート上納品";
       sheetDeliveryWarning++;
     }
 
@@ -543,7 +543,7 @@ function runDeliveryComplete() {
     }
 
     if (!follow) followNotFound.push(project);
-    if (project.status === "シート上納品") sheetDeliveryWarnings.push(project);
+    if (isSheetDelivery_(project.status)) sheetDeliveryWarnings.push(project);
 
     updateItems.push({
       inputRow: item.row,
@@ -806,6 +806,15 @@ function applyDeliveryUpdates_(items, input) {
     input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.REFLECT_STATUS).setValue("反映済");
     input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.LAST_PROCESSED_AT).setValue(now);
 
+    // 元の進捗が「シート上納品」なら、反映後も確認メモに残す
+    if (isSheetDelivery_(item.project.status)) {
+      const memoCell = input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.MEMO);
+      const cur = String(memoCell.getValue() || "");
+      if (cur.indexOf("シート上納品") < 0) {
+        memoCell.setValue(cur ? ("シート上納品 / " + cur) : "シート上納品");
+      }
+    }
+
     appendDeliveryLog_(logSheet, now, item, followResult, user, "完了");
   });
 }
@@ -1019,6 +1028,11 @@ function dlNormalizeName_(value) {
     .replace(/(株式会社|㈱|（株）|\(株\)|有限会社|㈲|（有）|\(有\))/g, "")
     .toLowerCase()
     .trim();
+}
+
+// 案件一覧の進捗に「シート上納品」が含まれるか
+function isSheetDelivery_(status) {
+  return String(status == null ? "" : status).indexOf("シート上納品") >= 0;
 }
 
 // 顧客名の食い違い判定（両方に名前があり、正規化しても違えば true）
