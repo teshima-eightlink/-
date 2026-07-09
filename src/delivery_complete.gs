@@ -56,6 +56,7 @@ const DELIVERY_CONFIG = {
     CUSTOMER_NAME: 4,
     DELIVERY_DATE: 11,
     STATUS: 13,
+    URL: 15,        // O列：公開URL（1年サポートO列へ転記）
     REPORT: 38
   },
 
@@ -63,6 +64,7 @@ const DELIVERY_CONFIG = {
     CUSTOMER_NAME: 3,
     DELIVERY_DATE: 12,
     SUPPORT_END: 13,
+    URL: 15,        // O列：URL（案件一覧の公開URLを入れる）
     CUSTOMER_NO: 53,
     MEMO: 54
   }
@@ -653,7 +655,7 @@ function buildConfirmMessage_(updateItems, projectNotFound, followNotFound, noDa
 
   message += "【更新内容】\n";
   message += "案件一覧：K列 納品日 / M列 納品完了 / AL列 完了 / 行を水色\n";
-  message += "1年サポート：L列 納品日 / M列 サポート終了日 / BB列 メモ\n\n";
+  message += "1年サポート：L列 納品日 / M列 サポート終了日 / O列 URL / BB列 メモ\n\n";
 
   message += "【更新予定案件】\n";
   updateItems.slice(0, 15).forEach(item => {
@@ -751,6 +753,13 @@ function applyDeliveryUpdates_(items, input) {
         .getRange(item.follow.row, DELIVERY_CONFIG.FOLLOW_COL.SUPPORT_END)
         .setValue(addYears_(deliveryDate, 1));
 
+      // 公開URLがあれば O列 に転記（空の場合は既存を消さない）
+      if (item.project.url) {
+        followSheet
+          .getRange(item.follow.row, DELIVERY_CONFIG.FOLLOW_COL.URL)
+          .setValue(item.project.url);
+      }
+
       followSheet
         .getRange(item.follow.row, DELIVERY_CONFIG.FOLLOW_COL.MEMO)
         .setValue("納品完了入力から更新：" + formatDateTime_(now));
@@ -785,6 +794,7 @@ function getProjectMap_() {
   const customerNames = sheet.getRange(2, DELIVERY_CONFIG.PROJECT_COL.CUSTOMER_NAME, numRows, 1).getValues();
   const deliveryDates = sheet.getRange(2, DELIVERY_CONFIG.PROJECT_COL.DELIVERY_DATE, numRows, 1).getValues();
   const statuses = sheet.getRange(2, DELIVERY_CONFIG.PROJECT_COL.STATUS, numRows, 1).getValues();
+  const urls = sheet.getRange(2, DELIVERY_CONFIG.PROJECT_COL.URL, numRows, 1).getValues();
 
   const map = {};
 
@@ -803,6 +813,7 @@ function getProjectMap_() {
       customerName: customerNames[i][0],
       status: statuses[i][0],
       deliveryDate: deliveryDates[i][0],
+      url: urls[i][0],
       duplicate: false
     };
   }
