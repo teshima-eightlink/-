@@ -36,7 +36,7 @@ const DELIVERY_CONFIG = {
   INPUT_SHEET_NAME: "納品完了入力",
   LOG_SHEET_NAME: "納品完了ログ",
 
-  COLOR_DELIVERED: "#cfe2f3",
+  COLOR_DELIVERED: "#00ffff", // スプシ標準色のシアン
 
   INPUT_COL: {
     CHECK: 1,                 // A：反映対象
@@ -371,6 +371,7 @@ function checkDeliveryInput() {
   let dateNg = 0;
   let sheetDeliveryWarning = 0;
   let duplicateNg = 0;
+  let nameMismatch = 0;
 
   inputItems.forEach(item => {
     const now = new Date();
@@ -417,6 +418,11 @@ function checkDeliveryInput() {
       followNg++;
     }
 
+    if (follow && dlNamesConflict_(project.customerName, follow.customerName)) {
+      memo += " ⛔ 顧客名不一致（案件一覧:" + project.customerName + " / 1年サポート:" + follow.customerName + "）→ 反映時はこの行を更新しません。";
+      nameMismatch++;
+    }
+
     input.getRange(item.row, DELIVERY_CONFIG.INPUT_COL.PROJECT_CUSTOMER_NAME).setValue(project.customerName);
     input.getRange(item.row, DELIVERY_CONFIG.INPUT_COL.PROJECT_STATUS).setValue(project.status);
     input.getRange(item.row, DELIVERY_CONFIG.INPUT_COL.FOLLOW_STATUS).setValue(follow ? "顧客No一致" : "未一致");
@@ -436,7 +442,8 @@ function checkDeliveryInput() {
     `1年サポート未一致：${followNg}件\n` +
     `納品日未入力：${dateNg}件\n` +
     `シート上納品警告：${sheetDeliveryWarning}件\n` +
-    `顧客No重複警告：${duplicateNg}件`
+    `顧客No重複警告：${duplicateNg}件\n` +
+    `顧客名不一致（反映停止）：${nameMismatch}件`
   );
 }
 
@@ -472,6 +479,7 @@ function runDeliveryComplete() {
   const sheetDeliveryWarnings = [];
   const duplicateItems = [];
   const noCustomerNoItems = [];
+  const nameMismatchItems = [];
 
   checkedItems.forEach(item => {
     if (!item.customerNo) {
@@ -512,6 +520,18 @@ function runDeliveryComplete() {
       return;
     }
 
+    if (follow && dlNamesConflict_(project.customerName, follow.customerName)) {
+      nameMismatchItems.push({
+        row: item.row,
+        customerNo: item.customerNo,
+        projectName: project.customerName,
+        followName: follow.customerName
+      });
+      setInputNg_(input, item.row, "NG：顧客名不一致",
+        "顧客Noは一致しますが顧客名が違います（案件一覧:" + project.customerName + " / 1年サポート:" + follow.customerName + "）。取り違え防止のため更新を停止しました。");
+      return;
+    }
+
     if (!item.deliveryDate) {
       noDateItems.push({
         row: item.row,
@@ -539,6 +559,7 @@ function runDeliveryComplete() {
     ui.alert(
       "更新できる行がありませんでした。\n\n" +
       `顧客No未特定：${noCustomerNoItems.length}件\n` +
+      `顧客名不一致：${nameMismatchItems.length}件\n` +
       `案件一覧未一致：${projectNotFound.length}件\n` +
       `納品日未入力：${noDateItems.length}件\n` +
       `顧客No重複：${duplicateItems.length}件`
@@ -546,7 +567,7 @@ function runDeliveryComplete() {
     return;
   }
 
-  const message = buildConfirmMessage_(updateItems, projectNotFound, followNotFound, noDateItems, sheetDeliveryWarnings, duplicateItems, noCustomerNoItems);
+  const message = buildConfirmMessage_(updateItems, projectNotFound, followNotFound, noDateItems, sheetDeliveryWarnings, duplicateItems, noCustomerNoItems, nameMismatchItems);
 
   const result = ui.alert("納品完了反映 確認", message, ui.ButtonSet.OK_CANCEL);
 
@@ -561,6 +582,7 @@ function runDeliveryComplete() {
     "反映完了！\n\n" +
     `更新：${updateItems.length}件\n` +
     `顧客No未特定：${noCustomerNoItems.length}件\n` +
+    `顧客名不一致（停止）：${nameMismatchItems.length}件\n` +
     `案件一覧未一致：${projectNotFound.length}件\n` +
     `納品日未入力：${noDateItems.length}件\n` +
     `1年サポート未一致：${followNotFound.length}件\n` +
@@ -638,8 +660,9 @@ function cleanupOldDeliveryInputRowsByMonth() {
 //==================================================
 // 確認メッセージ作成
 //==================================================
-function buildConfirmMessage_(updateItems, projectNotFound, followNotFound, noDateItems, sheetDeliveryWarnings, duplicateItems, noCustomerNoItems) {
+function buildConfirmMessage_(updateItems, projectNotFound, followNotFound, noDateItems, sheetDeliveryWarnings, duplicateItems, noCustomerNoItems, nameMismatchItems) {
   noCustomerNoItems = noCustomerNoItems || [];
+  nameMismatchItems = nameMismatchItems || [];
   let message = "";
 
   message += "以下の内容で納品完了を反映します。\n\n";
@@ -647,6 +670,7 @@ function buildConfirmMessage_(updateItems, projectNotFound, followNotFound, noDa
   message += "【件数】\n";
   message += `更新予定：${updateItems.length}件\n`;
   message += `顧客No未特定：${noCustomerNoItems.length}件\n`;
+  message += `顧客名不一致（停止）：${nameMismatchItems.length}件\n`;
   message += `案件一覧未一致：${projectNotFound.length}件\n`;
   message += `納品日未入力：${noDateItems.length}件\n`;
   message += `1年サポート未一致：${followNotFound.length}件\n`;
@@ -685,6 +709,15 @@ function buildConfirmMessage_(updateItems, projectNotFound, followNotFound, noDa
     message += "【更新停止：顧客No重複】\n";
     duplicateItems.slice(0, 10).forEach(item => {
       message += `・入力行${item.row}　${item.customerNo} ${item.customerName}：${item.reason}\n`;
+    });
+    message += "\n";
+  }
+
+  if (nameMismatchItems.length > 0) {
+    message += "【更新停止：顧客名不一致】\n";
+    message += "※顧客Noは一致していますが顧客名が違います。取り違え防止のため更新しません。\n";
+    nameMismatchItems.slice(0, 10).forEach(item => {
+      message += `・入力行${item.row}　${item.customerNo}：案件一覧「${item.projectName}」/ 1年サポート「${item.followName}」\n`;
     });
     message += "\n";
   }
@@ -986,6 +1019,14 @@ function dlNormalizeName_(value) {
     .replace(/(株式会社|㈱|（株）|\(株\)|有限会社|㈲|（有）|\(有\))/g, "")
     .toLowerCase()
     .trim();
+}
+
+// 顧客名の食い違い判定（両方に名前があり、正規化しても違えば true）
+function dlNamesConflict_(a, b) {
+  const na = dlNormalizeName_(a);
+  const nb = dlNormalizeName_(b);
+  if (!na || !nb) return false; // 片方でも空なら比較しない
+  return na !== nb;
 }
 
 function addYears_(value, years) {
