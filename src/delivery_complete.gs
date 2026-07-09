@@ -1,23 +1,37 @@
 // @ts-nocheck
 //==================================================
 // 納品完了入力
-//   setupDeliveryInputSheet            最初だけ。入力シートとログシートを作る
+//   setupDeliveryInputSheet            最初だけ。入力シート・ログシート・顧客名プルダウンを作る
 //   setupFollowSystemColumns           最初だけ。1年サポートにBA・BBを作る
-//   checkDeliveryInput                 顧客No・納品日を入力したら実行。内容確認用
+//   syncDeliveryLightList              軽量版案件一覧の顧客名リストを更新（プルダウン更新）
+//   lookupDeliveryCustomerNoFromNames  B列の顧客名から顧客Noを軽量版で逆引きしてC列へ
+//   checkDeliveryInput                 顧客名・納品日を入れたら実行。内容確認用
 //   runDeliveryComplete                A列にチェックした案件だけ本番反映
 //   cleanupOldDeliveryInputRowsByMonth 毎月10日トリガー想定。古い反映済をログ退避→削除
 //
+//   入力の流れ：B列で顧客名を選ぶ → 顧客No(C)は軽量版案件一覧から自動 → 納品日(D)を入れる
+//               → checkDeliveryInput で確認 → A列チェック → runDeliveryComplete で反映
+//
 //   ※ onOpen は使わない。図形ボタン or Apps Script から手動実行。
-//   ※ 本番は別ID。テストは PROJECT_SS_ID / FOLLOW_SS_ID を同じダミーIDにすればOK。
-//   ※ 入力シート・ログシートはこのスクリプトがバインドされたブック（＝アクティブ）に作成。
+//   ※ 別スプレッドシートの列は直接プルダウン元にできないため、
+//     アクティブなブックに隠しシート「軽量版リスト（納品）」を作ってミラーします。
 //==================================================
 
 const DELIVERY_CONFIG = {
-  PROJECT_SS_ID: "1vQmZWABfGcE4AGJV7CWIKJwYdxJ-V1-V",
+  // 大元「顧客サイト管理情報一覧」
+  PROJECT_SS_ID: "1ROGUwwU2VhY_oRN6btT49jMAAnZNtzR1jr7TSFIlWiQ",
   PROJECT_SHEET_NAME: "案件一覧",
 
-  FOLLOW_SS_ID: "1vQmZWABfGcE4AGJV7CWIKJwYdxJ-V1-V",
+  // 1年サポート
+  FOLLOW_SS_ID: "1JIXNvOuK_5qLcNaQw6vXg8ciaw7-VgKh6sBXoZAMEqA",
   FOLLOW_SHEET_NAME: "1年サポート",
+
+  // 軽量版案件一覧（顧客名プルダウンの元＆顧客名→顧客Noの逆引き）
+  LIGHT_SS_ID: "17okkRhyvkfrzVdTlC2Z5lmOXcm_wEweaqah8CNAHUMw",
+  LIGHT_SHEET_NAME: "軽量版案件一覧",
+  LIGHT_PROJECT_NAME_COL: 3,   // C列：顧客名（プルダウンの元）
+  LIGHT_CUSTOMER_NO_COL: 2,    // B列：顧客No（0にすると見出しから自動検出）
+  LIGHT_LIST_SHEET_NAME: "軽量版リスト（納品）", // アクティブブック内の隠しヘルパー
 
   INPUT_SHEET_NAME: "納品完了入力",
   LOG_SHEET_NAME: "納品完了ログ",
@@ -25,15 +39,16 @@ const DELIVERY_CONFIG = {
   COLOR_DELIVERED: "#cfe2f3",
 
   INPUT_COL: {
-    CHECK: 1,
-    CUSTOMER_NO: 2,
-    DELIVERY_DATE: 3,
-    PROJECT_CUSTOMER_NAME: 4,
-    PROJECT_STATUS: 5,
-    FOLLOW_STATUS: 6,
-    MEMO: 7,
-    REFLECT_STATUS: 8,
-    LAST_PROCESSED_AT: 9
+    CHECK: 1,                 // A：反映対象
+    CUSTOMER_NAME: 2,         // B：顧客名（軽量版C列から選択）
+    CUSTOMER_NO: 3,           // C：顧客No（軽量版から自動）
+    DELIVERY_DATE: 4,         // D：納品日
+    PROJECT_CUSTOMER_NAME: 5, // E：案件一覧の顧客名
+    PROJECT_STATUS: 6,        // F：案件一覧の進捗
+    FOLLOW_STATUS: 7,         // G：1年サポート一致状況
+    MEMO: 8,                  // H：確認メモ
+    REFLECT_STATUS: 9,        // I：反映ステータス
+    LAST_PROCESSED_AT: 10     // J：最終処理日時
   },
 
   PROJECT_COL: {
@@ -55,7 +70,7 @@ const DELIVERY_CONFIG = {
 
 //==================================================
 // 初回セットアップ
-// 納品完了入力シート・ログシートを作成（初回のみ実行）
+// 納品完了入力シート・ログシート・顧客名プルダウンを作成（初回のみ実行）
 // ※ ログシートは再実行しても消えません
 //==================================================
 function setupDeliveryInputSheet() {
@@ -79,9 +94,11 @@ function setupDeliveryInputSheet() {
 
   if (!input) input = ss.insertSheet(DELIVERY_CONFIG.INPUT_SHEET_NAME);
   input.clear();
+  input.getRange(2, 1, input.getMaxRows() - 1, DELIVERY_CONFIG.INPUT_COL.LAST_PROCESSED_AT).clearDataValidations();
 
-  input.getRange(1, 1, 1, 9).setValues([[
+  input.getRange(1, 1, 1, 10).setValues([[
     "反映対象",
+    "顧客名",
     "顧客No",
     "納品日",
     "案件一覧：顧客名",
@@ -99,27 +116,39 @@ function setupDeliveryInputSheet() {
     .setAllowInvalid(false)
     .build();
 
-  input.getRange("C2:C300").setDataValidation(dateRule);
-  input.getRange("C2:C300").setNumberFormat("yyyy/mm/dd");
-  input.getRange("I2:I300").setNumberFormat("yyyy/mm/dd HH:mm");
+  // 納品日はD列
+  input.getRange("D2:D300").setDataValidation(dateRule);
+  input.getRange("D2:D300").setNumberFormat("yyyy/mm/dd");
+  input.getRange("J2:J300").setNumberFormat("yyyy/mm/dd HH:mm");
 
   input.setFrozenRows(1);
-  input.getRange(1, 1, 1, 9).setFontWeight("bold").setBackground("#d9ead3");
+  input.getRange(1, 1, 1, 10).setFontWeight("bold").setBackground("#d9ead3");
 
-  input.setColumnWidth(1, 90);
-  input.setColumnWidth(2, 120);
-  input.setColumnWidth(3, 120);
-  input.setColumnWidth(4, 220);
-  input.setColumnWidth(5, 160);
-  input.setColumnWidth(6, 180);
-  input.setColumnWidth(7, 420);
-  input.setColumnWidth(8, 160);
-  input.setColumnWidth(9, 180);
+  input.setColumnWidth(1, 90);  // A 反映対象
+  input.setColumnWidth(2, 240); // B 顧客名
+  input.setColumnWidth(3, 120); // C 顧客No
+  input.setColumnWidth(4, 120); // D 納品日
+  input.setColumnWidth(5, 220); // E 案件一覧：顧客名
+  input.setColumnWidth(6, 160); // F 案件一覧：進捗
+  input.setColumnWidth(7, 180); // G 1年サポート一致状況
+  input.setColumnWidth(8, 420); // H 確認メモ
+  input.setColumnWidth(9, 160); // I 反映ステータス
+  input.setColumnWidth(10, 180); // J 最終処理日時
 
   // ログシートは存在保証のみ（中身は消さない）
   setupLogSheetHeader_();
 
-  ui.alert("初回セットアップ完了！");
+  // 顧客名プルダウン（軽量版案件一覧からミラー）
+  let listMsg;
+  try {
+    const n = syncDeliveryLightList_();
+    applyDeliveryNameDropdown_(input);
+    listMsg = "顧客名プルダウン：" + n + "件（軽量版案件一覧C列より）";
+  } catch (e) {
+    listMsg = "⚠ 顧客名リストの同期に失敗しました：" + e.message + "\n（顧客Noは直接入力も可能です）";
+  }
+
+  ui.alert("初回セットアップ完了！\n\n" + listMsg);
 }
 
 //==================================================
@@ -138,16 +167,196 @@ function setupFollowSystemColumns() {
 }
 
 //==================================================
+// 軽量版案件一覧 → 顧客名リストを同期（B列プルダウンの元）
+//==================================================
+function syncDeliveryLightList() {
+  const n = syncDeliveryLightList_();
+  const input = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DELIVERY_CONFIG.INPUT_SHEET_NAME);
+  if (input) applyDeliveryNameDropdown_(input);
+  SpreadsheetApp.getUi().alert("軽量版案件一覧の顧客名リストを同期しました（" + n + "件）。");
+}
+
+function syncDeliveryLightList_() {
+  const map = getDeliveryLightMap_();
+  if (map.error) throw new Error(map.error);
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let listSheet = ss.getSheetByName(DELIVERY_CONFIG.LIGHT_LIST_SHEET_NAME);
+  if (!listSheet) listSheet = ss.insertSheet(DELIVERY_CONFIG.LIGHT_LIST_SHEET_NAME);
+
+  listSheet.clear();
+  listSheet.getRange(1, 1, 1, 2).setValues([["顧客名", "顧客No"]]);
+
+  if (map.list.length > 0) {
+    listSheet.getRange(2, 1, map.list.length, 2).setValues(map.list.map(e => [e.name, e.no]));
+  }
+
+  listSheet.hideSheet();
+  return map.list.length;
+}
+
+//==================================================
+// 軽量版案件一覧を読み込み、顧客名→顧客No の逆引きを作る
+//==================================================
+function getDeliveryLightMap_() {
+  const ss = SpreadsheetApp.openById(DELIVERY_CONFIG.LIGHT_SS_ID);
+  const sheet = ss.getSheetByName(DELIVERY_CONFIG.LIGHT_SHEET_NAME);
+  if (!sheet) return { error: "軽量版案件一覧シートが見つかりません。", list: [], byName: new Map() };
+
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow < 2) return { error: "", list: [], byName: new Map() };
+
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || "").trim());
+
+  let nameCol = DELIVERY_CONFIG.LIGHT_PROJECT_NAME_COL;
+  if (!nameCol) nameCol = dlFindHeaderCol_(headers, ["顧客名", "案件名", "サイト名", "屋号名", "会社名"]) || 3;
+
+  let noCol = DELIVERY_CONFIG.LIGHT_CUSTOMER_NO_COL;
+  if (!noCol) noCol = dlFindHeaderCol_(headers, ["顧客No", "顧客№", "顧客ＮＯ", "顧客NO", "顧客番号", "№", "No"]);
+  if (!noCol) {
+    return {
+      error: "軽量版案件一覧で「顧客No」の列を特定できませんでした。\nコード上部の LIGHT_CUSTOMER_NO_COL に列番号（A=1,B=2,…）を指定してください。",
+      list: [], byName: new Map()
+    };
+  }
+
+  const width = Math.max(nameCol, noCol);
+  const data = sheet.getRange(2, 1, lastRow - 1, width).getValues();
+
+  const list = [];
+  const byName = new Map();
+  data.forEach(r => {
+    const name = String(r[nameCol - 1] || "").trim();
+    const no = String(r[noCol - 1] == null ? "" : r[noCol - 1]).trim();
+    if (!name) return;
+    const key = dlNormalizeName_(name);
+    if (!key || byName.has(key)) return; // 顧客名重複は先勝ち
+    const entry = { name, no };
+    byName.set(key, entry);
+    list.push(entry);
+  });
+
+  return { error: "", list, byName };
+}
+
+function dlFindHeaderCol_(headers, candidates) {
+  for (let i = 0; i < headers.length; i++) {
+    const h = dlNormalizeName_(headers[i]);
+    for (let j = 0; j < candidates.length; j++) {
+      if (h === dlNormalizeName_(candidates[j])) return i + 1;
+    }
+  }
+  return 0;
+}
+
+//==================================================
+// B列（顧客名）に軽量版リストのプルダウンを設定
+//==================================================
+function applyDeliveryNameDropdown_(input) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const listSheet = ss.getSheetByName(DELIVERY_CONFIG.LIGHT_LIST_SHEET_NAME);
+  if (!listSheet) return;
+  const listLast = listSheet.getLastRow();
+  if (listLast < 2) return;
+
+  const src = listSheet.getRange(2, 1, listLast - 1, 1); // 顧客名列
+  const rule = SpreadsheetApp.newDataValidation()
+    .requireValueInRange(src, true)
+    .setAllowInvalid(true)
+    .build();
+
+  const rows = input.getMaxRows() - 1;
+  if (rows > 0) {
+    input.getRange(2, DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NAME, rows, 1).setDataValidation(rule);
+  }
+}
+
+//==================================================
+// 顧客名 → 顧客No 逆引き（C列が空の行だけ補完。手入力Noは尊重）
+//==================================================
+function lookupDeliveryCustomerNoFromNames() {
+  const ui = SpreadsheetApp.getUi();
+  const input = getInputSheet_();
+  let r;
+  try {
+    r = resolveCustomerNosFromNames_(input);
+  } catch (e) {
+    ui.alert(e.message);
+    return;
+  }
+  ui.alert(
+    "顧客Noの自動入力（軽量版案件一覧より）\n\n" +
+    "自動入力：" + r.filled + "件\n" +
+    "軽量版に顧客名が見つからない：" + r.notFound + "件"
+  );
+}
+
+function resolveCustomerNosFromNames_(input) {
+  const result = { filled: 0, notFound: 0 };
+
+  const lastRow = input.getLastRow();
+  if (lastRow < 2) return result;
+
+  const num = lastRow - 1;
+  const names = input.getRange(2, DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NAME, num, 1).getValues();
+  const nos = input.getRange(2, DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NO, num, 1).getValues();
+
+  const light = getDeliveryLightMap_();
+  if (light.error) throw new Error(light.error);
+
+  const out = [];
+  let changed = false;
+
+  for (let i = 0; i < num; i++) {
+    const name = String(names[i][0] || "").trim();
+    const curNo = String(nos[i][0] == null ? "" : nos[i][0]).trim();
+
+    if (curNo) { out.push([curNo]); continue; } // 既にNoがあれば触らない
+    if (!name) { out.push([""]); continue; }
+
+    const hit = light.byName.get(dlNormalizeName_(name));
+    if (hit && hit.no) {
+      out.push([hit.no]);
+      result.filled++;
+      changed = true;
+    } else {
+      out.push([""]);
+      result.notFound++;
+    }
+  }
+
+  if (changed) {
+    input.getRange(2, DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NO, num, 1).setValues(out);
+  }
+
+  return result;
+}
+
+//==================================================
 // 入力内容確認
-// 顧客Noから案件一覧・1年サポートを照合し、顧客名・進捗・警告内容を表示
+// 顧客名→顧客Noを補完し、案件一覧・1年サポートを照合して表示
 //==================================================
 function checkDeliveryInput() {
   const ui = SpreadsheetApp.getUi();
   const input = getInputSheet_();
+
+  // まず顧客名から顧客Noを補完
+  let resolved = { filled: 0, notFound: 0 };
+  try {
+    resolved = resolveCustomerNosFromNames_(input);
+  } catch (e) {
+    ui.alert("顧客名リストの取得に失敗しました：" + e.message + "\n（顧客Noを直接入力すれば続行できます）");
+  }
+
   const inputItems = getInputRowsWithCustomerNo_(input);
 
   if (inputItems.length === 0) {
-    ui.alert("顧客Noが入力されている行がありません。");
+    ui.alert(
+      "顧客Noが特定できた行がありません。\n\n" +
+      "軽量版に顧客名が見つからない：" + resolved.notFound + "件\n" +
+      "→ B列の顧客名を選び直すか、C列に顧客Noを直接入力してください。"
+    );
     return;
   }
 
@@ -166,7 +375,7 @@ function checkDeliveryInput() {
     const project = projectMap[item.customerNo];
 
     if (!project) {
-      input.getRange(item.row, 4, 1, 6).setValues([[
+      input.getRange(item.row, DELIVERY_CONFIG.INPUT_COL.PROJECT_CUSTOMER_NAME, 1, 6).setValues([[
         "",
         "",
         "未確認",
@@ -219,6 +428,8 @@ function checkDeliveryInput() {
   ui.alert(
     "確認完了！\n\n" +
     `確認済：${checked}件\n` +
+    `顧客No自動入力：${resolved.filled}件\n` +
+    `軽量版に顧客名なし：${resolved.notFound}件\n` +
     `案件一覧未一致：${projectNg}件\n` +
     `1年サポート未一致：${followNg}件\n` +
     `納品日未入力：${dateNg}件\n` +
@@ -234,6 +445,14 @@ function checkDeliveryInput() {
 function runDeliveryComplete() {
   const ui = SpreadsheetApp.getUi();
   const input = getInputSheet_();
+
+  // まず顧客名から顧客Noを補完
+  try {
+    resolveCustomerNosFromNames_(input);
+  } catch (e) {
+    ui.alert("顧客名リストの取得に失敗しました：" + e.message + "\n（顧客Noを直接入力すれば続行できます）");
+  }
+
   const checkedItems = getCheckedInputRows_(input);
 
   if (checkedItems.length === 0) {
@@ -250,8 +469,15 @@ function runDeliveryComplete() {
   const noDateItems = [];
   const sheetDeliveryWarnings = [];
   const duplicateItems = [];
+  const noCustomerNoItems = [];
 
   checkedItems.forEach(item => {
+    if (!item.customerNo) {
+      noCustomerNoItems.push(item);
+      setInputNg_(input, item.row, "NG：顧客No未特定", "顧客名から顧客Noを特定できません。B列の顧客名を確認するか、C列に顧客Noを直接入力してください。");
+      return;
+    }
+
     const project = projectMap[item.customerNo];
 
     if (!project) {
@@ -310,6 +536,7 @@ function runDeliveryComplete() {
   if (updateItems.length === 0) {
     ui.alert(
       "更新できる行がありませんでした。\n\n" +
+      `顧客No未特定：${noCustomerNoItems.length}件\n` +
       `案件一覧未一致：${projectNotFound.length}件\n` +
       `納品日未入力：${noDateItems.length}件\n` +
       `顧客No重複：${duplicateItems.length}件`
@@ -317,7 +544,7 @@ function runDeliveryComplete() {
     return;
   }
 
-  const message = buildConfirmMessage_(updateItems, projectNotFound, followNotFound, noDateItems, sheetDeliveryWarnings, duplicateItems);
+  const message = buildConfirmMessage_(updateItems, projectNotFound, followNotFound, noDateItems, sheetDeliveryWarnings, duplicateItems, noCustomerNoItems);
 
   const result = ui.alert("納品完了反映 確認", message, ui.ButtonSet.OK_CANCEL);
 
@@ -331,6 +558,7 @@ function runDeliveryComplete() {
   ui.alert(
     "反映完了！\n\n" +
     `更新：${updateItems.length}件\n` +
+    `顧客No未特定：${noCustomerNoItems.length}件\n` +
     `案件一覧未一致：${projectNotFound.length}件\n` +
     `納品日未入力：${noDateItems.length}件\n` +
     `1年サポート未一致：${followNotFound.length}件\n` +
@@ -352,7 +580,7 @@ function cleanupOldDeliveryInputRowsByMonth() {
   if (lastRow < 2) return;
 
   const numRows = lastRow - 1;
-  const values = input.getRange(2, 1, numRows, 9).getValues();
+  const values = input.getRange(2, 1, numRows, 10).getValues();
 
   const now = new Date();
   const keepFrom = new Date(now.getFullYear(), now.getMonth() - 1, 1); // 先月1日
@@ -408,13 +636,15 @@ function cleanupOldDeliveryInputRowsByMonth() {
 //==================================================
 // 確認メッセージ作成
 //==================================================
-function buildConfirmMessage_(updateItems, projectNotFound, followNotFound, noDateItems, sheetDeliveryWarnings, duplicateItems) {
+function buildConfirmMessage_(updateItems, projectNotFound, followNotFound, noDateItems, sheetDeliveryWarnings, duplicateItems, noCustomerNoItems) {
+  noCustomerNoItems = noCustomerNoItems || [];
   let message = "";
 
   message += "以下の内容で納品完了を反映します。\n\n";
 
   message += "【件数】\n";
   message += `更新予定：${updateItems.length}件\n`;
+  message += `顧客No未特定：${noCustomerNoItems.length}件\n`;
   message += `案件一覧未一致：${projectNotFound.length}件\n`;
   message += `納品日未入力：${noDateItems.length}件\n`;
   message += `1年サポート未一致：${followNotFound.length}件\n`;
@@ -457,8 +687,11 @@ function buildConfirmMessage_(updateItems, projectNotFound, followNotFound, noDa
     message += "\n";
   }
 
-  if (projectNotFound.length > 0 || noDateItems.length > 0) {
+  if (noCustomerNoItems.length > 0 || projectNotFound.length > 0 || noDateItems.length > 0) {
     message += "【更新しない行】\n";
+    noCustomerNoItems.slice(0, 10).forEach(item => {
+      message += `・入力行${item.row}　${item.customerName || ""}：顧客No未特定\n`;
+    });
     projectNotFound.slice(0, 10).forEach(item => {
       message += `・入力行${item.row}　${item.customerNo}：案件一覧未一致\n`;
     });
@@ -631,14 +864,15 @@ function getInputRowsWithCustomerNo_(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
-  const values = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+  const values = sheet.getRange(2, 1, lastRow - 1, DELIVERY_CONFIG.INPUT_COL.DELIVERY_DATE).getValues();
 
   return values
     .map((r, i) => ({
       row: i + 2,
-      checked: r[0],
-      customerNo: normalizeCustomerNo_(r[1]),
-      deliveryDate: r[2]
+      checked: r[DELIVERY_CONFIG.INPUT_COL.CHECK - 1],
+      customerName: String(r[DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NAME - 1] || "").trim(),
+      customerNo: normalizeCustomerNo_(r[DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NO - 1]),
+      deliveryDate: r[DELIVERY_CONFIG.INPUT_COL.DELIVERY_DATE - 1]
     }))
     .filter(item => item.customerNo);
 }
@@ -647,16 +881,17 @@ function getCheckedInputRows_(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
-  const values = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+  const values = sheet.getRange(2, 1, lastRow - 1, DELIVERY_CONFIG.INPUT_COL.DELIVERY_DATE).getValues();
 
   return values
     .map((r, i) => ({
       row: i + 2,
-      checked: r[0],
-      customerNo: normalizeCustomerNo_(r[1]),
-      deliveryDate: r[2]
+      checked: r[DELIVERY_CONFIG.INPUT_COL.CHECK - 1],
+      customerName: String(r[DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NAME - 1] || "").trim(),
+      customerNo: normalizeCustomerNo_(r[DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NO - 1]),
+      deliveryDate: r[DELIVERY_CONFIG.INPUT_COL.DELIVERY_DATE - 1]
     }))
-    .filter(item => item.checked === true && item.customerNo);
+    .filter(item => item.checked === true);
 }
 
 //==================================================
@@ -725,9 +960,20 @@ function setInputNg_(input, row, status, memo) {
 }
 
 function normalizeCustomerNo_(value) {
-  return String(value || "")
+  let s = String(value == null ? "" : value)
     .normalize("NFKC")
     .replace(/\s+/g, "")
+    .trim();
+  if (/^\d+\.0+$/.test(s)) s = s.replace(/\.0+$/, ""); // 123.0 → 123
+  return s;
+}
+
+function dlNormalizeName_(value) {
+  return String(value == null ? "" : value)
+    .normalize("NFKC")
+    .replace(/[\s　]+/g, "")
+    .replace(/(株式会社|㈱|（株）|\(株\)|有限会社|㈲|（有）|\(有\))/g, "")
+    .toLowerCase()
     .trim();
 }
 
