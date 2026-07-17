@@ -433,6 +433,8 @@ function writeWorkloadCategorySummary_(sheet, vals, catTotals) {
   let total = 0;
   WORKLOAD_TASKS.forEach(t => { total += (catTotals[t] || 0); });
 
+  const chartData = []; // [項目名, 分] グラフ用
+
   for (let i = start + 1; i < vals.length; i++) {
     const label = String(vals[i][0] == null ? "" : vals[i][0]).trim();
     if (!label) break;              // 空行でセクション終了
@@ -449,8 +451,46 @@ function writeWorkloadCategorySummary_(sheet, vals, catTotals) {
       const pct = total > 0 ? Math.round(m / total * 100) : 0;
       sheet.getRange(i + 1, 2).setValue(formatWorkloadTime_(m));
       sheet.getRange(i + 1, 3).setValue(pct + "%");
+      if (m > 0) chartData.push([label, Math.round(m)]);
     }
   }
+
+  refreshWorkloadChart_(sheet, start + 1, chartData);
+}
+
+//==================================================
+// 円グラフ（2週間の業務割合）を作り直す
+//   ・グラフの元データは隠し列（F:G）に数値で書き出す
+//   ・更新のたびに古いグラフを消して作り直す
+//==================================================
+
+function refreshWorkloadChart_(sheet, anchorRow, chartData) {
+  // 既存のグラフを全部消す（このシートに置くのはこの1枚だけ）
+  sheet.getCharts().forEach(c => sheet.removeChart(c));
+
+  if (!chartData || chartData.length === 0) return;
+
+  // 隠し列 F:G にグラフ元データ（見出し＋数値）を書き出す
+  const HELPER_COL = 6; // F列
+  const HELPER_START = 4;
+
+  sheet.getRange(HELPER_START, HELPER_COL, sheet.getMaxRows() - HELPER_START + 1, 2).clearContent();
+  const helper = [["項目", "分（2週間）"]].concat(chartData);
+  sheet.getRange(HELPER_START, HELPER_COL, helper.length, 2).setValues(helper);
+  sheet.hideColumns(HELPER_COL, 2);
+
+  const dataRange = sheet.getRange(HELPER_START, HELPER_COL, helper.length, 2);
+
+  const chart = sheet.newChart()
+    .asPieChart()
+    .addRange(dataRange)
+    .setOption("title", "2週間 業務割合（やった時間）")
+    .setOption("pieSliceText", "percentage")
+    .setOption("legend", { position: "right" })
+    .setPosition(anchorRow, 5, 10, 0) // 集計表の右あたりに配置
+    .build();
+
+  sheet.insertChart(chart);
 }
 
 // やれなかった時間の平均：平日（土日を除く）だけで平均する
