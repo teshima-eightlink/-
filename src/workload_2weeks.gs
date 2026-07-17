@@ -17,7 +17,8 @@ const WORKLOAD_2W_CONFIG = {
   WORK_LOG_CALENDAR_ID: "250d56987c5dc48caa13cf1327ddb2ae3e85dba487f780ab3a7101a698a3f58b@group.calendar.google.com",
 
   EXCLUDE_KEYWORDS: ["休憩", "昼休み", "移動", "有給", "欠勤"],
-  DAILY_WORK_MINUTES: 480 // 1日の所定（8時間）。超えた分がサビ残
+  DAILY_WORK_MINUTES: 480, // 1日の所定（8時間）。超えた分がサビ残
+  DETAIL_LABEL: "打ち合わせ詳細" // 打ち合わせの内訳行（普段は折りたたみ非表示）
 };
 
 const WORKLOAD_TASKS = [
@@ -127,6 +128,7 @@ function setupWorkload2WeeksSheet() {
   sheet.getRange("D2").setValue("※B2だけ変更すれば日付・曜日が連動します（変更後は「更新」を実行）");
 
   let row = 4;
+  const detailRows = [];
 
   for (let week = 0; week < 2; week++) {
     sheet.getRange(row, 1, 1, 4).merge();
@@ -160,6 +162,14 @@ function setupWorkload2WeeksSheet() {
           sheet.getRange(row, 2).setValue("0分（0件）");
           sheet.getRange(row, 3).setValue("-");
           sheet.getRange(row, 4).setValue("自動取得");
+          row++;
+          // 打ち合わせ詳細（普段は折りたたみで非表示。更新でタイトル・分を表示）
+          sheet.getRange(row, 1).setValue(WORKLOAD_2W_CONFIG.DETAIL_LABEL)
+            .setFontColor("#666666").setFontStyle("italic");
+          sheet.getRange(row, 4).setValue("（「更新」で各予定のタイトル・分を表示）");
+          detailRows.push(row);
+          row++;
+          return;
         }
         row++;
       });
@@ -205,6 +215,12 @@ function setupWorkload2WeeksSheet() {
   sheet.getRange("A1:D1").setBackground("#eadcf8");
   sheet.getRange("A:D").setWrap(true).setVerticalAlignment("top");
 
+  // 打ち合わせ詳細を折りたたみグループにして普段は非表示（＋ボタンで開閉）
+  detailRows.forEach(r => {
+    try { sheet.getRange(r, 1, 1, 1).shiftRowGroupDepth(1); } catch (e) {}
+  });
+  try { sheet.collapseAllRowGroups(); } catch (e) {}
+
   updateWorkload();
 
   SpreadsheetApp.getActive().toast("2週間分の業務量ログを作成しました", "完了", 5);
@@ -244,12 +260,16 @@ function updateWorkload() {
 
   blocks.forEach(b => {
     const key = b.date ? Utilities.formatDate(b.date, tz, "yyyy-MM-dd") : "";
-    const meet = meetingByDay[key] || { count: 0, minutes: 0 };
+    const meet = meetingByDay[key] || { count: 0, minutes: 0, items: [] };
     const work = worklogByDay[key] || {};
 
     let totalDone = 0;
     let totalNot = 0;
-    const rows = []; // [B, C] を firstTaskRow から順に
+
+    // firstTaskRow〜totalRow を1回で書くための箱（詳細行はそのまま空欄）
+    const height = b.totalRow ? (b.totalRow - b.firstTaskRow + 1) : b.taskNames.length;
+    const bc = [];
+    for (let k = 0; k < height; k++) bc.push(["", ""]);
 
     b.taskNames.forEach((name, idx) => {
       let doneMin = 0;
@@ -267,13 +287,22 @@ function updateWorkload() {
 
       totalDone += doneMin;
       totalNot += timeTextToMinutes_(cVal);
-      rows.push([doneText, cVal]);
+
+      const off = b.taskRows[idx] - b.firstTaskRow;
+      if (off >= 0 && off < height) bc[off] = [doneText, cVal];
     });
 
-    rows.push([formatWorkloadTime_(totalDone), formatWorkloadTime_(totalNot)]); // 合計
-
     if (b.totalRow) {
-      sheet.getRange(b.firstTaskRow, 2, rows.length, 2).setValues(rows);
+      bc[b.totalRow - b.firstTaskRow] = [formatWorkloadTime_(totalDone), formatWorkloadTime_(totalNot)];
+      sheet.getRange(b.firstTaskRow, 2, height, 2).setValues(bc);
+    }
+
+    // 打ち合わせ詳細（各予定のタイトルと分）を D列に表示
+    if (b.detailRow) {
+      const detailText = (meet.items && meet.items.length)
+        ? meet.items.map(it => `${it.title}　${it.min}分`).join("\n")
+        : "（打ち合わせなし）";
+      sheet.getRange(b.detailRow, 4).setValue(detailText);
     }
 
     days.push({ date: b.date, doneMin: totalDone, notDoneMin: totalNot });
@@ -301,7 +330,7 @@ function recalcWorkload2Weeks() {
     let totalNot = 0;
 
     b.taskNames.forEach((name, idx) => {
-      const r = (b.firstTaskRow - 1) + idx; // vals のインデックス
+      const r = b.taskRows[idx] - 1; // vals のインデックス（シート行-1）
       totalDone += timeTextToMinutes_(vals[r][1]);
       totalNot += timeTextToMinutes_(vals[r][2]);
     });
@@ -386,11 +415,20 @@ function parseWorkloadBlocks_(vals) {
 
     const taskNames = [];
     const taskC = [];
+    const taskRows = [];
+    let detailRow = null;
     let j = i + 2; // 日付(i)→ヘッダー(i+1)→タスク開始(i+2)
 
     while (j < vals.length && vals[j][0] !== "合計") {
+      const label = String(vals[j][0] == null ? "" : vals[j][0]).trim();
+      if (label === WORKLOAD_2W_CONFIG.DETAIL_LABEL) {
+        detailRow = j + 1; // 打ち合わせ詳細の行（タスクには数えない）
+        j++;
+        continue;
+      }
       taskNames.push(vals[j][0]);
       taskC.push(vals[j][2]);
+      taskRows.push(j + 1); // シート行
       j++;
     }
 
@@ -400,7 +438,9 @@ function parseWorkloadBlocks_(vals) {
       date: date,
       taskNames: taskNames,
       taskC: taskC,
-      firstTaskRow: i + 3, // シート行（タスク先頭）
+      taskRows: taskRows,
+      detailRow: detailRow,
+      firstTaskRow: i + 3, // シート行（タスク先頭＝打ち合わせ）
       totalRow: totalRow
     });
 
@@ -426,9 +466,10 @@ function bucketMeetings_(calendar, rangeStart, rangeEnd, tz) {
     if (duration <= 0) return;
 
     const key = Utilities.formatDate(event.getStartTime(), tz, "yyyy-MM-dd");
-    if (!by[key]) by[key] = { count: 0, minutes: 0 };
+    if (!by[key]) by[key] = { count: 0, minutes: 0, items: [] };
     by[key].count++;
     by[key].minutes += duration;
+    by[key].items.push({ title: title, min: duration });
   });
 
   return by;
