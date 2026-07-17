@@ -206,6 +206,23 @@ function setupWorkload2WeeksSheet() {
   sheet.getRange(row, 1).setValue("休日稼働");
   sheet.getRange(row, 2).setValue("0分");
   sheet.getRange(row, 1, 1, 2).setFontWeight("bold").setBackground("#fce5cd");
+  row += 2;
+
+  // ■ 項目別集計（2週間・やった時間の割合）
+  sheet.getRange(row, 1).setValue("■ 項目別集計（2週間・やった時間の割合）");
+  sheet.getRange(row, 1, 1, 3).setFontWeight("bold").setBackground("#d9eaf7");
+  row++;
+  sheet.getRange(row, 1, 1, 3).setValues([["項目", "合計時間", "割合"]]);
+  sheet.getRange(row, 1, 1, 3).setFontWeight("bold").setBackground("#d9ead3");
+  row++;
+  WORKLOAD_TASKS.forEach(task => {
+    sheet.getRange(row, 1, 1, 3).setValues([[task, "0分", "0%"]]);
+    row++;
+  });
+  sheet.getRange(row, 1).setValue("合計");
+  sheet.getRange(row, 2).setValue("0分");
+  sheet.getRange(row, 3).setValue("100%");
+  sheet.getRange(row, 1, 1, 3).setFontWeight("bold").setBackground("#fff2cc");
 
   sheet.setFrozenRows(2);
   sheet.setColumnWidth(1, 150);
@@ -259,6 +276,7 @@ function updateWorkload() {
   const worklogByDay = bucketWorklogs_(workCal, rangeStart, rangeEnd, tz);
 
   const days = [];
+  const catTotals = {};
 
   blocks.forEach(b => {
     const key = b.date ? Utilities.formatDate(b.date, tz, "yyyy-MM-dd") : "";
@@ -289,6 +307,7 @@ function updateWorkload() {
 
       totalDone += doneMin;
       totalNot += timeTextToMinutes_(cVal);
+      catTotals[name] = (catTotals[name] || 0) + doneMin;
 
       const off = b.taskRows[idx] - b.firstTaskRow;
       if (off >= 0 && off < height) bc[off] = [doneText, cVal];
@@ -311,6 +330,7 @@ function updateWorkload() {
   });
 
   writeWorkloadAggregates_(sheet, vals, days);
+  writeWorkloadCategorySummary_(sheet, vals, catTotals);
   SpreadsheetApp.getActive().toast("カレンダーから更新しました", "完了", 5);
 }
 
@@ -326,6 +346,7 @@ function recalcWorkload2Weeks() {
   const blocks = parseWorkloadBlocks_(vals);
 
   const days = [];
+  const catTotals = {};
 
   blocks.forEach(b => {
     let totalDone = 0;
@@ -333,8 +354,10 @@ function recalcWorkload2Weeks() {
 
     b.taskNames.forEach((name, idx) => {
       const r = b.taskRows[idx] - 1; // vals のインデックス（シート行-1）
-      totalDone += timeTextToMinutes_(vals[r][1]);
+      const dm = timeTextToMinutes_(vals[r][1]);
+      totalDone += dm;
       totalNot += timeTextToMinutes_(vals[r][2]);
+      catTotals[name] = (catTotals[name] || 0) + dm;
     });
 
     if (b.totalRow) {
@@ -346,6 +369,7 @@ function recalcWorkload2Weeks() {
   });
 
   writeWorkloadAggregates_(sheet, vals, days);
+  writeWorkloadCategorySummary_(sheet, vals, catTotals);
   SpreadsheetApp.getActive().toast("集計を再計算しました", "完了", 5);
 }
 
@@ -390,6 +414,42 @@ function writeWorkloadAggregates_(sheet, vals, days) {
       return s + ((day === 0 || day === 6) ? d.doneMin : 0);
     }, 0);
     sheet.getRange(holidayRow, 2).setValue(formatWorkloadTime_(hol));
+  }
+}
+
+//==================================================
+// 項目別集計（2週間の合計と割合）を書き込む
+//   ・やった時間ベースで各項目の合計と、全体に占める割合(%)を表示
+//   ・端数処理の都合で割合の合計は100%ちょうどにならないことがあります
+//==================================================
+
+function writeWorkloadCategorySummary_(sheet, vals, catTotals) {
+  let start = -1;
+  for (let i = 0; i < vals.length; i++) {
+    if (String(vals[i][0] || "").indexOf("項目別集計") >= 0) { start = i; break; }
+  }
+  if (start < 0) return; // 古いシート（集計セクションなし）は何もしない
+
+  let total = 0;
+  WORKLOAD_TASKS.forEach(t => { total += (catTotals[t] || 0); });
+
+  for (let i = start + 1; i < vals.length; i++) {
+    const label = String(vals[i][0] == null ? "" : vals[i][0]).trim();
+    if (!label) break;              // 空行でセクション終了
+    if (label === "項目") continue; // 小見出しは飛ばす
+
+    if (label === "合計") {
+      sheet.getRange(i + 1, 2).setValue(formatWorkloadTime_(total));
+      sheet.getRange(i + 1, 3).setValue("100%");
+      break;
+    }
+
+    if (WORKLOAD_TASKS.indexOf(label) >= 0) {
+      const m = catTotals[label] || 0;
+      const pct = total > 0 ? Math.round(m / total * 100) : 0;
+      sheet.getRange(i + 1, 2).setValue(formatWorkloadTime_(m));
+      sheet.getRange(i + 1, 3).setValue(pct + "%");
+    }
   }
 }
 
