@@ -95,7 +95,7 @@ function setMtgRegisterSheet() {
 
   stampMtgUpdated_(); // ダッシュボード用に最終更新日時を打刻（Z1）
 
-  SpreadsheetApp.getUi().alert(
+  mtgNotify_(
     "MTG日程登録シートの初期設定が完了しました。\n\n" +
     "B列（顧客名）は軽量版案件一覧から選べるプルダウンにしました（" + listCount + "件）。\n" +
     "案件名を選んだあと「lookupCustomerNoFromProjectNames」を実行すると、C列に顧客№を自動入力＆伝説シート照合します。"
@@ -672,6 +672,20 @@ function normalizeDate_(value) {
     return Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy/MM/dd");
   }
   return String(value || "").trim();
+}
+
+// UIがある文脈ではポップアップ、無い文脈（トリガー等）ではトースト/ログにフォールバック
+//   ※ getUi() は UI の無い文脈だと例外になるため、直接呼ばずこの関数を使う
+function mtgNotify_(message) {
+  try {
+    SpreadsheetApp.getUi().alert(message);
+  } catch (e) {
+    try {
+      SpreadsheetApp.getActiveSpreadsheet().toast(message, "MTG日程登録", 6);
+    } catch (e2) {
+      Logger.log(message);
+    }
+  }
 }
 
 // ダッシュボード用：MTG日程登録シートのZ1に「最終更新日時」を書き込む
