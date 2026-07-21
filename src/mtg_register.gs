@@ -41,7 +41,10 @@ const MTG_REGISTER_CONFIG = {
   LIGHT_SHEET_NAME: "軽量版案件一覧",
   LIGHT_PROJECT_NAME_COL: 3,     // C列：案件名（プルダウンの元）
   LIGHT_CUSTOMER_NO_COL: 2,      // B列：顧客№（0にすると見出しから自動検出）
-  LIGHT_LIST_SHEET_NAME: "軽量版リスト" // 現スプシ内の隠しヘルパー（プルダウン元）
+  LIGHT_LIST_SHEET_NAME: "軽量版リスト", // 現スプシ内の隠しヘルパー（プルダウン元）
+
+  // 「今回だけ登録しない」打ち合わせ（顧客№＋日付）を貯めるシート
+  EXCLUDE_SHEET_NAME: "MTG登録対象外"
 };
 
 
@@ -174,6 +177,8 @@ function extractMeetingDatesFromLatestReservation() {
 
   const rows = [];
   const errorRows = [];
+  const exclusionSet = getMtgExclusionSet_();
+  let excludedCount = 0;
 
   latestValues.forEach((row, index) => {
     const sourceRow = index + 2;
@@ -187,6 +192,13 @@ function extractMeetingDatesFromLatestReservation() {
     if (meeting > yesterday) return;
 
     const no = normalizeNo_(customerNoRaw);
+
+    // 「登録対象外」に登録済みの（顧客№＋日付）はスキップ
+    if (exclusionSet.has(no + "|" + normalizeDate_(meetingDate))) {
+      excludedCount++;
+      return;
+    }
+
     const densetsuData = densetsuMap.get(no);
 
     if (!densetsuData) {
@@ -241,6 +253,9 @@ function extractMeetingDatesFromLatestReservation() {
   stampMtgUpdated_(); // ダッシュボード用に最終更新日時を打刻
 
   let message = `${rows.length}件をMTG日程登録シートへ抽出しました。`;
+  if (excludedCount > 0) {
+    message += `\n（登録対象外としてスキップ：${excludedCount}件）`;
+  }
   if (errorRows.length > 0) {
     message += `\n\n※抽出できなかった案件が${errorRows.length}件あります。\nL:M列に出力しました。`;
   }
@@ -667,6 +682,100 @@ function stampMtgUpdated_() {
     const sheet = ss.getSheetByName(MTG_REGISTER_CONFIG.SOURCE_SHEET_NAME);
     if (sheet) sheet.getRange("Z1").setValue(new Date());
   } catch (e) {}
+}
+
+
+// ============================================
+// 登録対象外にする（手動）
+//   ・A列にチェックした打ち合わせを「登録対象外」にして専用シートに退避
+//   ・以後の抽出では (顧客№＋日付) が一致する打ち合わせをスキップ
+//   ・解除したいときは「MTG登録対象外」シートの該当行を削除
+// ============================================
+function excludeCheckedMeetingDates() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  const sourceSheet = ss.getSheetByName(MTG_REGISTER_CONFIG.SOURCE_SHEET_NAME);
+  if (!sourceSheet) { ui.alert("MTG日程登録シートが見つかりません。"); return; }
+
+  const lastRow = sourceSheet.getLastRow();
+  if (lastRow < 2) { ui.alert("対象がありません。"); return; }
+
+  const values = sourceSheet.getRange(2, 1, lastRow - 1, MTG_REGISTER_CONFIG.SOURCE_STATUS_COL).getValues();
+
+  const targets = [];
+  values.forEach((row, index) => {
+    const checked = row[MTG_REGISTER_CONFIG.SOURCE_CHECK_COL - 1];
+    if (checked !== true) return;
+    const name = String(row[MTG_REGISTER_CONFIG.SOURCE_PROJECT_NAME_COL - 1] || "").trim();
+    const no = row[MTG_REGISTER_CONFIG.SOURCE_CUSTOMER_NO_COL - 1];
+    const date = row[MTG_REGISTER_CONFIG.SOURCE_MEETING_DATE_COL - 1];
+    if (!no || !date) return;
+    targets.push({ row: index + 2, name, no, date });
+  });
+
+  if (targets.length === 0) {
+    ui.alert("チェックされた行がありません。\n対象外にしたい行のA列にチェックを入れてから実行してください。");
+    return;
+  }
+
+  const list = targets.map(t => `${t.name || t.no}（${normalizeDate_(t.date)}）`).join("\n");
+  const confirm = ui.alert(
+    "登録対象外にする",
+    `以下の打ち合わせを「登録対象外」にします。\n（今後この日付は抽出・登録されません。次回以降の打ち合わせは通常どおり登録されます）\n\n${list}\n\n以上${targets.length}件でよろしいですか？`,
+    ui.ButtonSet.YES_NO
+  );
+  if (confirm !== ui.Button.YES) return;
+
+  const sheet = ensureMtgExclusionSheet_();
+  const now = new Date();
+  const appendRows = targets.map(t => [t.no, t.date, now, t.name]);
+  sheet.getRange(sheet.getLastRow() + 1, 1, appendRows.length, 4).setValues(appendRows);
+
+  // 対象の行を「登録対象外」に更新＆チェックを外す
+  targets.forEach(t => {
+    sourceSheet.getRange(t.row, MTG_REGISTER_CONFIG.SOURCE_STATUS_COL).setValue("登録対象外");
+    sourceSheet.getRange(t.row, MTG_REGISTER_CONFIG.SOURCE_CHECK_COL).setValue(false);
+  });
+
+  ui.alert(`「登録対象外」に登録しました（${targets.length}件）。\n次回の抽出からは出てこなくなります。\n\n解除したいときは「${MTG_REGISTER_CONFIG.EXCLUDE_SHEET_NAME}」シートの該当行を削除してください。`);
+}
+
+// 登録対象外シートを用意（無ければ作る）
+function ensureMtgExclusionSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(MTG_REGISTER_CONFIG.EXCLUDE_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(MTG_REGISTER_CONFIG.EXCLUDE_SHEET_NAME);
+    sheet.getRange(1, 1, 1, 4).setValues([["顧客№", "MTG日程", "登録日時", "メモ（案件名など）"]]);
+    sheet.getRange(1, 1, 1, 4).setFontWeight("bold").setBackground("#f4cccc");
+    sheet.setColumnWidth(1, 100);
+    sheet.setColumnWidth(2, 120);
+    sheet.setColumnWidth(3, 150);
+    sheet.setColumnWidth(4, 260);
+    sheet.getRange("B2:B").setNumberFormat("yyyy/mm/dd");
+    sheet.getRange("C2:C").setNumberFormat("yyyy/mm/dd HH:mm");
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+// 登録対象外の（顧客№|日付）セットを取得
+function getMtgExclusionSet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(MTG_REGISTER_CONFIG.EXCLUDE_SHEET_NAME);
+  const set = new Set();
+  if (!sheet) return set;
+
+  const last = sheet.getLastRow();
+  if (last < 2) return set;
+
+  const data = sheet.getRange(2, 1, last - 1, 2).getValues(); // A:顧客№ B:MTG日程
+  data.forEach(r => {
+    const no = normalizeNo_(r[0]);
+    const d = normalizeDate_(r[1]);
+    if (no && d) set.add(no + "|" + d);
+  });
+  return set;
 }
 
 
