@@ -90,6 +90,8 @@ function setMtgRegisterSheet() {
   const listCount = syncLightweightList_();
   applyProjectNameDropdown_(sheet);
 
+  stampMtgUpdated_(); // ダッシュボード用に最終更新日時を打刻（Z1）
+
   SpreadsheetApp.getUi().alert(
     "MTG日程登録シートの初期設定が完了しました。\n\n" +
     "B列（顧客名）は軽量版案件一覧から選べるプルダウンにしました（" + listCount + "件）。\n" +
@@ -236,6 +238,8 @@ function extractMeetingDatesFromLatestReservation() {
     registerSheet.getRange(2, 12, errorRows.length, 2).setValues(errorRows);
   }
 
+  stampMtgUpdated_(); // ダッシュボード用に最終更新日時を打刻
+
   let message = `${rows.length}件をMTG日程登録シートへ抽出しました。`;
   if (errorRows.length > 0) {
     message += `\n\n※抽出できなかった案件が${errorRows.length}件あります。\nL:M列に出力しました。`;
@@ -285,6 +289,8 @@ function registerCheckedMeetingDates() {
   validPreviews.forEach(p => {
     sourceSheet.getRange(p.row, MTG_REGISTER_CONFIG.SOURCE_CHECK_COL).setValue(false);
   });
+
+  if (successCount > 0) stampMtgUpdated_(); // 登録できたら最終更新日時を打刻
 
   ui.alert(`登録完了\n\n登録：${successCount}件\nスキップ：${skippedCount}件\nエラー：${errorCount}件`);
 }
@@ -653,6 +659,16 @@ function normalizeDate_(value) {
   return String(value || "").trim();
 }
 
+// ダッシュボード用：MTG日程登録シートのZ1に「最終更新日時」を書き込む
+//   （ダッシュボードが各シートのZ1を最終更新として読むため）
+function stampMtgUpdated_() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(MTG_REGISTER_CONFIG.SOURCE_SHEET_NAME);
+    if (sheet) sheet.getRange("Z1").setValue(new Date());
+  } catch (e) {}
+}
+
 
 // ============================================
 // 抽出済みを全件登録
@@ -695,6 +711,8 @@ function registerAllExtractedMeetingDates() {
   const successCount = results.filter(r => r.status === "success").length;
   const skippedCount = results.filter(r => r.status === "skipped").length;
   const errorCount = results.filter(r => r.status === "error").length;
+
+  if (successCount > 0) stampMtgUpdated_(); // 登録できたら最終更新日時を打刻
 
   ui.alert(`登録完了\n\n登録：${successCount}件\nスキップ：${skippedCount}件\nエラー：${errorCount}件`);
 }
