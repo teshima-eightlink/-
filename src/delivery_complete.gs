@@ -766,56 +766,43 @@ function applyDeliveryUpdates_(items, input) {
   const logSheet = getLogSheet_();
   const now = new Date();
   const user = getExecUser_();
+  const projectLastCol = projectSheet.getLastColumn(); // ループ外で1回だけ
+
+  const logRows = []; // ログはまとめて一括追記
 
   items.forEach(item => {
     const deliveryDate = item.deliveryDate;
 
-    projectSheet
-      .getRange(item.project.row, 1, 1, projectSheet.getLastColumn())
-      .setBackground(DELIVERY_CONFIG.COLOR_DELIVERED);
-
-    projectSheet
-      .getRange(item.project.row, DELIVERY_CONFIG.PROJECT_COL.DELIVERY_DATE)
-      .setValue(deliveryDate);
-
-    projectSheet
-      .getRange(item.project.row, DELIVERY_CONFIG.PROJECT_COL.STATUS)
-      .setValue("納品完了");
-
-    projectSheet
-      .getRange(item.project.row, DELIVERY_CONFIG.PROJECT_COL.REPORT)
-      .setValue("完了");
+    // 案件一覧：行をシアン＋納品日/状態/報告
+    projectSheet.getRange(item.project.row, 1, 1, projectLastCol).setBackground(DELIVERY_CONFIG.COLOR_DELIVERED);
+    projectSheet.getRange(item.project.row, DELIVERY_CONFIG.PROJECT_COL.DELIVERY_DATE).setValue(deliveryDate);
+    projectSheet.getRange(item.project.row, DELIVERY_CONFIG.PROJECT_COL.STATUS).setValue("納品完了");
+    projectSheet.getRange(item.project.row, DELIVERY_CONFIG.PROJECT_COL.REPORT).setValue("完了");
 
     let followResult = "未更新：顧客No未一致";
 
     if (item.follow) {
-      followSheet
-        .getRange(item.follow.row, DELIVERY_CONFIG.FOLLOW_COL.DELIVERY_DATE)
-        .setValue(deliveryDate);
-
-      followSheet
-        .getRange(item.follow.row, DELIVERY_CONFIG.FOLLOW_COL.SUPPORT_END)
-        .setValue(addYears_(deliveryDate, 1));
+      // L:M（納品日・サポート終了日）は隣接なので1回で書く
+      followSheet.getRange(item.follow.row, DELIVERY_CONFIG.FOLLOW_COL.DELIVERY_DATE, 1, 2)
+        .setValues([[deliveryDate, addYears_(deliveryDate, 1)]]);
 
       // 公開URLがあれば O列 に転記（空の場合は既存を消さない）
       if (item.project.url) {
-        followSheet
-          .getRange(item.follow.row, DELIVERY_CONFIG.FOLLOW_COL.URL)
-          .setValue(item.project.url);
+        followSheet.getRange(item.follow.row, DELIVERY_CONFIG.FOLLOW_COL.URL).setValue(item.project.url);
       }
 
-      followSheet
-        .getRange(item.follow.row, DELIVERY_CONFIG.FOLLOW_COL.MEMO)
+      followSheet.getRange(item.follow.row, DELIVERY_CONFIG.FOLLOW_COL.MEMO)
         .setValue("納品完了入力から更新：" + formatDateTime_(now));
 
       followResult = "更新済";
     }
 
-    input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.PROJECT_CUSTOMER_NAME).setValue(item.customerName);
-    input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.PROJECT_STATUS).setValue("納品完了");
-    input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.FOLLOW_STATUS).setValue(item.follow ? "顧客No一致・更新済" : "未一致・未更新");
-    input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.REFLECT_STATUS).setValue("反映済");
-    input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.LAST_PROCESSED_AT).setValue(now);
+    // 入力シート：E:G と I:J は隣接なのでまとめて。A(チェック)は外す＝次回さらに軽く
+    input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.PROJECT_CUSTOMER_NAME, 1, 3)
+      .setValues([[item.customerName, "納品完了", item.follow ? "顧客No一致・更新済" : "未一致・未更新"]]);
+    input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.REFLECT_STATUS, 1, 2)
+      .setValues([["反映済", now]]);
+    input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.CHECK).setValue(false);
 
     // 元の進捗が「シート上納品」なら、反映後も確認メモに残す
     if (isSheetDelivery_(item.project.status)) {
@@ -826,8 +813,17 @@ function applyDeliveryUpdates_(items, input) {
       }
     }
 
-    appendDeliveryLog_(logSheet, now, item, followResult, user, "完了");
+    logRows.push([
+      now, item.customerNo, item.customerName, deliveryDate,
+      "更新済", followResult, item.project.status, "納品完了",
+      user, "完了", item.inputRow, ""
+    ]);
   });
+
+  // ログ一括追記
+  if (logRows.length > 0) {
+    logSheet.getRange(logSheet.getLastRow() + 1, 1, logRows.length, 12).setValues(logRows);
+  }
 }
 
 //==================================================
