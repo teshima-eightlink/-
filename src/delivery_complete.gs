@@ -469,6 +469,15 @@ function runDeliveryComplete() {
     return;
   }
 
+  // 既に「反映済」の行はスキップ（重いので二度処理しない）
+  const alreadyReflectedCount = checkedItems.filter(it => it.reflectStatus === "反映済").length;
+  const items = checkedItems.filter(it => it.reflectStatus !== "反映済");
+
+  if (items.length === 0) {
+    ui.alert("チェックされた行はすべて「反映済」でした。\n（" + alreadyReflectedCount + "件スキップ）");
+    return;
+  }
+
   const projectMap = getProjectMap_();
   const followMap = getFollowMap_();
 
@@ -481,7 +490,7 @@ function runDeliveryComplete() {
   const noCustomerNoItems = [];
   const nameMismatchItems = [];
 
-  checkedItems.forEach(item => {
+  items.forEach(item => {
     if (!item.customerNo) {
       noCustomerNoItems.push(item);
       setInputNg_(input, item.row, "NG：顧客No未特定", "顧客名から顧客Noを特定できません。B列の顧客名を確認するか、C列に顧客Noを直接入力してください。");
@@ -558,6 +567,7 @@ function runDeliveryComplete() {
   if (updateItems.length === 0) {
     ui.alert(
       "更新できる行がありませんでした。\n\n" +
+      `反映済スキップ：${alreadyReflectedCount}件\n` +
       `顧客No未特定：${noCustomerNoItems.length}件\n` +
       `顧客名不一致：${nameMismatchItems.length}件\n` +
       `案件一覧未一致：${projectNotFound.length}件\n` +
@@ -581,6 +591,7 @@ function runDeliveryComplete() {
   ui.alert(
     "反映完了！\n\n" +
     `更新：${updateItems.length}件\n` +
+    `反映済スキップ：${alreadyReflectedCount}件\n` +
     `顧客No未特定：${noCustomerNoItems.length}件\n` +
     `顧客名不一致（停止）：${nameMismatchItems.length}件\n` +
     `案件一覧未一致：${projectNotFound.length}件\n` +
@@ -934,7 +945,7 @@ function getCheckedInputRows_(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
-  const values = sheet.getRange(2, 1, lastRow - 1, DELIVERY_CONFIG.INPUT_COL.DELIVERY_DATE).getValues();
+  const values = sheet.getRange(2, 1, lastRow - 1, DELIVERY_CONFIG.INPUT_COL.REFLECT_STATUS).getValues();
 
   return values
     .map((r, i) => ({
@@ -942,7 +953,8 @@ function getCheckedInputRows_(sheet) {
       checked: r[DELIVERY_CONFIG.INPUT_COL.CHECK - 1],
       customerName: String(r[DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NAME - 1] || "").trim(),
       customerNo: normalizeCustomerNo_(r[DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NO - 1]),
-      deliveryDate: r[DELIVERY_CONFIG.INPUT_COL.DELIVERY_DATE - 1]
+      deliveryDate: r[DELIVERY_CONFIG.INPUT_COL.DELIVERY_DATE - 1],
+      reflectStatus: String(r[DELIVERY_CONFIG.INPUT_COL.REFLECT_STATUS - 1] || "").trim()
     }))
     .filter(item => item.checked === true);
 }
