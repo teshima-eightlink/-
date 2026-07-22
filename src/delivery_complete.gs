@@ -7,6 +7,7 @@
 //   lookupDeliveryCustomerNoFromNames  B列の顧客名から顧客Noを軽量版で逆引きしてC列へ
 //   checkDeliveryInput                 顧客名・納品日を入れたら実行。内容確認用
 //   runDeliveryComplete                「反映済」でない入力行をまとめて本番反映（チェック不要）
+//   runDeliveryCompleteChecked         A列にチェックした未反映の行だけ本番反映
 //   cleanupOldDeliveryInputRowsByMonth 毎月10日トリガー想定。古い反映済をログ退避→削除
 //
 //   入力の流れ：B列で顧客名を選ぶ → 顧客No(C)は軽量版案件一覧から自動 → 納品日(D)を入れる
@@ -452,6 +453,15 @@ function checkDeliveryInput() {
 // チェック済みの案件だけ 案件一覧・1年サポートへ反映
 //==================================================
 function runDeliveryComplete() {
+  runDeliveryReflect_(false); // 反映済以外を全部反映（チェック不要）
+}
+
+// 「反映対象(A)」にチェックした未反映の行だけ反映する
+function runDeliveryCompleteChecked() {
+  runDeliveryReflect_(true); // チェックした行だけ反映
+}
+
+function runDeliveryReflect_(checkedOnly) {
   const ui = SpreadsheetApp.getUi();
   const input = getInputSheet_();
 
@@ -462,11 +472,14 @@ function runDeliveryComplete() {
     ui.alert("顧客名リストの取得に失敗しました：" + e.message + "\n（顧客Noを直接入力すれば続行できます）");
   }
 
-  // 「反映済」でない入力行をまとめて対象にする（チェック不要）
-  const items = getPendingInputRows_(input);
+  // 「反映済」でない入力行。checkedOnly のときは A列チェック行だけに絞る
+  let items = getPendingInputRows_(input);
+  if (checkedOnly) items = items.filter(it => it.checked === true);
 
   if (items.length === 0) {
-    ui.alert("反映する行がありません。\n（すべて反映済み、または入力がありません）");
+    ui.alert(checkedOnly
+      ? "チェックされた未反映の行がありません。\n（A列にチェックを入れてから実行してください）"
+      : "反映する行がありません。\n（すべて反映済み、または入力がありません）");
     return;
   }
 
@@ -937,6 +950,7 @@ function getPendingInputRows_(sheet) {
   return values
     .map((r, i) => ({
       row: i + 2,
+      checked: r[DELIVERY_CONFIG.INPUT_COL.CHECK - 1] === true,
       customerName: String(r[DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NAME - 1] || "").trim(),
       customerNo: normalizeCustomerNo_(r[DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NO - 1]),
       deliveryDate: r[DELIVERY_CONFIG.INPUT_COL.DELIVERY_DATE - 1],
