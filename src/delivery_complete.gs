@@ -6,11 +6,11 @@
 //   syncDeliveryLightList              軽量版案件一覧の顧客名リストを更新（プルダウン更新）
 //   lookupDeliveryCustomerNoFromNames  B列の顧客名から顧客Noを軽量版で逆引きしてC列へ
 //   checkDeliveryInput                 顧客名・納品日を入れたら実行。内容確認用
-//   runDeliveryComplete                A列にチェックした案件だけ本番反映
+//   runDeliveryComplete                「反映済」でない入力行をまとめて本番反映（チェック不要）
 //   cleanupOldDeliveryInputRowsByMonth 毎月10日トリガー想定。古い反映済をログ退避→削除
 //
 //   入力の流れ：B列で顧客名を選ぶ → 顧客No(C)は軽量版案件一覧から自動 → 納品日(D)を入れる
-//               → checkDeliveryInput で確認 → A列チェック → runDeliveryComplete で反映
+//               → checkDeliveryInput で確認 → runDeliveryComplete で反映（反映済以外を一括）
 //
 //   ※ onOpen は使わない。図形ボタン or Apps Script から手動実行。
 //   ※ 別スプレッドシートの列は直接プルダウン元にできないため、
@@ -462,19 +462,11 @@ function runDeliveryComplete() {
     ui.alert("顧客名リストの取得に失敗しました：" + e.message + "\n（顧客Noを直接入力すれば続行できます）");
   }
 
-  const checkedItems = getCheckedInputRows_(input);
-
-  if (checkedItems.length === 0) {
-    ui.alert("A列の反映対象にチェックが入っている行がありません。");
-    return;
-  }
-
-  // 既に「反映済」の行はスキップ（重いので二度処理しない）
-  const alreadyReflectedCount = checkedItems.filter(it => it.reflectStatus === "反映済").length;
-  const items = checkedItems.filter(it => it.reflectStatus !== "反映済");
+  // 「反映済」でない入力行をまとめて対象にする（チェック不要）
+  const items = getPendingInputRows_(input);
 
   if (items.length === 0) {
-    ui.alert("チェックされた行はすべて「反映済」でした。\n（" + alreadyReflectedCount + "件スキップ）");
+    ui.alert("反映する行がありません。\n（すべて反映済み、または入力がありません）");
     return;
   }
 
@@ -567,7 +559,6 @@ function runDeliveryComplete() {
   if (updateItems.length === 0) {
     ui.alert(
       "更新できる行がありませんでした。\n\n" +
-      `反映済スキップ：${alreadyReflectedCount}件\n` +
       `顧客No未特定：${noCustomerNoItems.length}件\n` +
       `顧客名不一致：${nameMismatchItems.length}件\n` +
       `案件一覧未一致：${projectNotFound.length}件\n` +
@@ -591,7 +582,6 @@ function runDeliveryComplete() {
   ui.alert(
     "反映完了！\n\n" +
     `更新：${updateItems.length}件\n` +
-    `反映済スキップ：${alreadyReflectedCount}件\n` +
     `顧客No未特定：${noCustomerNoItems.length}件\n` +
     `顧客名不一致（停止）：${nameMismatchItems.length}件\n` +
     `案件一覧未一致：${projectNotFound.length}件\n` +
@@ -797,12 +787,11 @@ function applyDeliveryUpdates_(items, input) {
       followResult = "更新済";
     }
 
-    // 入力シート：E:G と I:J は隣接なのでまとめて。A(チェック)は外す＝次回さらに軽く
+    // 入力シート：E:G と I:J は隣接なのでまとめて書き込み（反映済 & 日時）
     input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.PROJECT_CUSTOMER_NAME, 1, 3)
       .setValues([[item.customerName, "納品完了", item.follow ? "顧客No一致・更新済" : "未一致・未更新"]]);
     input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.REFLECT_STATUS, 1, 2)
       .setValues([["反映済", now]]);
-    input.getRange(item.inputRow, DELIVERY_CONFIG.INPUT_COL.CHECK).setValue(false);
 
     // 元の進捗が「シート上納品」なら、反映後も確認メモに残す
     if (isSheetDelivery_(item.project.status)) {
@@ -937,7 +926,9 @@ function getInputRowsWithCustomerNo_(sheet) {
     .filter(item => item.customerNo);
 }
 
-function getCheckedInputRows_(sheet) {
+// 「反映済」でない入力行をまとめて取得（チェック不要）
+//   空行は対象外。反映済みでなく、何か入力がある行だけ返す
+function getPendingInputRows_(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
@@ -946,13 +937,15 @@ function getCheckedInputRows_(sheet) {
   return values
     .map((r, i) => ({
       row: i + 2,
-      checked: r[DELIVERY_CONFIG.INPUT_COL.CHECK - 1],
       customerName: String(r[DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NAME - 1] || "").trim(),
       customerNo: normalizeCustomerNo_(r[DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NO - 1]),
       deliveryDate: r[DELIVERY_CONFIG.INPUT_COL.DELIVERY_DATE - 1],
       reflectStatus: String(r[DELIVERY_CONFIG.INPUT_COL.REFLECT_STATUS - 1] || "").trim()
     }))
-    .filter(item => item.checked === true);
+    .filter(item =>
+      item.reflectStatus !== "反映済" &&
+      (item.customerNo || item.customerName || item.deliveryDate)
+    );
 }
 
 //==================================================
