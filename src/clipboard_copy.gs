@@ -79,33 +79,34 @@ function showClipboardDialog_(title, text) {
 
   const html = `
     <div style="font-family:sans-serif;font-size:13px;color:#333">
-      <p id="msg" style="margin:0 0 8px">コピー中…</p>
-      <textarea id="t" style="width:100%;height:240px;box-sizing:border-box;font-family:monospace;font-size:12px">${safe}</textarea>
-      <div style="margin-top:10px;text-align:right">
-        <button onclick="doCopy()" style="padding:6px 16px;font-size:13px;cursor:pointer">もう一度コピー</button>
+      <p id="msg" style="margin:0 0 10px">下の「コピー」ボタンを押してください（または枠内で Ctrl/⌘+C）</p>
+      <textarea id="t" style="width:100%;height:225px;box-sizing:border-box;font-family:monospace;font-size:12px">${safe}</textarea>
+      <div style="margin-top:12px;text-align:center">
+        <button onclick="doCopy()" style="padding:10px 30px;font-size:15px;font-weight:bold;cursor:pointer;background:#1a73e8;color:#fff;border:none;border-radius:6px">📋 コピー</button>
       </div>
       <script>
-        function done(ok){
-          document.getElementById('msg').textContent = ok
-            ? '✅ コピーしました！そのまま貼り付けできます（このウィンドウは閉じてOK）'
-            : '⚠ 自動コピーできませんでした。枠内をクリック→Ctrl/⌘+C でコピーしてください';
+        function selectAll(){
+          var t = document.getElementById('t');
+          t.focus(); t.select(); t.setSelectionRange(0, 999999);
+          return t;
         }
         function doCopy(){
-          var t = document.getElementById('t');
-          var val = t.value;
+          var t = selectAll();
+          function ok(){ document.getElementById('msg').textContent = '✅ コピーしました！そのまま貼り付けできます（このウィンドウは閉じてOK）'; }
+          function manual(){ document.getElementById('msg').textContent = '枠内を全選択しました。Ctrl/⌘+C でコピーしてください'; }
           if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(val).then(function(){ done(true); }, function(){ fallback(); });
+            navigator.clipboard.writeText(t.value).then(ok, tryExec);
           } else {
-            fallback();
+            tryExec();
           }
-          function fallback(){
-            t.focus(); t.select(); t.setSelectionRange(0, 999999);
-            var ok = false;
-            try { ok = document.execCommand('copy'); } catch (e) {}
-            done(ok);
+          function tryExec(){
+            var done = false;
+            try { done = document.execCommand('copy'); } catch (e) {}
+            done ? ok() : manual();
           }
         }
-        window.onload = doCopy;
+        // 開いた時点では選択だけ（自動コピーは失敗表示の元になるのでしない）
+        window.onload = selectAll;
       </script>
     </div>
   `;
