@@ -9,6 +9,7 @@
 //   runDeliveryComplete                「反映済」でない入力行をまとめて本番反映（チェック不要）
 //   runDeliveryCompleteChecked         A列にチェックした未反映の行だけ本番反映
 //   highlightSheetDeliveryLog          納品完了ログの「元進捗」に『シート上納品』を含む行を黄色に（既存にも適用）
+//   highlightSheetDeliveryInput        納品完了入力で「シート上納品」だった行を薄い黄色に（既存にも適用）
 //   cleanupOldDeliveryInputRowsByMonth 毎月10日トリガー想定。古い反映済をログ退避→削除
 //
 //   入力の流れ：B列で顧客名を選ぶ → 顧客No(C)は軽量版案件一覧から自動 → 納品日(D)を入れる
@@ -138,6 +139,9 @@ function setupDeliveryInputSheet() {
   input.setColumnWidth(8, 420); // H 確認メモ
   input.setColumnWidth(9, 160); // I 反映ステータス
   input.setColumnWidth(10, 180); // J 最終処理日時
+
+  // 「シート上納品」だった行（確認メモH列に残る）を薄い黄色でハイライト
+  applyInputSheetDeliveryFormat_(input);
 
   // ログシートは存在保証のみ（中身は消さない）
   setupLogSheetHeader_();
@@ -1022,6 +1026,25 @@ function highlightSheetDeliveryLog() {
   const log = getLogSheet_();
   applyLogSheetDeliveryFormat_(log);
   SpreadsheetApp.getUi().alert("納品完了ログの「元進捗」に『シート上納品』を含む行を黄色にしました（既存＋今後）。");
+}
+
+// 納品完了入力：確認メモ(H列)に「シート上納品」を含む行を薄い黄色でハイライト
+//   ＝「シート上納品」から変更した案件が一目で分かる（確認後・反映後どちらも）
+function applyInputSheetDeliveryFormat_(input) {
+  const range = input.getRange("A2:J");
+  const rule = SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied('=REGEXMATCH($H2,"シート上納品")')
+    .setBackground("#fff2cc") // 薄い黄色
+    .setRanges([range])
+    .build();
+  input.setConditionalFormatRules([rule]);
+}
+
+// 既存の納品完了入力シートにもハイライトを付けたいときに手動実行
+function highlightSheetDeliveryInput() {
+  const input = getInputSheet_();
+  applyInputSheetDeliveryFormat_(input);
+  SpreadsheetApp.getUi().alert("納品完了入力で「シート上納品」だった行（確認メモに含む）を薄い黄色にしました。");
 }
 
 function appendDeliveryLog_(logSheet, now, item, followResult, user, resultText) {
