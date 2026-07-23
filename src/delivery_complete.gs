@@ -8,6 +8,7 @@
 //   checkDeliveryInput                 顧客名・納品日を入れたら実行。内容確認用
 //   runDeliveryComplete                「反映済」でない入力行をまとめて本番反映（チェック不要）
 //   runDeliveryCompleteChecked         A列にチェックした未反映の行だけ本番反映
+//   highlightSheetDeliveryLog          納品完了ログの「元進捗」に『シート上納品』を含む行を黄色に（既存にも適用）
 //   cleanupOldDeliveryInputRowsByMonth 毎月10日トリガー想定。古い反映済をログ退避→削除
 //
 //   入力の流れ：B列で顧客名を選ぶ → 顧客No(C)は軽量版案件一覧から自動 → 納品日(D)を入れる
@@ -999,6 +1000,28 @@ function setupLogSheetHeader_() {
 
     log.getRange(1, 1, 1, 12).setFontWeight("bold").setBackground("#d9ead3");
   }
+
+  // 「元進捗(G列)」に『シート上納品』を含む行を黄色にする条件付き書式
+  applyLogSheetDeliveryFormat_(log);
+}
+
+// 納品完了ログの G列（元進捗）に「シート上納品」を含むセルを黄色にする条件付き書式
+//   ※ 既存行・今後の行の両方に自動適用（ログシートはスクリプト管理のため書式は上書き）
+function applyLogSheetDeliveryFormat_(log) {
+  const range = log.getRange("G2:G"); // G列＝元進捗
+  const rule = SpreadsheetApp.newConditionalFormatRule()
+    .whenTextContains("シート上納品")
+    .setBackground("#ffff00") // 黄色
+    .setRanges([range])
+    .build();
+  log.setConditionalFormatRules([rule]);
+}
+
+// 既存の納品完了ログにも黄色ハイライトを付けたいときに手動実行
+function highlightSheetDeliveryLog() {
+  const log = getLogSheet_();
+  applyLogSheetDeliveryFormat_(log);
+  SpreadsheetApp.getUi().alert("納品完了ログの「元進捗」に『シート上納品』を含む行を黄色にしました（既存＋今後）。");
 }
 
 function appendDeliveryLog_(logSheet, now, item, followResult, user, resultText) {
