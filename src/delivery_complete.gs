@@ -378,8 +378,12 @@ function checkDeliveryInput() {
   let sheetDeliveryWarning = 0;
   let duplicateNg = 0;
   let nameMismatch = 0;
+  let alreadyReflected = 0;
 
   inputItems.forEach(item => {
+    // 既に「反映済」の行は触らない（確認済に戻さない）
+    if (item.reflectStatus === "反映済") { alreadyReflected++; return; }
+
     const now = new Date();
     const project = projectMap[item.customerNo];
 
@@ -442,6 +446,7 @@ function checkDeliveryInput() {
   ui.alert(
     "確認完了！\n\n" +
     `確認済：${checked}件\n` +
+    `反映済スキップ：${alreadyReflected}件\n` +
     `顧客No自動入力：${resolved.filled}件\n` +
     `軽量版に顧客名なし：${resolved.notFound}件\n` +
     `案件一覧未一致：${projectNg}件\n` +
@@ -931,7 +936,7 @@ function getInputRowsWithCustomerNo_(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
-  const values = sheet.getRange(2, 1, lastRow - 1, DELIVERY_CONFIG.INPUT_COL.DELIVERY_DATE).getValues();
+  const values = sheet.getRange(2, 1, lastRow - 1, DELIVERY_CONFIG.INPUT_COL.REFLECT_STATUS).getValues();
 
   return values
     .map((r, i) => ({
@@ -939,7 +944,8 @@ function getInputRowsWithCustomerNo_(sheet) {
       checked: r[DELIVERY_CONFIG.INPUT_COL.CHECK - 1],
       customerName: String(r[DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NAME - 1] || "").trim(),
       customerNo: normalizeCustomerNo_(r[DELIVERY_CONFIG.INPUT_COL.CUSTOMER_NO - 1]),
-      deliveryDate: r[DELIVERY_CONFIG.INPUT_COL.DELIVERY_DATE - 1]
+      deliveryDate: r[DELIVERY_CONFIG.INPUT_COL.DELIVERY_DATE - 1],
+      reflectStatus: String(r[DELIVERY_CONFIG.INPUT_COL.REFLECT_STATUS - 1] || "").trim()
     }))
     .filter(item => item.customerNo);
 }
