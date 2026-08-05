@@ -1,18 +1,23 @@
 /**
  * 撮影管理シート × Googleカレンダー連携
  *
- * 列レイアウト（2列追加後）
- *   A カメラマンマスタ   B 案件名      C 候補日メモ   D 撮影日      E 時間
- *   F 撮影場所          G カメラマン   H カメラマン住所 I カレンダー   J 状態
- *   K 撮影終了 ☑        L 納品 ☑      M UP ☑        N データ譲渡 ☑
- *   O 詳細送付ID        P 前日確認ID   Q 撮影ID       R 納品ID      S メモ
+ * 列レイアウト（項目追加後・全28列）
+ *   A カメラマンマスタ      B 案件名          C 候補日メモ        D 撮影日          E 時間
+ *   F 撮影場所            G カメラマン        H カメラマン住所      I カレンダー        J 状態
+ *   K 撮影依頼シート作成 ☑   L 撮影依頼シート送付 ☑ M 前日LINE ☑        N 当日LINE ☑      O 合流チェック ☑
+ *   P 撮影終了 ☑           Q 納品 ☑          R UP ☑             S データ譲渡 ☑
+ *   T 詳細送付ID          U 前日確認ID        V 撮影ID            W 納品ID
+ *   X 交通費              Y 担当カスタマー      Z ドキュメント        AA メモ            AB 予備
  *
  * 主な機能
  *   syncCameraTasks()     … カレンダー同期（メニュー）
  *   setSheetCameraTasks() … 初期設定（メニュー）
- *   moveFinishedDown()    … 「撮影終了」の行を下に移動（メニュー）
+ *   moveFinishedDown()    … 「撮影終了」の行を下に移動（B〜AB をまとめて移動）
  *   applyFinishedStatus() … 撮影終了/納品/UP のいずれかにチェックで J列を「撮影終了」に更新
  *                           （「撮影終了を下に移動」メニューの実行時に呼ばれる）
+ *   checkSyncCameraTasks()… 同期の診断（メニュー）
+ *   handleCheckboxEdit()  … 編集時にP〜Rのチェックで J列を「撮影終了」に（インストール型トリガー）
+ *   installEditTrigger()  … 上記トリガーを登録（初回のみ・メニュー）
  */
 
 function syncCameraTasks() {
@@ -58,16 +63,16 @@ const data = sheet.getDataRange().getValues();
     const cameramanAddress = data[i][7];   // H：カメラマン住所
     const calendarAction = data[i][8];     // I：同期
     const status = data[i][9];             // J：状態
-    const shootDone = data[i][10];         // K：撮影終了
-    const deliveryDone = data[i][11];      // L：納品
-    const uploadDone = data[i][12];        // M：UP
-    const dataTransfer = data[i][13];      // N：データ譲渡
+    const shootDone = data[i][15];         // P：撮影終了
+    const deliveryDone = data[i][16];      // Q：納品
+    const uploadDone = data[i][17];        // R：UP
+    const dataTransfer = data[i][18];      // S：データ譲渡
 
 
-    const detailEventId = data[i][14];     // O：詳細送付ID
-    const reminderEventId = data[i][15];   // P：前日確認ID
-    const shootEventId = data[i][16];      // Q：撮影ID
-    const deliveryEventId = data[i][17];   // R：納品ID
+    const detailEventId = data[i][19];     // T：詳細送付ID
+    const reminderEventId = data[i][20];   // U：前日確認ID
+    const shootEventId = data[i][21];      // V：撮影ID
+    const deliveryEventId = data[i][22];   // W：納品ID
 
 
     if (calendarAction === "削除する" || status === "中止") {
@@ -79,7 +84,7 @@ const data = sheet.getDataRange().getValues();
 
       sheet.getRange(row, 9).setValue("削除済");   // I：同期
       sheet.getRange(row, 10).setValue("中止");     // J：状態（削除済になったら中止）
-      sheet.getRange(row, 15, 1, 4).clearContent();
+      sheet.getRange(row, 20, 1, 4).clearContent(); // T〜W：各種ID
       continue;
     }
 
@@ -169,7 +174,7 @@ const data = sheet.getDataRange().getValues();
     );
 
 
-    sheet.getRange(row, 15, 1, 4).setValues([[
+    sheet.getRange(row, 20, 1, 4).setValues([[
       detailEvent.getId(),
       reminderEvent.getId(),
       shootEvent.getId(),
@@ -236,17 +241,16 @@ function deleteEventByIdOrTitle(calendar, eventId, project, titleKeyword) {
  * 撮影管理シートの初期設定・見た目調整をまとめて行う関数
  *
  * 主な処理：
- * ・1行目に見出しを設定
+ * ・1行目に見出しを設定（全28列）
  * ・見出し行の背景色、太字、中央寄せを設定
  * ・D列/E列（撮影日・時間）をセットに見えるよう背景色変更
  * ・全行の高さを統一
  * ・I列「同期」にプルダウンを設定
  * ・J列「状態」にプルダウンを設定
- * ・K〜N列（撮影終了・納品・UP・データ譲渡）にチェックボックスを設定
+ * ・K〜S列（各チェック項目・撮影終了・納品・UP・データ譲渡）にチェックボックスを設定
  * ・D列「撮影日」に日付形式と日付入力ルールを設定
  * ・E列「時間」に時刻形式を設定
  * ・A列「カメラマンマスタ」とH列「カメラマン住所」は切り詰め表示
- * ・D〜N列を中央寄せ／F〜H列を左寄せ
  * ・状態ごとの色設定を反映
  * ・フィルター、保護、非表示列を再設定
  */
@@ -275,6 +279,11 @@ function setSheetCameraTasks() {
     "カメラマン住所",
     "カレンダー",
     "状態",
+    "撮影依頼シート作成",
+    "撮影依頼シート送付",
+    "前日LINE",
+    "当日LINE",
+    "合流チェック",
     "撮影終了",
     "納品",
     "UP",
@@ -283,11 +292,15 @@ function setSheetCameraTasks() {
     "前日確認ID",
     "撮影ID",
     "納品ID",
-    "メモ"
+    "交通費",
+    "担当カスタマー",
+    "ドキュメント",
+    "メモ",
+    "予備"
   ]];
 
 
-  const headerRange = sheet.getRange(1, 1, 1, 19);
+  const headerRange = sheet.getRange(1, 1, 1, 28);
   headerRange.setValues(headers);
 
 
@@ -335,8 +348,8 @@ function setSheetCameraTasks() {
   jRange.setDataValidation(jDropdownRule);
 
 
-  // K〜N列：撮影終了・納品・UP・データ譲渡（チェックボックス）
-  sheet.getRange(2, 11, totalRows, 4).insertCheckboxes();
+  // K〜S列：撮影依頼シート作成・送付・前日LINE・当日LINE・合流チェック・撮影終了・納品・UP・データ譲渡（チェックボックス）
+  sheet.getRange(2, 11, totalRows, 9).insertCheckboxes();
 
 
   // D列：撮影日
@@ -397,9 +410,14 @@ eRange.setDataValidation(eTimeRule);
     .setHorizontalAlignment("left");
 
 
-  // I～N（同期・状態・撮影終了・納品・UP・データ譲渡）
-  sheet.getRange(2, 9, totalRows, 6)
+  // I～S（同期・状態・各チェック項目）
+  sheet.getRange(2, 9, totalRows, 11)
     .setHorizontalAlignment("center");
+
+
+  // X～AB（交通費・担当カスタマー・ドキュメント・メモ・予備）
+  sheet.getRange(2, 24, totalRows, 5)
+    .setHorizontalAlignment("left");
 
 
   setStatusColors(sheet, totalRows);
@@ -482,7 +500,7 @@ function setStatusColors(sheet, totalRows) {
 
 function updateFilterAndProtection(sheet) {
   const lastRow = Math.max(sheet.getLastRow(), 1);
-  const maxColumns = Math.max(sheet.getLastColumn(), 19);
+  const maxColumns = Math.max(sheet.getLastColumn(), 28);
 
 
   if (sheet.getFilter()) {
@@ -494,10 +512,10 @@ function updateFilterAndProtection(sheet) {
   sheet.getRange(1, 2, lastRow, maxColumns - 1).createFilter();
 
 
-  // 列の表示状態をいったんリセットしてから、A列とO〜R列（各種ID）を非表示
+  // 列の表示状態をいったんリセットしてから、A列とT〜W列（各種ID）を非表示
   sheet.showColumns(1, sheet.getMaxColumns());
   sheet.hideColumns(1);
-  sheet.hideColumns(15, 4);
+  sheet.hideColumns(20, 4);
 
 
   const protections = sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
@@ -528,10 +546,10 @@ function updateFilterAndProtection(sheet) {
 
 
 /**
- * 撮影終了・納品・UP（K〜M列）のいずれかにチェックが入っている行の
+ * 撮影終了・納品・UP（P〜R列）のいずれかにチェックが入っている行の
  * J列（状態）を「撮影終了」に更新する。
  * ※ onEdit（自動トリガー）は他のGASと競合するため使わず、
- *   「撮影終了を下に移動」メニューの実行時に呼ばれる。
+ *   「撮影終了を下に移動」メニューの実行時にも呼ばれる。
  */
 function applyFinishedStatus(sheet) {
   const lastRow = sheet.getLastRow();
@@ -541,17 +559,17 @@ function applyFinishedStatus(sheet) {
   const totalRows = lastRow - 1;
 
 
-  // J〜M列（10〜13）をまとめて読み書き
-  const range = sheet.getRange(2, 10, totalRows, 4);
+  // J〜R列（10〜18）をまとめて読み書き
+  const range = sheet.getRange(2, 10, totalRows, 9);
   const values = range.getValues();
   let changed = false;
 
 
   for (let i = 0; i < values.length; i++) {
     const status = values[i][0];    // J：状態
-    const shootDone = values[i][1]; // K：撮影終了
-    const delivered = values[i][2]; // L：納品
-    const uploaded = values[i][3];  // M：UP
+    const shootDone = values[i][6]; // P：撮影終了
+    const delivered = values[i][7]; // Q：納品
+    const uploaded = values[i][8];  // R：UP
 
 
     if ((shootDone === true || delivered === true || uploaded === true) && status !== "撮影終了") {
@@ -569,7 +587,7 @@ function applyFinishedStatus(sheet) {
 
 /**
  * 状態が「撮影終了」の行を下（一番下）へ移動する。
- * ・A列（カメラマンマスタ）は固定したまま、B〜S列だけを並べ替える
+ * ・A列（カメラマンマスタ）は固定したまま、B〜AB列（案件名〜予備）だけをまとめて並べ替える
  * ・撮影終了以外の行は元の並び順を維持する
  */
 function moveFinishedDown() {
@@ -592,7 +610,7 @@ function moveFinishedDown() {
 
 
   const START_COL = 2;   // B列
-  const NUM_COLS = 18;   // B〜S列（2〜19）
+  const NUM_COLS = 27;   // B〜AB列（2〜28）
   const STATUS_IDX = 8;  // J列（配列内インデックス：B起点で10-2=8）
   // 中身のある行の判定に使う列：B(案件名)=0 / D(撮影日)=2 / G(カメラマン)=5
   const DATA_IDX = [0, 2, 5];
@@ -837,7 +855,7 @@ function checkSyncCameraTasks() {
 
 
 /**
- * 【編集時に自動実行】撮影終了・納品・UP（K〜M列）のいずれかにチェックが入ったら、
+ * 【編集時に自動実行】撮影終了・納品・UP（P〜R列）のいずれかにチェックが入ったら、
  * その行の J列（状態）を「撮影終了」に自動変更する。
  *
  * ※ 関数名は onEdit ではないため、他のGASの onEdit と衝突しません。
@@ -855,16 +873,16 @@ function handleCheckboxEdit(e) {
   const numRows = e.range.getNumRows();
   const endCol = startCol + e.range.getNumColumns() - 1;
 
-  // 編集範囲に K(11)撮影終了 / L(12)納品 / M(13)UP のいずれかを含むか
-  if (endCol < 11 || startCol > 13) return;
+  // 編集範囲に P(16)撮影終了 / Q(17)納品 / R(18)UP のいずれかを含むか
+  if (endCol < 16 || startCol > 18) return;
 
   for (let r = 0; r < numRows; r++) {
     const row = startRow + r;
     if (row < 2) continue;
 
-    const shootDone = sheet.getRange(row, 11).getValue() === true; // K：撮影終了
-    const delivered = sheet.getRange(row, 12).getValue() === true; // L：納品
-    const uploaded = sheet.getRange(row, 13).getValue() === true;  // M：UP
+    const shootDone = sheet.getRange(row, 16).getValue() === true; // P：撮影終了
+    const delivered = sheet.getRange(row, 17).getValue() === true; // Q：納品
+    const uploaded = sheet.getRange(row, 18).getValue() === true;  // R：UP
 
     if (shootDone || delivered || uploaded) {
       const statusCell = sheet.getRange(row, 10); // J：状態
@@ -896,7 +914,7 @@ function installEditTrigger() {
     .onEdit()
     .create();
 
-  ui.alert("設定完了", "編集時の自動反映を有効にしました。\nK〜M（撮影終了・納品・UP）にチェックを入れると、J列が自動で「撮影終了」になります。", ui.ButtonSet.OK);
+  ui.alert("設定完了", "編集時の自動反映を有効にしました。\nP〜R（撮影終了・納品・UP）にチェックを入れると、J列が自動で「撮影終了」になります。", ui.ButtonSet.OK);
 }
 
 
