@@ -12,7 +12,8 @@
  * 主な機能
  *   syncCameraTasks()     … カレンダー同期（メニュー）
  *   setSheetCameraTasks() … 初期設定（メニュー）
- *   moveFinishedDown()    … 「撮影終了」の行を下に移動（B〜AB をセルごとまとめて移動）
+ *   moveFinishedDown()    … 「撮影終了」の行を下に移動＋未終了を撮影日時順に並べ替え
+ *                           （B〜AB をセルごとまとめて移動）
  *   applyFinishedStatus() … 撮影終了/納品/UP のいずれかにチェックで J列を「撮影終了」に更新
  *                           （「撮影終了を下に移動」メニューの実行時に呼ばれる）
  *   checkSyncCameraTasks()… 同期の診断（メニュー）
@@ -613,21 +614,48 @@ function isBlankRowValues(rowValues) {
 
 
 /**
- * 状態が「撮影終了」の行を下（一番下）へ移動する。
+ * D列（撮影日）とE列（時間）から並べ替え用のタイムスタンプ（ミリ秒）を作る。
+ * 撮影日が未入力・日付として読めない場合は null を返す。
+ * E列（時間）が空のときは 0:00 として扱う。
+ */
+function getShootTimestamp(shootDate, shootTime) {
+  if (isBlankCellValue(shootDate)) return null;
+  if (!(shootDate instanceof Date) && typeof shootDate !== "string") return null;
+
+  try {
+    const time = combineDateAndTime(shootDate, shootTime).getTime();
+    return isNaN(time) ? null : time;
+  } catch (err) {
+    return null;
+  }
+}
+
+
+/**
+ * 状態が「撮影終了」の行を下（一番下）へ移動しつつ、
+ * 撮影終了になっていない行を D列（撮影日）＋E列（時間）の早い順に並べ替える。
+ *
+ * 並び順
+ *   1. 未終了（撮影日時の昇順。撮影日が未入力の行は UNDATED_FIRST の設定に従う）
+ *   2. 区切りの空行（1行）
+ *   3. 撮影終了（元の並び順を維持）
+ *   4. 残りの空行
  *
  * ・A列（カメラマンマスタ）は固定したまま、B列から右だけをまとめて並べ替える
- * ・撮影終了以外の行は元の並び順を維持する
- * ・未終了と撮影終了の間に空行を1行はさむ
  *
  * 【重要】値の入れ替え（getValues → setValues）では
  *   背景色・文字色・罫線・メモ・チェックボックスの入力規則・
  *   Z列「ドキュメント」のスマートチップ／リンクが元の行に残ってしまい、
  *   中身と書式がばらける（チップはただの文字列になってリンクが切れる）。
  *   そのためシート標準の並べ替え（Range.sort＝セルごと移動）を使う。
- *   並べ替えキーは右端に一時列を作って持たせ、終わったら必ず削除する。
+ *   並べ替えキーは右端に一時列を2つ作って持たせ、終わったら必ず削除する。
  */
 function moveFinishedDown() {
   const SHEET_NAME = "撮影管理";
+
+  // 撮影日が未入力の未終了行を上に置く（false にすると未終了の一番下に置く）
+  const UNDATED_FIRST = true;
+
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_NAME);
 
@@ -644,7 +672,9 @@ function moveFinishedDown() {
 
   const START_COL = 2;   // B列
   const NUM_COLS = 27;   // B〜AB列（2〜28）
-  const STATUS_IDX = 8;  // J列（配列内インデックス：B起点で10-2=8）
+  const DATE_IDX = 2;    // D列（B起点で 4-2=2）
+  const TIME_IDX = 3;    // E列（B起点で 5-2=3）
+  const STATUS_IDX = 8;  // J列（B起点で 10-2=8）
 
 
   const lastRow = sheet.getLastRow();
@@ -654,16 +684,24 @@ function moveFinishedDown() {
   const values = sheet.getRange(2, START_COL, lastRow - 1, NUM_COLS).getValues();
 
 
-  // 並べ替えキー：未終了(0〜) → 区切りの空行 → 撮影終了 → 残りの空行
-  const KEY_SEPARATOR = 5000000;
-  const KEY_FINISHED = 6000000;
-  const KEY_BLANK = 9000000;
+  // 第1キー：グループ
+  const GROUP_ACTIVE = 0;    // 未終了
+  const GROUP_SEPARATOR = 1; // 区切りの空行
+  const GROUP_FINISHED = 2;  // 撮影終了
+  const GROUP_BLANK = 3;     // 残りの空行
 
 
-  const keys = [];
-  let activeSeq = 0;
+  // 第2キー：未終了は撮影日時のミリ秒。撮影日が未入力の行は実在する日時から
+  // 十分離れた番兵を使い、元の並び順を保ったまま上（または下）へまとめる。
+  const UNDATED_BASE = UNDATED_FIRST ? -100000000000000 : 100000000000000;
+
+
+  const groups = [];
+  const orders = [];
+  let undatedSeq = 0;
   let finishedSeq = 0;
   let blankSeq = 0;
+  let finishedCount = 0;
   let separatorIdx = -1;
 
 
@@ -672,19 +710,27 @@ function moveFinishedDown() {
       // 最初の空行を「未終了と撮影終了の区切り」に使い、残りは一番下へ
       if (separatorIdx < 0) {
         separatorIdx = i;
-        keys.push(KEY_SEPARATOR);
+        groups.push(GROUP_SEPARATOR);
+        orders.push(0);
       } else {
-        keys.push(KEY_BLANK + blankSeq++);
+        groups.push(GROUP_BLANK);
+        orders.push(blankSeq++);
       }
       return;
     }
 
 
     if (rowValues[STATUS_IDX] === "撮影終了") {
-      keys.push(KEY_FINISHED + finishedSeq++);
-    } else {
-      keys.push(activeSeq++);
+      finishedCount++;
+      groups.push(GROUP_FINISHED);
+      orders.push(finishedSeq++);
+      return;
     }
+
+
+    const timestamp = getShootTimestamp(rowValues[DATE_IDX], rowValues[TIME_IDX]);
+    groups.push(GROUP_ACTIVE);
+    orders.push(timestamp === null ? UNDATED_BASE + (undatedSeq++) : timestamp);
   });
 
 
@@ -692,19 +738,21 @@ function moveFinishedDown() {
 
 
   // 撮影終了があるのに空行が1行もない場合は、区切り用の空行を1行だけ確保する
-  if (finishedSeq > 0 && separatorIdx < 0) {
+  if (finishedCount > 0 && separatorIdx < 0) {
     if (sheet.getMaxRows() < lastRow + 1) {
       sheet.insertRowsAfter(sheet.getMaxRows(), 1);
     }
     numRows += 1;
-    keys.push(KEY_SEPARATOR);
+    groups.push(GROUP_SEPARATOR);
+    orders.push(0);
   }
 
 
   // すでに並び順が正しければ何もしない（無駄な並べ替えを避ける）
   let alreadySorted = true;
-  for (let i = 1; i < keys.length; i++) {
-    if (keys[i] < keys[i - 1]) {
+  for (let i = 1; i < groups.length; i++) {
+    if (groups[i] < groups[i - 1] ||
+        (groups[i] === groups[i - 1] && orders[i] < orders[i - 1])) {
       alreadySorted = false;
       break;
     }
@@ -712,15 +760,16 @@ function moveFinishedDown() {
 
 
   if (alreadySorted) {
-    ss.toast("並べ替えの必要はありませんでした。", "撮影終了を下に移動", 3);
+    ss.toast("並べ替えの必要はありませんでした。", "撮影管理", 3);
     return;
   }
 
 
-  // 一時的なキー列を右端に追加（A列を動かさないため B列から右だけを並べ替える）
+  // 一時的なキー列を右端に2列追加（A列を動かさないため B列から右だけを並べ替える）
   const maxCols = sheet.getMaxColumns();
-  sheet.insertColumnAfter(maxCols);
-  const helperCol = maxCols + 1;
+  sheet.insertColumnsAfter(maxCols, 2);
+  const groupCol = maxCols + 1;
+  const orderCol = maxCols + 2;
 
 
   const filter = sheet.getFilter();
@@ -731,24 +780,28 @@ function moveFinishedDown() {
 
 
   try {
-    sheet.getRange(2, helperCol, numRows, 1).setValues(keys.map(function(key) {
-      return [key];
+    sheet.getRange(2, groupCol, numRows, 2).setValues(groups.map(function(group, i) {
+      return [group, orders[i]];
     }));
 
 
-    const sortRange = sheet.getRange(2, START_COL, numRows, helperCol - START_COL + 1);
+    const sortRange = sheet.getRange(2, START_COL, numRows, orderCol - START_COL + 1);
+    const sortSpec = [
+      { column: groupCol, ascending: true },
+      { column: orderCol, ascending: true }
+    ];
 
 
     try {
-      sortRange.sort({ column: helperCol, ascending: true });
+      sortRange.sort(sortSpec);
     } catch (err) {
       // フィルターがあると並べ替えできない場合があるので、外してから再実行する
       if (!filter) throw err;
       filter.remove();
-      sortRange.sort({ column: helperCol, ascending: true });
+      sortRange.sort(sortSpec);
     }
   } finally {
-    sheet.deleteColumn(helperCol);
+    sheet.deleteColumns(groupCol, 2);
 
 
     // フォールバックでフィルターを外していたら元の範囲で作り直す
@@ -759,7 +812,7 @@ function moveFinishedDown() {
   }
 
 
-  ss.toast("撮影終了の行を下に移動しました。", "撮影終了を下に移動", 3);
+  ss.toast("撮影終了を下に移動し、未終了を撮影日時順に並べ替えました。", "撮影管理", 5);
 }
 
 
@@ -1020,7 +1073,7 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("撮影管理")
     .addItem("カレンダー同期", "syncCameraTasks")
-    .addItem("撮影終了を下に移動", "moveFinishedDown")
+    .addItem("撮影終了を下に移動＋撮影日時順に並べ替え", "moveFinishedDown")
     .addSeparator()
     .addItem("同期の診断（登録されない原因を確認）", "checkSyncCameraTasks")
     .addItem("【初期設定】シートの環境を整える", "setSheetCameraTasks")
