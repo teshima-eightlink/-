@@ -140,27 +140,17 @@ function abc_symptom_tel_href( $tel ) {
 /**
  * セクション見出しを出力する。
  *
- * <p class="symptom__label">① 悩み</p>
  * <h2>見出し</h2>
  * <p>リード文</p>
  *
- * @param int   $number  通し番号（1〜7）。
- * @param array $section セクションのデータ（label / heading / lead）。
+ * ※①〜⑦の通し番号は構成を組み立てるための目印なので、ページには出しません。
+ *   原稿ファイル内のコメント（① 共感 ─ 悩み など）が、その役割を担っています。
+ *
+ * @param array $section セクションのデータ（heading / lead）。
  */
-function abc_symptom_heading( $number, $section ) {
-	$circled = array( '', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨' );
-	$mark    = isset( $circled[ $number ] ) ? $circled[ $number ] : (string) $number;
-	$label   = abc_symptom_get( $section, 'label' );
+function abc_symptom_heading( $section ) {
 	$heading = abc_symptom_get( $section, 'heading' );
 	$lead    = abc_symptom_get( $section, 'lead' );
-
-	if ( $label ) {
-		printf(
-			'<p class="symptom__label"><span class="symptom__label--num">%s</span>%s</p>',
-			esc_html( $mark ),
-			esc_html( $label )
-		);
-	}
 
 	if ( $heading ) {
 		printf( '<h2>%s</h2>', esc_html( $heading ) );

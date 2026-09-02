@@ -82,7 +82,7 @@ get_header();
 			<?php /* ============ ① 共感 ─ 悩み ============ */ ?>
 			<?php if ( abc_symptom_get( $abc_data, 'empathy.items', array() ) ) : ?>
 				<div class="symptom__box" id="empathy">
-					<?php abc_symptom_heading( 1, $abc_data['empathy'] ); ?>
+					<?php abc_symptom_heading( $abc_data['empathy'] ); ?>
 
 					<ul class="symptom__check">
 						<?php foreach ( $abc_data['empathy']['items'] as $abc_item ) : ?>
@@ -99,7 +99,7 @@ get_header();
 			<?php /* ============ ② 解説 ─ 原因・背景 ============ */ ?>
 			<?php if ( abc_symptom_get( $abc_data, 'cause.blocks', array() ) ) : ?>
 				<div class="symptom__box" id="cause">
-					<?php abc_symptom_heading( 2, $abc_data['cause'] ); ?>
+					<?php abc_symptom_heading( $abc_data['cause'] ); ?>
 
 					<div class="symptom__cause--inner">
 						<?php foreach ( $abc_data['cause']['blocks'] as $abc_i => $abc_block ) : ?>
@@ -119,7 +119,7 @@ get_header();
 			<?php /* ============ ③ 評価 ─ ABCでは何を確認する？ ============ */ ?>
 			<?php if ( abc_symptom_get( $abc_data, 'check.items', array() ) ) : ?>
 				<div class="symptom__box" id="check">
-					<?php abc_symptom_heading( 3, $abc_data['check'] ); ?>
+					<?php abc_symptom_heading( $abc_data['check'] ); ?>
 
 					<div class="symptom__check--inner">
 						<?php foreach ( $abc_data['check']['items'] as $abc_item ) : ?>
@@ -139,7 +139,7 @@ get_header();
 			<?php /* ============ ④ 方針 ─ どう施術する？ ============ */ ?>
 			<?php if ( abc_symptom_get( $abc_data, 'policy.steps', array() ) ) : ?>
 				<div class="symptom__box" id="policy">
-					<?php abc_symptom_heading( 4, $abc_data['policy'] ); ?>
+					<?php abc_symptom_heading( $abc_data['policy'] ); ?>
 
 					<ol class="symptom__step">
 						<?php foreach ( $abc_data['policy']['steps'] as $abc_step ) : ?>
@@ -159,7 +159,7 @@ get_header();
 			<?php /* ============ ⑤ 実例 ─ 症例ページへ ============ */ ?>
 			<?php if ( abc_symptom_get( $abc_data, 'cases.heading' ) ) : ?>
 				<div class="symptom__box" id="cases">
-					<?php abc_symptom_heading( 5, $abc_data['cases'] ); ?>
+					<?php abc_symptom_heading( $abc_data['cases'] ); ?>
 
 					<?php if ( abc_symptom_get( $abc_data, 'cases.lead' ) ) : ?>
 						<p><?php echo wp_kses_post( $abc_data['cases']['lead'] ); ?></p>
@@ -191,7 +191,7 @@ get_header();
 			<?php /* ============ ⑥ 専門性 ─ 姿勢改善ページへ ============ */ ?>
 			<?php if ( abc_symptom_get( $abc_data, 'expertise.heading' ) ) : ?>
 				<div class="symptom__box" id="expertise">
-					<?php abc_symptom_heading( 6, $abc_data['expertise'] ); ?>
+					<?php abc_symptom_heading( $abc_data['expertise'] ); ?>
 
 					<?php foreach ( abc_symptom_get( $abc_data, 'expertise.body', array() ) as $abc_paragraph ) : ?>
 						<p><?php echo wp_kses_post( $abc_paragraph ); ?></p>
@@ -216,7 +216,7 @@ get_header();
 
 			<?php /* ============ ⑦ 行動 ─ 予約・LINE ============ */ ?>
 			<div class="symptom__cta" id="reserve">
-				<?php abc_symptom_heading( 7, abc_symptom_get( $abc_data, 'cta', array() ) ); ?>
+				<?php abc_symptom_heading( abc_symptom_get( $abc_data, 'cta', array() ) ); ?>
 
 				<?php if ( abc_symptom_get( $abc_data, 'cta.lead' ) ) : ?>
 					<p><?php echo wp_kses_post( $abc_data['cta']['lead'] ); ?></p>

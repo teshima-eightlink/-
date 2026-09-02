@@ -53,7 +53,6 @@ return array(
 
 	/* ---------------- ① 共感 ─ 悩み ---------------- */
 	'empathy' => array(
-		'label'   => '悩み',
 		'heading' => 'こんなお悩みはありませんか',
 		'items'   => array(
 			'【時間帯で具体的に】',
@@ -69,7 +68,6 @@ return array(
 	 * blocks は3つが目安。各1〜2文。
 	 */
 	'cause' => array(
-		'label'   => '原因',
 		'heading' => 'なぜ【症状名】が起こる？',
 		'lead'    => '【関係する要素を並べた1文】。さまざまな要素が関係します。',
 		'blocks'  => array(
@@ -94,7 +92,6 @@ return array(
 	 * body は 1行（20〜30文字）が目安。
 	 */
 	'check' => array(
-		'label'   => '確認',
 		'heading' => 'ABCでは何を確認する？',
 		'lead'    => 'つらい部分だけを見るのではなく、姿勢や身体のバランスも確認します。',
 		'items'   => array(
@@ -130,7 +127,6 @@ return array(
 	 * steps は3つが目安。各1文。
 	 */
 	'policy' => array(
-		'label'   => '施術',
 		'heading' => 'どう施術する？',
 		'steps'   => array(
 			array(
@@ -153,7 +149,6 @@ return array(
 	 * ★items には実際の症例のみ。用意できるまでは array() のままでOK。
 	 */
 	'cases' => array(
-		'label'      => '実例',
 		'heading'    => '実際の変化',
 		'lead'       => '当院での経過を、症例ページで紹介しています。',
 		'items'      => array(),
@@ -162,7 +157,6 @@ return array(
 
 	/* ---------------- ⑥ 専門性 ─ 姿勢改善ページへ ---------------- */
 	'expertise' => array(
-		'label'      => '専門性',
 		'heading'    => '根本にあるのは「姿勢」',
 		'body'       => array(
 			'【この症状の原因をたどると姿勢に行き着く、という橋渡しを1〜2文で】',
@@ -173,7 +167,6 @@ return array(
 
 	/* ---------------- ⑦ 行動 ─ 予約・LINE ---------------- */
 	'cta' => array(
-		'label'   => 'ご予約',
 		'heading' => 'まずは、いまの状態を知るところから',
 		'lead'    => '「これくらいで行っていいのかな」という段階でも大丈夫です。',
 	),
