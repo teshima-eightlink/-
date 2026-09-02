@@ -37,7 +37,7 @@
    症状ページ 専用スタイル
    --------------------------------------------------------------------------
    ・クラス名は既存ページ（料金ページ）の規約に合わせています
-       price__box / price__caution--inner → symptom__box / symptom__cause--inner
+       price__box / price__caution--inner → symptom__box / symptom__cause-inner
    ・フォント・文字サイズ・行間・文字色・見出しの装飾は指定しません。
      テーマ（STORY）のスタイルをそのまま受け継ぎます。
    ・幅と左右の余白は .content_inner .inner が持っているため、ここでは触りません。
@@ -78,7 +78,7 @@
 /* --------------------------------------------------------------------------
    冒頭：お悩みの声
    -------------------------------------------------------------------------- */
-.symptom__inner .symptom__voice--inner {
+.symptom__inner .symptom__voice-inner {
 	margin: 0 0 1.5em;
 	padding: 0;
 	list-style: none;
@@ -181,25 +181,25 @@
 /* --------------------------------------------------------------------------
    ② 原因（3項目・横並び）
    -------------------------------------------------------------------------- */
-.symptom__inner .symptom__cause--inner {
+.symptom__inner .symptom__cause-inner {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(15em, 1fr));
 	gap: 1em;
 }
 
-.symptom__inner .symptom__cause--box {
+.symptom__inner .symptom__cause-box {
 	padding: 1.2em 1.3em;
 	background: var(--symptom-tint);
 	border-radius: var(--symptom-radius);
 }
 
-.symptom__cause--box h3,
-.symptom__inner .symptom__check--box h3 {
+.symptom__cause-box h3,
+.symptom__inner .symptom__check-box h3 {
 	margin: 0 0 .4em;
 }
 
-.symptom__cause--box p,
-.symptom__inner .symptom__check--box p {
+.symptom__cause-box p,
+.symptom__inner .symptom__check-box p {
 	margin: 0;
 }
 
@@ -218,7 +218,7 @@
 /* --------------------------------------------------------------------------
    ③ 確認する項目（6項目・タイル）
    -------------------------------------------------------------------------- */
-.symptom__inner .symptom__check--inner {
+.symptom__inner .symptom__check-inner {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(14em, 1fr));
 	gap: 1px;
@@ -228,17 +228,17 @@
 	overflow: hidden;
 }
 
-.symptom__inner .symptom__check--box {
+.symptom__inner .symptom__check-box {
 	padding: 1.1em 1.2em;
 	background: #fff;
 }
 
-.symptom__inner .symptom__check--box h3 {
+.symptom__inner .symptom__check-box h3 {
 	padding-bottom: .3em;
 	border-bottom: 2px solid var(--symptom-accent-bright);
 }
 
-.symptom__inner .symptom__check--box p {
+.symptom__inner .symptom__check-box p {
 	font-size: .9em;
 	opacity: .85;
 }
@@ -302,19 +302,19 @@
 /* --------------------------------------------------------------------------
    ⑤ 症例（実例を入れた場合のみ表示）
    -------------------------------------------------------------------------- */
-.symptom__inner .symptom__case--inner {
+.symptom__inner .symptom__case-inner {
 	display: grid;
 	gap: 1em;
 	margin-bottom: 1.5em;
 }
 
-.symptom__inner .symptom__case--box {
+.symptom__inner .symptom__case-box {
 	padding: 1.2em 1.3em;
 	background: var(--symptom-tint);
 	border-radius: var(--symptom-radius);
 }
 
-.symptom__inner .symptom__case--meta {
+.symptom__inner .symptom__case-meta {
 	margin: 0 0 .3em;
 	font-size: .8em;
 	font-weight: 700;
@@ -374,7 +374,7 @@
 	opacity: .8;
 }
 
-.symptom__inner .symptom__btn--inner {
+.symptom__inner .symptom__btn-inner {
 	margin-top: 1.2em;
 }
 
@@ -396,25 +396,25 @@
 }
 
 /* LINEは認知されたブランド色を使ったほうが押されやすいため、例外的に色を指定 */
-.symptom__inner .symptom__btn--line {
+.symptom__inner .symptom__btn-line {
 	background: #06c755;
 	color: #fff;
 }
 
-.symptom__btn--tel,
-.symptom__inner .symptom__btn--web {
+.symptom__btn-tel,
+.symptom__inner .symptom__btn-web {
 	background: #fff;
 	border: 1px solid var(--symptom-accent);
 	color: var(--symptom-accent);
 }
 
-.symptom__inner .symptom__btn--note {
+.symptom__inner .symptom__btn-note {
 	margin: .5em 0 1.2em;
 	font-size: .8em;
 	opacity: .75;
 }
 
-.symptom__inner .symptom__btn--note:last-child {
+.symptom__inner .symptom__btn-note:last-child {
 	margin-bottom: 0;
 }
 
@@ -448,7 +448,7 @@
    スマートフォン
    -------------------------------------------------------------------------- */
 @media (max-width: 767px) {
-	.symptom__inner .symptom__voice--inner {
+	.symptom__inner .symptom__voice-inner {
 		justify-content: flex-start;
 	}
 
@@ -461,7 +461,7 @@
 		padding: 1.3em;
 	}
 
-	.symptom__inner .symptom__check--inner {
+	.symptom__inner .symptom__check-inner {
 		grid-template-columns: 1fr;
 	}
 }
@@ -472,7 +472,7 @@
 <section class="content_full">
 	<div class="content_inner inner symptom__inner">
 
-							<ul class="symptom__voice--inner">
+							<ul class="symptom__voice-inner">
 									<li class="symptom__voice">首がいつも重い</li>
 									<li class="symptom__voice">肩までガチガチになる</li>
 									<li class="symptom__voice">マッサージしてもまた戻る</li>
@@ -496,16 +496,16 @@
 		
 							<div class="symptom__box" id="cause">
 				<h2>なぜ首こり・肩こりが起こる？</h2><p>長時間のスマホやパソコン、猫背、肩甲骨周囲の動き、身体全体のバランス。さまざまな要素が関係します。</p>
-				<div class="symptom__cause--inner">
-											<div class="symptom__cause--box">
+				<div class="symptom__cause-inner">
+											<div class="symptom__cause-box">
 							<h3><span class="symptom__num">1</span>頭が前に出る</h3>
 							<p>頭の重さは約5〜6kg。前に出るほど、首と肩はそれを支え続けることになります。</p>
 						</div>
-											<div class="symptom__cause--box">
+											<div class="symptom__cause-box">
 							<h3><span class="symptom__num">2</span>肩甲骨が動かない</h3>
 							<p>巻き肩で肩甲骨が開いたまま固定されると、周囲の筋肉は緊張し続けます。</p>
 						</div>
-											<div class="symptom__cause--box">
+											<div class="symptom__cause-box">
 							<h3><span class="symptom__num">3</span>土台のバランスが崩れる</h3>
 							<p>骨盤が傾けば背中は丸まり、首はさらに前へ。首だけをゆるめても戻るのは、このためです。</p>
 						</div>
@@ -516,28 +516,28 @@
 		
 							<div class="symptom__box" id="check">
 				<h2>ABCでは何を確認する？</h2><p>つらい部分だけを見るのではなく、姿勢や身体のバランスも確認します。</p>
-				<div class="symptom__check--inner">
-											<div class="symptom__check--box">
+				<div class="symptom__check-inner">
+											<div class="symptom__check-box">
 							<h3>AI姿勢診断</h3>
 							<p>頭・肩・骨盤の位置を画像で見える化します</p>
 						</div>
-											<div class="symptom__check--box">
+											<div class="symptom__check-box">
 							<h3>頭・肩の位置</h3>
 							<p>どれだけ前に出ているか、左右差はないか</p>
 						</div>
-											<div class="symptom__check--box">
+											<div class="symptom__check-box">
 							<h3>背骨のバランス</h3>
 							<p>S字カーブの崩れと、動きの硬さ</p>
 						</div>
-											<div class="symptom__check--box">
+											<div class="symptom__check-box">
 							<h3>骨盤の傾き</h3>
 							<p>土台が前後左右のどちらに傾いているか</p>
 						</div>
-											<div class="symptom__check--box">
+											<div class="symptom__check-box">
 							<h3>肩甲骨周囲の動き</h3>
 							<p>腕を動かしたとき、どこまで動いているか</p>
 						</div>
-											<div class="symptom__check--box">
+											<div class="symptom__check-box">
 							<h3>日常生活や身体の使い方</h3>
 							<p>仕事の姿勢、スマホを見る時間、睡眠環境</p>
 						</div>
@@ -583,7 +583,7 @@
 				<div class="symptom__cta" id="reserve">
 			<h2>まずは、いまの状態を知るところから</h2><p>「これくらいで行っていいのかな」という段階でも大丈夫です。</p>
 			
-			<div class="symptom__btn--inner"><a class="symptom__btn symptom__btn--line" href="https://lin.ee/VG1WL3J" target="_blank" rel="noopener">LINEで予約・相談する</a><p class="symptom__btn--note">24時間受付・ご相談だけでも大丈夫です</p></div>
+			<div class="symptom__btn-inner"><a class="symptom__btn symptom__btn-line" href="https://lin.ee/VG1WL3J" target="_blank" rel="noopener">LINEで予約・相談する</a><p class="symptom__btn-note">24時間受付・ご相談だけでも大丈夫です</p></div>
 					</div>
 
 					<p class="symptom__disclaimer">当院は医療機関ではありません。施術は治療・診断を目的とするものではなく、効果の感じ方や必要な回数には個人差があります。強い痛みやしびれ、発熱をともなう場合は、まず医療機関の受診をおすすめします。</p>

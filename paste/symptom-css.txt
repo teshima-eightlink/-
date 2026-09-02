@@ -1,0 +1,301 @@
+.symptom__inner * {
+box-sizing: border-box;
+}
+.symptom__inner .symptom__voice-inner {
+margin: 0 0 1.5em;
+padding: 0;
+list-style: none;
+display: flex;
+flex-wrap: wrap;
+row-gap: 1.1em;
+column-gap: .6em;
+justify-content: center;
+}
+.symptom__inner .symptom__voice {
+position: relative;
+padding: .55em 1.4em;
+background: #e9fafb;
+border-radius: 2em;
+font-weight: 700;
+}
+.symptom__inner .symptom__voice::after {
+content: "";
+position: absolute;
+left: 1.5em;
+bottom: -.3em;
+width: .8em;
+height: .8em;
+background: #e9fafb;
+border-radius: 0 0 .12em 0;
+transform: rotate(45deg);
+}
+.symptom__inner .symptom__lead {
+margin: 0 0 2.5em;
+text-align: center;
+}
+.symptom__inner .symptom__lead strong {
+background: linear-gradient(transparent 62%, #00ffff 62%);
+}
+.symptom__box,
+.symptom__inner .symptom__cta {
+margin-bottom: 3em;
+}
+.symptom__inner .symptom__conclusion {
+margin-top: 2.4em;
+padding: .9em 1.2em;
+background: rgba(0, 255, 255, .08);
+border-left: 3px solid #008080;
+border-radius: 0 6px 6px 0;
+font-weight: 700;
+}
+.symptom__inner .symptom__note {
+margin-top: 1.6em;
+font-size: .85em;
+opacity: .75;
+}
+.symptom__inner .symptom__check {
+margin: 0;
+padding: 1.3em 1.5em;
+list-style: none;
+border: 1px solid rgba(0, 128, 128, .22);
+border-radius: 6px;
+}
+.symptom__inner .symptom__check li {
+position: relative;
+padding-left: 1.8em;
+}
+.symptom__inner .symptom__check li + li {
+margin-top: .6em;
+}
+.symptom__inner .symptom__check li::before {
+content: "";
+position: absolute;
+left: .1em;
+top: .45em;
+width: .85em;
+height: .45em;
+border-left: 2px solid #008080;
+border-bottom: 2px solid #008080;
+transform: rotate(-45deg);
+}
+.symptom__inner .symptom__cause-inner {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(15em, 1fr));
+gap: 1em;
+}
+.symptom__inner .symptom__cause-box {
+padding: 1.2em 1.3em;
+background: rgba(0, 255, 255, .08);
+border-radius: 6px;
+}
+.symptom__cause-box h3,
+.symptom__inner .symptom__check-box h3 {
+margin: 0 0 .4em;
+}
+.symptom__cause-box p,
+.symptom__inner .symptom__check-box p {
+margin: 0;
+}
+.symptom__inner .symptom__num {
+display: inline-block;
+min-width: 1.6em;
+margin-right: .4em;
+background: #008080;
+border-radius: 3px;
+color: #fff;
+font-size: .75em;
+text-align: center;
+vertical-align: .1em;
+}
+.symptom__inner .symptom__check-inner {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(14em, 1fr));
+gap: 1px;
+background: rgba(0, 128, 128, .22);
+border: 1px solid rgba(0, 128, 128, .22);
+border-radius: 6px;
+overflow: hidden;
+}
+.symptom__inner .symptom__check-box {
+padding: 1.1em 1.2em;
+background: #fff;
+}
+.symptom__inner .symptom__check-box h3 {
+padding-bottom: .3em;
+border-bottom: 2px solid #00ffff;
+}
+.symptom__inner .symptom__check-box p {
+font-size: .9em;
+opacity: .85;
+}
+.symptom__inner .symptom__step {
+margin: 0;
+padding: 0;
+list-style: none;
+counter-reset: symptom-step;
+}
+.symptom__inner .symptom__step > li {
+counter-increment: symptom-step;
+position: relative;
+padding: 0 0 2.4em 3.4em;
+}
+.symptom__inner .symptom__step > li:last-child {
+padding-bottom: 0;
+}
+.symptom__inner .symptom__step > li::before {
+content: "STEP " counter(symptom-step);
+position: absolute;
+left: 0;
+top: .15em;
+width: 3.1em;              
+padding: .25em .2em;
+background: #008080;
+border-radius: 3px;
+color: #fff;
+font-size: .65em;
+font-weight: 700;
+letter-spacing: .02em;
+text-align: center;
+line-height: 1.35;
+}
+.symptom__inner .symptom__step > li:not(:last-child)::after {
+content: "";
+position: absolute;
+left: calc(1em - 1px);
+top: 2.8em;
+bottom: .9em;
+width: 2px;
+background: rgba(0, 128, 128, .22);
+}
+.symptom__inner .symptom__step h3 {
+margin: 0 0 .45em;
+}
+.symptom__inner .symptom__step p {
+margin: 0;
+}
+.symptom__inner .symptom__case-inner {
+display: grid;
+gap: 1em;
+margin-bottom: 1.5em;
+}
+.symptom__inner .symptom__case-box {
+padding: 1.2em 1.3em;
+background: rgba(0, 255, 255, .08);
+border-radius: 6px;
+}
+.symptom__inner .symptom__case-meta {
+margin: 0 0 .3em;
+font-size: .8em;
+font-weight: 700;
+color: #008080;
+}
+.symptom__inner .symptom__linkbox {
+margin: 1.5em 0 0;
+text-align: center;
+}
+.symptom__inner .symptom__link {
+display: inline-block;
+padding: .8em 2.4em .8em 2em;
+border: 1px solid #008080;
+border-radius: 2em;
+color: #008080;
+font-weight: 700;
+text-decoration: none;
+transition: background-color .2s ease, color .2s ease;
+}
+.symptom__inner .symptom__link::after {
+content: "→";
+margin-left: .5em;
+}
+.symptom__link:hover,
+.symptom__inner .symptom__link:focus-visible {
+background: #008080;
+color: #fff;
+}
+.symptom__inner .symptom__cta {
+padding: 1.8em;
+background: rgba(0, 255, 255, .08);
+border: 1px solid rgba(0, 128, 128, .22);
+border-top: 3px solid #00ffff;
+border-radius: 6px;
+text-align: center;
+}
+.symptom__inner .symptom__price {
+font-weight: 700;
+}
+.symptom__inner .symptom__price span {
+display: block;
+font-size: .8em;
+font-weight: 400;
+opacity: .8;
+}
+.symptom__inner .symptom__btn-inner {
+margin-top: 1.2em;
+}
+.symptom__inner .symptom__btn {
+display: block;
+max-width: 22em;
+margin: 0 auto;
+padding: .9em 1.4em;
+border-radius: 6px;
+font-size: 1.1em;
+font-weight: 700;
+text-decoration: none;
+transition: opacity .2s ease;
+}
+.symptom__btn:hover,
+.symptom__inner .symptom__btn:focus-visible {
+opacity: .85;
+}
+.symptom__inner .symptom__btn-line {
+background: #06c755;
+color: #fff;
+}
+.symptom__btn-tel,
+.symptom__inner .symptom__btn-web {
+background: #fff;
+border: 1px solid #008080;
+color: #008080;
+}
+.symptom__inner .symptom__btn-note {
+margin: .5em 0 1.2em;
+font-size: .8em;
+opacity: .75;
+}
+.symptom__inner .symptom__btn-note:last-child {
+margin-bottom: 0;
+}
+.symptom__inner .symptom__info {
+margin: 1.5em 0 0;
+padding-top: 1.2em;
+border-top: 1px solid rgba(0, 128, 128, .22);
+font-size: .9em;
+text-align: left;
+}
+.symptom__inner .symptom__info dt {
+font-weight: 700;
+opacity: .75;
+}
+.symptom__inner .symptom__info dd {
+margin: 0 0 .6em;
+}
+.symptom__inner .symptom__disclaimer {
+margin: 2em 0 0;
+font-size: .8em;
+opacity: .7;
+}
+@media (max-width: 767px) {
+.symptom__inner .symptom__voice-inner {
+justify-content: flex-start;
+}
+.symptom__box,
+.symptom__inner .symptom__cta {
+margin-bottom: 2.2em;
+}
+.symptom__inner .symptom__cta {
+padding: 1.3em;
+}
+.symptom__inner .symptom__check-inner {
+grid-template-columns: 1fr;
+}
+}

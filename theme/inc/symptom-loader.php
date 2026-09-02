@@ -196,11 +196,11 @@ function abc_symptom_render_buttons( $buttons ) {
 		return;
 	}
 
-	echo '<div class="symptom__btn--inner">';
+	echo '<div class="symptom__btn-inner">';
 
 	foreach ( $buttons as $b ) {
 		printf(
-			'<a class="symptom__btn symptom__btn--%s" href="%s"%s>%s</a>',
+			'<a class="symptom__btn symptom__btn-%s" href="%s"%s>%s</a>',
 			esc_attr( $b['modifier'] ),
 			esc_url( $b['url'] ),
 			empty( $b['blank'] ) ? '' : ' target="_blank" rel="noopener"',
@@ -208,7 +208,7 @@ function abc_symptom_render_buttons( $buttons ) {
 		);
 
 		if ( ! empty( $b['note'] ) ) {
-			printf( '<p class="symptom__btn--note">%s</p>', esc_html( $b['note'] ) );
+			printf( '<p class="symptom__btn-note">%s</p>', esc_html( $b['note'] ) );
 		}
 	}
 

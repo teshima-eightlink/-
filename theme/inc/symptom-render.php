@@ -42,7 +42,7 @@ function abc_symptom_render( $slug = '' ) {
 
 		<?php /* ============ 冒頭 ============ */ ?>
 		<?php if ( abc_symptom_get( $abc_data, 'hero.voices', array() ) ) : ?>
-			<ul class="symptom__voice--inner">
+			<ul class="symptom__voice-inner">
 				<?php foreach ( $abc_data['hero']['voices'] as $abc_voice ) : ?>
 					<li class="symptom__voice"><?php echo esc_html( $abc_voice ); ?></li>
 				<?php endforeach; ?>
@@ -75,9 +75,9 @@ function abc_symptom_render( $slug = '' ) {
 			<div class="symptom__box" id="cause">
 				<?php abc_symptom_heading( $abc_data['cause'] ); ?>
 
-				<div class="symptom__cause--inner">
+				<div class="symptom__cause-inner">
 					<?php foreach ( $abc_data['cause']['blocks'] as $abc_i => $abc_block ) : ?>
-						<div class="symptom__cause--box">
+						<div class="symptom__cause-box">
 							<h3><span class="symptom__num"><?php echo esc_html( $abc_i + 1 ); ?></span><?php echo esc_html( $abc_block['title'] ); ?></h3>
 							<p><?php echo wp_kses_post( $abc_block['body'] ); ?></p>
 						</div>
@@ -95,9 +95,9 @@ function abc_symptom_render( $slug = '' ) {
 			<div class="symptom__box" id="check">
 				<?php abc_symptom_heading( $abc_data['check'] ); ?>
 
-				<div class="symptom__check--inner">
+				<div class="symptom__check-inner">
 					<?php foreach ( $abc_data['check']['items'] as $abc_item ) : ?>
-						<div class="symptom__check--box">
+						<div class="symptom__check-box">
 							<h3><?php echo esc_html( $abc_item['title'] ); ?></h3>
 							<p><?php echo wp_kses_post( $abc_item['body'] ); ?></p>
 						</div>
@@ -136,10 +136,10 @@ function abc_symptom_render( $slug = '' ) {
 				<?php abc_symptom_heading( $abc_data['cases'] ); ?>
 
 				<?php if ( abc_symptom_get( $abc_data, 'cases.items', array() ) ) : ?>
-					<div class="symptom__case--inner">
+					<div class="symptom__case-inner">
 						<?php foreach ( $abc_data['cases']['items'] as $abc_case ) : ?>
-							<div class="symptom__case--box">
-								<p class="symptom__case--meta"><?php echo esc_html( $abc_case['meta'] ); ?></p>
+							<div class="symptom__case-box">
+								<p class="symptom__case-meta"><?php echo esc_html( $abc_case['meta'] ); ?></p>
 								<h3><?php echo esc_html( $abc_case['title'] ); ?></h3>
 								<p><?php echo wp_kses_post( $abc_case['body'] ); ?></p>
 							</div>

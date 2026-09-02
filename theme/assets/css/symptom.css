@@ -2,7 +2,7 @@
    症状ページ 専用スタイル
    --------------------------------------------------------------------------
    ・クラス名は既存ページ（料金ページ）の規約に合わせています
-       price__box / price__caution--inner → symptom__box / symptom__cause--inner
+       price__box / price__caution--inner → symptom__box / symptom__cause-inner
    ・フォント・文字サイズ・行間・文字色・見出しの装飾は指定しません。
      テーマ（STORY）のスタイルをそのまま受け継ぎます。
    ・幅と左右の余白は .content_inner .inner が持っているため、ここでは触りません。
@@ -43,7 +43,7 @@
 /* --------------------------------------------------------------------------
    冒頭：お悩みの声
    -------------------------------------------------------------------------- */
-.symptom__inner .symptom__voice--inner {
+.symptom__inner .symptom__voice-inner {
 	margin: 0 0 1.5em;
 	padding: 0;
 	list-style: none;
@@ -146,25 +146,25 @@
 /* --------------------------------------------------------------------------
    ② 原因（3項目・横並び）
    -------------------------------------------------------------------------- */
-.symptom__inner .symptom__cause--inner {
+.symptom__inner .symptom__cause-inner {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(15em, 1fr));
 	gap: 1em;
 }
 
-.symptom__inner .symptom__cause--box {
+.symptom__inner .symptom__cause-box {
 	padding: 1.2em 1.3em;
 	background: var(--symptom-tint);
 	border-radius: var(--symptom-radius);
 }
 
-.symptom__cause--box h3,
-.symptom__inner .symptom__check--box h3 {
+.symptom__cause-box h3,
+.symptom__inner .symptom__check-box h3 {
 	margin: 0 0 .4em;
 }
 
-.symptom__cause--box p,
-.symptom__inner .symptom__check--box p {
+.symptom__cause-box p,
+.symptom__inner .symptom__check-box p {
 	margin: 0;
 }
 
@@ -183,7 +183,7 @@
 /* --------------------------------------------------------------------------
    ③ 確認する項目（6項目・タイル）
    -------------------------------------------------------------------------- */
-.symptom__inner .symptom__check--inner {
+.symptom__inner .symptom__check-inner {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(14em, 1fr));
 	gap: 1px;
@@ -193,17 +193,17 @@
 	overflow: hidden;
 }
 
-.symptom__inner .symptom__check--box {
+.symptom__inner .symptom__check-box {
 	padding: 1.1em 1.2em;
 	background: #fff;
 }
 
-.symptom__inner .symptom__check--box h3 {
+.symptom__inner .symptom__check-box h3 {
 	padding-bottom: .3em;
 	border-bottom: 2px solid var(--symptom-accent-bright);
 }
 
-.symptom__inner .symptom__check--box p {
+.symptom__inner .symptom__check-box p {
 	font-size: .9em;
 	opacity: .85;
 }
@@ -267,19 +267,19 @@
 /* --------------------------------------------------------------------------
    ⑤ 症例（実例を入れた場合のみ表示）
    -------------------------------------------------------------------------- */
-.symptom__inner .symptom__case--inner {
+.symptom__inner .symptom__case-inner {
 	display: grid;
 	gap: 1em;
 	margin-bottom: 1.5em;
 }
 
-.symptom__inner .symptom__case--box {
+.symptom__inner .symptom__case-box {
 	padding: 1.2em 1.3em;
 	background: var(--symptom-tint);
 	border-radius: var(--symptom-radius);
 }
 
-.symptom__inner .symptom__case--meta {
+.symptom__inner .symptom__case-meta {
 	margin: 0 0 .3em;
 	font-size: .8em;
 	font-weight: 700;
@@ -339,7 +339,7 @@
 	opacity: .8;
 }
 
-.symptom__inner .symptom__btn--inner {
+.symptom__inner .symptom__btn-inner {
 	margin-top: 1.2em;
 }
 
@@ -361,25 +361,25 @@
 }
 
 /* LINEは認知されたブランド色を使ったほうが押されやすいため、例外的に色を指定 */
-.symptom__inner .symptom__btn--line {
+.symptom__inner .symptom__btn-line {
 	background: #06c755;
 	color: #fff;
 }
 
-.symptom__btn--tel,
-.symptom__inner .symptom__btn--web {
+.symptom__btn-tel,
+.symptom__inner .symptom__btn-web {
 	background: #fff;
 	border: 1px solid var(--symptom-accent);
 	color: var(--symptom-accent);
 }
 
-.symptom__inner .symptom__btn--note {
+.symptom__inner .symptom__btn-note {
 	margin: .5em 0 1.2em;
 	font-size: .8em;
 	opacity: .75;
 }
 
-.symptom__inner .symptom__btn--note:last-child {
+.symptom__inner .symptom__btn-note:last-child {
 	margin-bottom: 0;
 }
 
@@ -413,7 +413,7 @@
    スマートフォン
    -------------------------------------------------------------------------- */
 @media (max-width: 767px) {
-	.symptom__inner .symptom__voice--inner {
+	.symptom__inner .symptom__voice-inner {
 		justify-content: flex-start;
 	}
 
@@ -426,7 +426,7 @@
 		padding: 1.3em;
 	}
 
-	.symptom__inner .symptom__check--inner {
+	.symptom__inner .symptom__check-inner {
 		grid-template-columns: 1fr;
 	}
 }

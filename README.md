@@ -58,8 +58,11 @@ theme/                              ← この中身を子テーマにアップ�
 
 preview/kubikori-katakori.html      ブラウザで表示確認できるプレビュー
 paste/kubikori-katakori.html        ★本文に貼り付けるHTML（方式A用）
-tools/build-preview.php             上記を再生成するスクリプト
+paste/symptom-css.txt               ★カスタムCSS欄に貼り付けるCSS（WAF対応版）
+tools/build-preview.php             本文HTMLを再生成するスクリプト
+tools/build-css.php                 WAF対応版CSSを生成するスクリプト
 tools/test-autop.php                貼り付けHTMLが崩れないか検証するスクリプト
+tools/test-css.js                   CSSの描画結果が変わらないか検証するスクリプト
 ```
 
 ---
@@ -171,12 +174,36 @@ tools/test-autop.php                貼り付けHTMLが崩れないか検証す�
 
 これで本文欄はコード入力だけになり、誤クリックの余地がなくなります。
 
-### 手順2　CSSを登録する【1回だけ】
+### 手順2　CSSを登録する
 
-> 管理画面 →「外観」→「カスタマイズ」→「**追加CSS**」
+CSSを貼る場所は2つあります。どちらでも構いません。
 
-`theme/assets/css/symptom.css` の中身を**全文コピーして貼り付け**、公開します。
-すべての症状ページで共通なので、**この作業は最初の1回だけ**です。
+- テーマの固定ページ編集画面 →「**カスタムCSS（この固定ページのみに適用されます）**」
+- 管理画面 →「外観」→「カスタマイズ」→「**追加CSS**」（全ページ共通。1回で済む）
+
+貼り付けるのは **`paste/symptom-css.txt`** です。
+`theme/assets/css/symptom.css` をそのまま貼ると、**サーバーのWAFに弾かれます**（下記）。
+
+> #### 「閲覧できません（Forbidden access）」と出る場合
+>
+> レンタルサーバーのWAF（セキュリティ機能）が、CSSの中身を
+> SQLインジェクション攻撃と誤判定して保存・プレビューを遮断しています。
+>
+> | 記号 | WAFが何と見るか |
+> |---|---|
+> | `/* */` | SQLのコメント記号 |
+> | `--` | SQLのコメント記号 |
+>
+> CSSのコメントとCSS変数（`--symptom-accent` など）がこれに一致します。
+> `paste/symptom-css.txt` は、**コメントを削除し、CSS変数を実際の値に展開して**
+> これらの記号を完全に無くしたものです。見た目は元のCSSとまったく同じで、
+> Chromiumで264要素の描画結果が一致することを確認済みです。
+>
+> クラス名の `--`（`symptom__cause--inner`）も同じ理由で `-` に変更しました。
+> **HTML側も合わせて変わっているので、CSSだけでなく本文HTMLも貼り直してください。**
+>
+> それでも弾かれる場合は、サーバーの管理画面でWAFを一時的にオフにして保存し、
+> 保存後にオンへ戻してください（エックスサーバーなら「WAF設定」）。
 
 ### 手順3　固定ページを作る
 
@@ -195,8 +222,10 @@ tools/test-autop.php                貼り付けHTMLが崩れないか検証す�
 - 原稿を直して `paste/` を作り直したら、次のコマンドで検証してください。
 
 ```bash
-php tools/build-preview.php     # HTMLを作り直す
+php tools/build-preview.php     # 本文HTMLを作り直す
+php tools/build-css.php         # WAF対応版CSSを作り直す
 php tools/test-autop.php        # 自動整形で崩れないか検証する
+node tools/test-css.js          # CSSの見た目が変わっていないか検証する
 ```
 
 ---
