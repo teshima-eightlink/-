@@ -45,19 +45,26 @@ CSSは**症状ページにだけ出てくる部品**（チェックリスト、�
 
 ```
 theme/                              ← この中身を子テーマにアップロードします
-├── page-symptom.php                固定ページテンプレート本体（触る必要なし）
+├── page-symptom.php                症状ページ用テンプレート（触る必要なし）
+├── page-posture.php                姿勢改善ページ用テンプレート（触る必要なし）
 ├── inc/
 │   ├── symptom-config.php          ★院の情報・LINE・リンク先（最初に設定）
 │   ├── symptom-loader.php          共通処理（触る必要なし）
-│   ├── symptom-render.php          本文の組み立て（触る必要なし）
-│   ├── symptom-shortcode.php       [symptom] ショートコード
+│   ├── symptom-blocks.php          表示パーツ（触る必要なし）
+│   ├── symptom-render.php          症状ページの組み立て（触る必要なし）
+│   ├── posture-render.php          姿勢改善ページの組み立て（触る必要なし）
+│   ├── symptom-shortcode.php       [symptom] [posture] ショートコード
+│   ├── pages/
+│   │   └── shisei.php              ★姿勢改善ページの原稿
 │   └── symptoms/
 │       ├── kubikori-katakori.php   ★首こり・肩こりの原稿
 │       └── _template.php           新しい症状を追加するときのコピー元
 └── assets/css/symptom.css          症状ページ専用のCSS
 
 preview/kubikori-katakori.html      ブラウザで表示確認できるプレビュー
+preview/shisei.html                 姿勢改善ページのプレビュー
 paste/kubikori-katakori.html        ★本文に貼り付けるHTML（方式A用）
+paste/shisei.html                   ★姿勢改善ページの本文HTML
 paste/symptom-css.txt               ★カスタムCSS欄に貼り付けるCSS（WAF対応版）
 tools/build-preview.php             本文HTMLを再生成するスクリプト
 tools/build-css.php                 WAF対応版CSSを生成するスクリプト
@@ -254,6 +261,12 @@ require_once get_theme_file_path( 'inc/symptom-shortcode.php' );
 
 ```
 [symptom slug="kubikori-katakori"]
+```
+
+姿勢改善ページは次のショートコードです。
+
+```
+[posture]
 ```
 
 エディタから見ればただの文字列なので、タブを切り替えても壊れません。

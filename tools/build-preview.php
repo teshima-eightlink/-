@@ -227,25 +227,11 @@ function abc_preview_tidy( $html ) {
 
 /* ------------------------------------------------------------------
  * 書き出し
+ *
+ * CSSは1リクエストにつき1回だけ出力する作りのため、
+ * 複数ページを1プロセスで生成すると2ページ目以降にCSSが付きません。
+ * そこで、ページごとに子プロセスを起動します。
  * ---------------------------------------------------------------- */
-$targets = array_values(
-	array_filter(
-		array_slice( $argv, 1 ),
-		static function ( $a ) {
-			return 0 !== strpos( $a, '-' );
-		}
-	)
-);
-
-if ( empty( $targets ) ) {
-	foreach ( glob( $theme_dir . '/inc/symptoms/*.php' ) as $file ) {
-		$name = basename( $file, '.php' );
-		if ( '_' !== $name[0] ) {
-			$targets[] = $name;
-		}
-	}
-}
-
 $paste_dir = __DIR__ . '/../paste';
 
 foreach ( array( $output_dir, $paste_dir ) as $dir ) {
@@ -254,23 +240,91 @@ foreach ( array( $output_dir, $paste_dir ) as $dir ) {
 	}
 }
 
-foreach ( $targets as $slug ) {
-	$data = require $theme_dir . '/inc/symptoms/' . $slug . '.php';
+/**
+ * 1ページ分を書き出す。
+ *
+ * @param string $slug  スラッグ（原稿ファイル名）。
+ * @param string $type  'symptom' または 'posture'。
+ */
+function abc_preview_write( $slug, $type ) {
+	global $theme_dir, $output_dir, $paste_dir;
+
+	$file = 'posture' === $type
+		? $theme_dir . '/inc/pages/' . $slug . '.php'
+		: $theme_dir . '/inc/symptoms/' . $slug . '.php';
+
+	$data = require $file;
 
 	$GLOBALS['abc_preview_slug']  = $slug;
 	$GLOBALS['abc_preview_title'] = $data['title'] ?? $slug;
 
-	ob_start();
-	include $theme_dir . '/page-symptom.php';
-	$html = ob_get_clean();
+	if ( 'posture' === $type ) {
+		require_once $theme_dir . '/inc/posture-render.php';
+		$body = abc_posture_render( $slug );
+
+		ob_start();
+		get_header();
+		echo $body;
+		get_footer();
+		$html = ob_get_clean();
+	} else {
+		ob_start();
+		include $theme_dir . '/page-symptom.php';
+		$html = ob_get_clean();
+	}
 
 	file_put_contents( $output_dir . '/' . $slug . '.html', $html );
-	printf( "preview/%s.html  （表示確認用 / %d bytes）\n", $slug, strlen( $html ) );
+	printf( "preview/%-22s （表示確認用 / %d bytes）\n", $slug . '.html', strlen( $html ) );
 
-	// クラシックエディタの本文に貼り付ける用（PHPを触らずに設置する場合）
 	if ( preg_match( '#<section class="content_full">.*</section>#s', $html, $m ) ) {
 		$fragment = abc_preview_tidy( $m[0] ) . "\n";
 		file_put_contents( $paste_dir . '/' . $slug . '.html', $fragment );
-		printf( "paste/%s.html        （本文貼り付け用 / %d bytes）\n", $slug, strlen( $fragment ) );
+		printf( "paste/%-24s （本文貼り付け用 / %d bytes）\n", $slug . '.html', strlen( $fragment ) );
 	}
 }
+
+/* 対象ページの一覧をつくる */
+$args = array_slice( $argv, 1 );
+$one  = '';
+
+foreach ( $args as $arg ) {
+	if ( 0 === strpos( $arg, '--one=' ) ) {
+		$one = substr( $arg, 6 );
+	}
+}
+
+$pages = array();
+
+foreach ( glob( $theme_dir . '/inc/pages/*.php' ) as $f ) {
+	$pages[] = array( basename( $f, '.php' ), 'posture' );
+}
+
+foreach ( glob( $theme_dir . '/inc/symptoms/*.php' ) as $f ) {
+	$name = basename( $f, '.php' );
+	if ( '_' !== $name[0] ) {
+		$pages[] = array( $name, 'symptom' );
+	}
+}
+
+/* 指定があれば絞り込む */
+$filter = array_values( array_filter( $args, static fn( $a ) => 0 !== strpos( $a, '-' ) ) );
+
+if ( $filter ) {
+	$pages = array_values( array_filter( $pages, static fn( $p ) => in_array( $p[0], $filter, true ) ) );
+}
+
+/* --one が無ければ、ページごとに子プロセスを起動する */
+if ( '' === $one ) {
+	foreach ( $pages as list( $slug, $type ) ) {
+		$cmd = escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __FILE__ )
+			. ' --one=' . escapeshellarg( $slug . ':' . $type );
+		passthru( $cmd, $status );
+		if ( 0 !== $status ) {
+			exit( $status );
+		}
+	}
+	exit( 0 );
+}
+
+list( $one_slug, $one_type ) = explode( ':', $one );
+abc_preview_write( $one_slug, $one_type );

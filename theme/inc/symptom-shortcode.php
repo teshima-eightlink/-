@@ -33,6 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once __DIR__ . '/symptom-render.php';
+require_once __DIR__ . '/posture-render.php';
 
 /**
  * [symptom slug="kubikori-katakori"] を症状ページの本文に置き換える。
@@ -64,6 +65,19 @@ function abc_symptom_shortcode( $atts ) {
 add_shortcode( 'symptom', 'abc_symptom_shortcode' );
 
 /**
+ * [posture] を姿勢改善ページの本文に置き換える。
+ *
+ * @param array $atts ショートコード属性。
+ * @return string
+ */
+function abc_posture_shortcode( $atts ) {
+	$atts = shortcode_atts( array( 'slug' => 'shisei' ), $atts, 'posture' );
+
+	return abc_posture_render( sanitize_key( $atts['slug'] ) );
+}
+add_shortcode( 'posture', 'abc_posture_shortcode' );
+
+/**
  * ショートコードを囲む <p> タグを取り除く。
  *
  * WordPress は本文に自動で段落タグを付けるため（wpautop）、
@@ -79,7 +93,7 @@ add_shortcode( 'symptom', 'abc_symptom_shortcode' );
  */
 function abc_symptom_unwrap_shortcode( $content ) {
 	return preg_replace(
-		'#<p>\s*(\[symptom\b[^\]]*\])\s*</p>#',
+		'#<p>\s*(\[(?:symptom|posture)\b[^\]]*\])\s*</p>#',
 		'$1',
 		$content
 	);

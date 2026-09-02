@@ -47,8 +47,8 @@ $after = wp_autop( $src );
 
 $checks = array();
 
-// 1. 意図しない <br /> が入っていないか
-$checks['文中に <br /> が差し込まれていない'] = ( substr_count( $after, '<br />' ) === substr_count( $src, '<br' ) );
+// 1. 意図しない改行タグが増えていないか（元から書いてある <br> は除く）
+$checks['改行タグが増えていない'] = ( preg_match_all( '/<br/i', $after ) === preg_match_all( '/<br/i', $src ) );
 
 // 2. 余計な空の <p> が生まれていないか
 $checks['空の <p></p> が生まれていない'] = ( preg_match( '#<p>\s*</p>#', $after ) === 0 );
