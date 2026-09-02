@@ -147,14 +147,13 @@ function get_header() {
 		font-size: 16px;
 		line-height: 1.9;
 	}
-	/* テーマ（TCD系）が本文エリアのクラス配下にだけ書式を当てる想定を再現 */
-	.post_content h1 { font-size: 1.9rem; line-height: 1.45; }
-	.post_content h2 { font-size: 1.45rem; line-height: 1.5; }
-	.post_content h3 { font-size: 1.05rem; line-height: 1.6; }
-	.post_content p  { margin: 0 0 1.6em; }
+	/* テーマが .content_inner .inner 配下に当てている書式の代役 */
+	.content_inner h2 { font-size: 1.5rem; line-height: 1.5; margin: 0 0 .8em; }
+	.content_inner h3 { font-size: 1.05rem; line-height: 1.6; }
+	.content_inner p  { margin: 0 0 1.4em; }
+	.content_full     { padding: 2.5em 0; }
+	.content_inner.inner { width: min(100% - 40px, 900px); margin-inline: auto; }
 	a  { color: #008080; }
-	.theme-frame { padding: 0 20px; }
-	.theme-frame > * { max-width: 860px; margin-inline: auto; }
 	/* ▲ ここまでが仮テーマ */
 
 	.preview-bar {
@@ -165,13 +164,12 @@ function get_header() {
 </style>
 </head>
 <body>
-<div class="preview-bar">表示確認用プレビューです。フォント・文字サイズ・見出し・リンク色は「仮テーマ」のもので、実サイトではテーマのスタイルをそのまま受け継ぎます。</div>
-<div class="theme-frame">
+<div class="preview-bar">表示確認用プレビューです。フォント・文字サイズ・見出しは「仮テーマ」のもので、実サイトではSTORYのスタイルを受け継ぎます。</div>
 HTML;
 }
 
 function get_footer() {
-	echo "\n</div>\n</body>\n</html>\n";
+	echo "\n</body>\n</html>\n";
 }
 
 /**
@@ -179,6 +177,8 @@ function get_footer() {
  *
  * ・属性を持たない <div>（レイアウト用の入れ物）を取り除く
  * ・インデントの空白と空行をたたむ
+ *
+ * class の付いた div は既存ページの構造に必要なため、そのまま残します。
  *
  * @param string $html plain モードで出力された本文HTML。
  * @return string
@@ -222,22 +222,15 @@ function abc_preview_tidy( $html ) {
 
 /* ------------------------------------------------------------------
  * 書き出し
- *
- * 設定は初回読み込み時にキャッシュされるため、モードを切り替えるには
- * プロセスを分ける必要があります。--mode 指定がなければ、自分自身を
- * モードごとに呼び直します。
  * ---------------------------------------------------------------- */
-$args    = array_slice( $argv, 1 );
-$mode    = 'plain';
-$targets = array();
-
-foreach ( $args as $arg ) {
-	if ( 0 === strpos( $arg, '--mode=' ) ) {
-		$mode = substr( $arg, 7 );
-	} elseif ( 0 !== strpos( $arg, '-' ) ) {
-		$targets[] = $arg;
-	}
-}
+$targets = array_values(
+	array_filter(
+		array_slice( $argv, 1 ),
+		static function ( $a ) {
+			return 0 !== strpos( $a, '-' );
+		}
+	)
+);
 
 if ( empty( $targets ) ) {
 	foreach ( glob( $theme_dir . '/inc/symptoms/*.php' ) as $file ) {
@@ -247,32 +240,6 @@ if ( empty( $targets ) ) {
 		}
 	}
 }
-
-// --mode が無ければ、plain と styled をそれぞれ別プロセスで実行する
-$has_mode = false;
-foreach ( $args as $arg ) {
-	if ( 0 === strpos( $arg, '--mode=' ) ) {
-		$has_mode = true;
-	}
-}
-
-if ( ! $has_mode ) {
-	foreach ( array( 'plain', 'styled' ) as $m ) {
-		$cmd = escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __FILE__ ) . ' --mode=' . $m;
-		foreach ( $targets as $t ) {
-			$cmd .= ' ' . escapeshellarg( $t );
-		}
-		passthru( $cmd, $status );
-		if ( 0 !== $status ) {
-			exit( $status );
-		}
-	}
-	exit( 0 );
-}
-
-$GLOBALS['abc_preview_config'] = array(
-	'theme' => array( 'style_mode' => $mode ),
-);
 
 $paste_dir = __DIR__ . '/../paste';
 
@@ -292,15 +259,15 @@ foreach ( $targets as $slug ) {
 	include $theme_dir . '/page-symptom.php';
 	$html = ob_get_clean();
 
-	$suffix = ( 'plain' === $mode ) ? '' : '--styled';
-	file_put_contents( $output_dir . '/' . $slug . $suffix . '.html', $html );
-	printf( "preview/%s%s.html  （%s モード / %d bytes）\n", $slug, $suffix, $mode, strlen( $html ) );
+	file_put_contents( $output_dir . '/' . $slug . '.html', $html );
+	printf( "preview/%s.html  （表示確認用 / %d bytes）\n", $slug, strlen( $html ) );
 
-	// plain モードの本文だけを、ブロックエディタ貼り付け用に切り出す
-	if ( 'plain' === $mode && preg_match( '#<main[^>]*>(.*)</main>#s', $html, $m ) ) {
+	// 本文だけを切り出し、ブロックエディタ貼り付け用として保存する
+	if ( preg_match( '#<section class="content_full">.*</section>#s', $html, $m ) ) {
 		$fragment = '<!-- ABCカイロプラクティック整体院 症状ページ：' . ( $data['title'] ?? $slug ) . " -->\n"
 			. "<!-- 固定ページの編集画面でブロック「カスタムHTML」を追加し、このまま貼り付けてください -->\n"
-			. abc_preview_tidy( $m[1] ) . "\n";
+			. "<!-- ※CSSは「外観 → カスタマイズ → 追加CSS」に symptom.css の内容を1度だけ貼り付けてください -->\n"
+			. abc_preview_tidy( $m[0] ) . "\n";
 		file_put_contents( $paste_dir . '/' . $slug . '.html', $fragment );
 		printf( "paste/%s.html        （貼り付け用 / %d bytes）\n", $slug, strlen( $fragment ) );
 	}

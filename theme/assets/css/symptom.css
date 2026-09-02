@@ -1,597 +1,427 @@
 /* ==========================================================================
-   症状ページ 共通スタイル（テーマ追従型）
+   症状ページ 専用スタイル
    --------------------------------------------------------------------------
-   【設計方針】
-   このページだけ浮かないよう、テーマから受け継ぐものと、このCSSが決めるものを
-   はっきり分けています。
+   ・クラス名は既存ページ（料金ページ）の規約に合わせています
+       price__box / price__caution--inner → symptom__box / symptom__cause--inner
+   ・フォント・文字サイズ・行間・文字色・見出しの装飾は指定しません。
+     テーマ（STORY）のスタイルをそのまま受け継ぎます。
+   ・幅と左右の余白は .content_inner .inner が持っているため、ここでは触りません。
 
-     テーマに任せる … フォント、文字サイズ、行間、文字色、背景色、見出しの装飾、
-                      リンク色、本文の横幅
-     ここで決める   … セクションの並び、余白、箱組み（カード・リスト・ステップ）
-
-   アクセントカラーは、サイトのテーマカラー cyan に合わせてあります。
-   ただし #00ffff をそのまま文字や線に使うと読めないため、用途で色を分けています
-   （詳しくは下の変数のコメントを参照）。
+   ここが決めるのは「症状ページにだけ出てくる部品」の見た目だけです。
    ========================================================================== */
 
-.abc-symptom {
-	/* ---- ここだけ調整すれば全ページに反映されます ---- */
-
-	/* ---- アクセントカラー（サイトのテーマカラー cyan に合わせています） ----
+.symptom__inner {
+	/* ---- アクセントカラー ----
+	 * テーマカラー #00ffff は白地でコントラスト比 1.25:1 しかなく、
+	 * 文字や細い線に使うと読めません（WCAG AA の本文基準は 4.5:1）。
+	 * 色相180°（純粋なシアン）を保ったまま、用途で2つに分けています。
 	 *
-	 * サイトのテーマカラー #00ffff は、白背景に対するコントラスト比が 1.25:1 しかなく、
-	 * 文字・アイコン・細い線に使うと読めません（WCAG AAの本文基準は 4.5:1）。
-	 * そのため用途で2つに分けています。色相はどちらも 180°（純粋なシアン）のままです。
-	 *
-	 *   --abc-accent        #008080  … 文字・番号・チェック・点など「意味を持つ要素」
-	 *                                  白地で 4.77:1（AA適合）。#00ffff を暗くしただけの同色相。
-	 *   --abc-accent-bright #00ffff  … マーカーや区切り線など「装飾だけの要素」
-	 *                                  濃い文字の背面に敷く使い方なら 10:1 で読めます。
+	 *   --symptom-accent        #008080  文字・番号・チェックなど意味を持つ要素（4.77:1）
+	 *   --symptom-accent-bright #00ffff  マーカーや帯など装飾だけの要素
 	 */
-	--abc-accent: #008080;
-	--abc-accent-bright: #00ffff;
-
-	/* 面と罫線。シアンをごく薄く効かせ、テーマの背景色に重ねて使います。 */
-	--abc-tint: rgba(0, 255, 255, .08);
-	--abc-border: rgba(0, 128, 128, .22);
-
-	/* 本文幅。初期値はテーマの本文幅をそのまま使います。
-	   このページだけ幅を絞りたい場合の例： --abc-width: 760px; */
-	--abc-width: 100%;
-
-	/* セクション間の余白と角丸 */
-	--abc-gap: 3.4em;
-	--abc-radius: 6px;
-
-	/* フォント・文字色・背景は指定しません（テーマから継承します） */
-	overflow-wrap: break-word;
+	--symptom-accent: #008080;
+	--symptom-accent-bright: #00ffff;
+	--symptom-tint: rgba(0, 255, 255, .08);
+	--symptom-border: rgba(0, 128, 128, .22);
+	--symptom-radius: 6px;
 }
 
-.abc-symptom *,
-.abc-symptom *::before,
-.abc-symptom *::after {
+.symptom__inner * {
 	box-sizing: border-box;
 }
 
-.abc-symptom__inner {
-	width: min(100%, var(--abc-width));
-	margin-inline: auto;
-}
-
 /* --------------------------------------------------------------------------
-   導入（冒頭）
+   冒頭：お悩みの声
    -------------------------------------------------------------------------- */
-.abc-symptom__hero {
-	padding-bottom: 2em;
+.symptom__voice--inner {
+	margin: 0 0 1.5em;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: .6em;
+	justify-content: center;
 }
 
-.abc-symptom__eyebrow {
-	margin: 0 0 .5em;
-	font-size: .85em;
-	opacity: .7;
-}
-
-/* テーマ側の h1 スタイルをそのまま活かし、余白だけ整えます */
-.abc-symptom__title {
-	margin: 0 0 .6em;
-}
-
-.abc-symptom__catch {
-	margin: 0 0 1em;
+.symptom__voice {
+	position: relative;
+	padding: .55em 1.4em;
+	background: var(--symptom-tint);
+	border: 1px solid var(--symptom-border);
+	border-radius: 2em;
 	font-weight: 700;
 }
 
-.abc-symptom__lead {
-	margin: 1.4em 0 0;
-}
-
-/* 冒頭のお悩みの声 */
-.abc-symptom__voices {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-	display: grid;
-	gap: .6em;
-}
-
-.abc-symptom__voice {
-	position: relative;
-	padding: .7em 1.2em;
-	background: var(--abc-tint);
-	border: 1px solid var(--abc-border);
-	border-radius: 2em;
-	line-height: 1.6;
-}
-
-.abc-symptom__voice::before {
+.symptom__voice::after {
 	content: "";
 	position: absolute;
-	left: 2em;
-	bottom: -.45em;
-	width: .8em;
-	height: .8em;
-	background: var(--abc-tint);
-	border-right: 1px solid var(--abc-border);
-	border-bottom: 1px solid var(--abc-border);
+	left: 1.6em;
+	bottom: -.42em;
+	width: .7em;
+	height: .7em;
+	background: var(--symptom-tint);
+	border-right: 1px solid var(--symptom-border);
+	border-bottom: 1px solid var(--symptom-border);
 	transform: rotate(45deg);
 }
 
+.symptom__lead {
+	margin: 0 0 2.5em;
+	text-align: center;
+}
+
+.symptom__lead strong {
+	background: linear-gradient(transparent 62%, var(--symptom-accent-bright) 62%);
+}
+
 /* --------------------------------------------------------------------------
-   セクション共通
-   セクションの区切りは背景色ではなく罫線で表現し、
-   ページ全体のトーンがテーマから離れないようにしています。
+   セクションの箱（既存の price__box と同じ役割）
    -------------------------------------------------------------------------- */
-.abc-symptom__section {
-	padding-block: var(--abc-gap);
-	border-top: 1px solid var(--abc-border);
+.symptom__box,
+.symptom__cta {
+	margin-bottom: 3em;
 }
 
-/* テーマ側の h2 の見た目（サイズ・色・装飾）はそのまま活かします */
-.abc-symptom__heading {
-	margin-top: 0;
-	margin-bottom: .9em;
-}
-
-/* 見出しの上に添える通し番号 */
-.abc-symptom__step {
-	display: flex;
-	align-items: baseline;
-	gap: .5em;
-	margin-bottom: .5em;
-	font-size: .75em;
+/* セクション番号のラベル */
+.symptom__label {
+	margin: 0 0 .3em;
+	font-size: .8em;
 	font-weight: 700;
 	letter-spacing: .08em;
-	opacity: .65;
+	color: var(--symptom-accent);
 }
 
-.abc-symptom__step-num {
-	color: var(--abc-accent);
+.symptom__label--num {
+	margin-right: .4em;
 	font-size: 1.3em;
-	line-height: 1;
+	vertical-align: -.1em;
 }
 
-.abc-symptom__step-text {
-	padding-left: .6em;
-	border-left: 1px solid currentColor;
-}
-
-.abc-symptom__text {
-	margin: 0 0 1.2em;
-}
-
-.abc-symptom__text--emphasis {
-	margin-top: 1.5em;
+.symptom__conclusion {
+	margin-top: 1.4em;
+	padding: .9em 1.2em;
+	background: var(--symptom-tint);
+	border-left: 3px solid var(--symptom-accent);
+	border-radius: 0 var(--symptom-radius) var(--symptom-radius) 0;
 	font-weight: 700;
 }
 
-/* 強調文の <strong> にシアンのマーカーを敷く。
-   文字色はテーマのまま／背面だけを塗るので、コントラストは落ちません。 */
-.abc-symptom__text--emphasis strong,
-.abc-symptom__lead strong {
-	background: linear-gradient(transparent 62%, var(--abc-accent-bright) 62%);
-}
-
-.abc-symptom__conclusion {
-	margin: 1.8em 0 0;
-	padding: 1em 1.3em;
-	border-left: 3px solid var(--abc-accent);
-	background: var(--abc-tint);
-	border-radius: 0 var(--abc-radius) var(--abc-radius) 0;
-	font-weight: 700;
-}
-
-.abc-symptom__note {
-	margin: 1.4em 0 0;
-	font-size: .875em;
+.symptom__note {
+	margin-top: 1.2em;
+	font-size: .85em;
 	opacity: .75;
 }
 
 /* --------------------------------------------------------------------------
-   ① 共感：チェックリスト
+   ① 悩みのチェックリスト
    -------------------------------------------------------------------------- */
-.abc-symptom__checklist {
+.symptom__check {
 	margin: 0;
-	padding: 1.4em 1.6em;
+	padding: 1.3em 1.5em;
 	list-style: none;
-	border: 1px solid var(--abc-border);
-	border-radius: var(--abc-radius);
-	display: grid;
-	gap: .7em;
+	border: 1px solid var(--symptom-border);
+	border-radius: var(--symptom-radius);
 }
 
-.abc-symptom__checklist li {
+.symptom__check li {
 	position: relative;
 	padding-left: 1.8em;
 }
 
-.abc-symptom__checklist li::before {
+.symptom__check li + li {
+	margin-top: .6em;
+}
+
+.symptom__check li::before {
 	content: "";
 	position: absolute;
 	left: .1em;
 	top: .45em;
-	width: .9em;
-	height: .5em;
-	border-left: 2px solid var(--abc-accent);
-	border-bottom: 2px solid var(--abc-accent);
+	width: .85em;
+	height: .45em;
+	border-left: 2px solid var(--symptom-accent);
+	border-bottom: 2px solid var(--symptom-accent);
 	transform: rotate(-45deg);
 }
 
 /* --------------------------------------------------------------------------
-   ② 解説：原因カード
+   ② 原因（3項目・横並び）
    -------------------------------------------------------------------------- */
-.abc-symptom__cards {
+.symptom__cause--inner {
 	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(15em, 1fr));
 	gap: 1em;
 }
 
-.abc-symptom__card {
-	padding: 1.3em 1.5em;
-	background: var(--abc-tint);
-	border-radius: var(--abc-radius);
+.symptom__cause--box {
+	padding: 1.2em 1.3em;
+	background: var(--symptom-tint);
+	border-radius: var(--symptom-radius);
 }
 
-/* テーマ側の h3 の見た目を活かし、番号の配置だけ整えます */
-.abc-symptom__card-title {
-	display: flex;
-	align-items: baseline;
-	gap: .6em;
-	margin: 0 0 .5em;
-}
-
-.abc-symptom__card-num {
-	flex: none;
-	color: var(--abc-accent);
-	opacity: .8;
-}
-
-.abc-symptom__card-body {
-	margin: 0;
-}
-
-/* --------------------------------------------------------------------------
-   ③ 評価：番号付きリスト
-   -------------------------------------------------------------------------- */
-.abc-symptom__list {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-	counter-reset: abc-check;
-	display: grid;
-	gap: 0;
-}
-
-.abc-symptom__list-item {
-	counter-increment: abc-check;
-	padding: 1.2em 0;
-	border-bottom: 1px dashed var(--abc-border);
-}
-
-.abc-symptom__list-item:first-child {
-	padding-top: 0;
-}
-
-.abc-symptom__list-item:last-child {
-	border-bottom: 0;
-	padding-bottom: 0;
-}
-
-.abc-symptom__list-title {
-	display: flex;
-	align-items: baseline;
-	gap: .6em;
+.symptom__cause--box h3,
+.symptom__check--box h3 {
 	margin: 0 0 .4em;
 }
 
-.abc-symptom__list-title::before {
-	content: counter(abc-check);
-	flex: none;
-	color: var(--abc-accent);
-	opacity: .8;
+.symptom__cause--box p,
+.symptom__check--box p {
+	margin: 0;
 }
 
-.abc-symptom__list-body {
-	margin: 0;
-	padding-left: 1.4em;
+.symptom__num {
+	display: inline-block;
+	min-width: 1.6em;
+	margin-right: .4em;
+	background: var(--symptom-accent);
+	border-radius: 3px;
+	color: #fff;
+	font-size: .75em;
+	text-align: center;
+	vertical-align: .1em;
 }
 
 /* --------------------------------------------------------------------------
-   ④ 方針：ステップ
+   ③ 確認する項目（6項目・タイル）
    -------------------------------------------------------------------------- */
-.abc-symptom__steps {
+.symptom__check--inner {
 	display: grid;
-	gap: 1.6em;
+	grid-template-columns: repeat(auto-fit, minmax(14em, 1fr));
+	gap: 1px;
+	background: var(--symptom-border);
+	border: 1px solid var(--symptom-border);
+	border-radius: var(--symptom-radius);
+	overflow: hidden;
 }
 
-.abc-symptom__step-item {
-	position: relative;
-	padding-left: 1.6em;
-	border-left: 2px solid var(--abc-border);
+.symptom__check--box {
+	padding: 1.1em 1.2em;
+	background: #fff;
 }
 
-.abc-symptom__step-item::before {
-	content: "";
-	position: absolute;
-	left: -.42em;
-	top: .35em;
-	width: .7em;
-	height: .7em;
-	background: var(--abc-accent);
-	border-radius: 50%;
+.symptom__check--box h3 {
+	padding-bottom: .3em;
+	border-bottom: 2px solid var(--symptom-accent-bright);
 }
 
-.abc-symptom__step-badge {
-	display: inline-block;
-	margin-bottom: .3em;
-	font-size: .75em;
-	font-weight: 700;
-	letter-spacing: .08em;
-	color: var(--abc-accent);
+.symptom__check--box p {
+	font-size: .9em;
 	opacity: .85;
 }
 
-.abc-symptom__step-title {
-	margin: 0 0 .4em;
-}
-
-.abc-symptom__step-body {
-	margin: 0;
-}
-
 /* --------------------------------------------------------------------------
-   ⑤ 実例
+   ④ 施術のステップ
    -------------------------------------------------------------------------- */
-.abc-symptom__cases {
-	display: grid;
-	gap: 1em;
-}
-
-.abc-symptom__case {
-	padding: 1.3em 1.5em;
-	background: var(--abc-tint);
-	border-radius: var(--abc-radius);
-}
-
-.abc-symptom__case-meta {
-	margin: 0 0 .4em;
-	font-size: .8em;
-	font-weight: 700;
-	opacity: .7;
-}
-
-.abc-symptom__case-title {
-	margin: 0 0 .4em;
-}
-
-.abc-symptom__case-body {
+.symptom__step {
 	margin: 0;
-}
-
-/* --------------------------------------------------------------------------
-   ⑥ 専門性
-   -------------------------------------------------------------------------- */
-.abc-symptom__points {
-	margin: 1.5em 0 0;
-	padding: 1.4em 1.6em;
+	padding: 0;
 	list-style: none;
-	border: 1px solid var(--abc-border);
-	border-radius: var(--abc-radius);
-	display: grid;
-	gap: .7em;
+	counter-reset: symptom-step;
 }
 
-.abc-symptom__points li {
+.symptom__step > li {
+	counter-increment: symptom-step;
 	position: relative;
-	padding-left: 1.3em;
+	padding: 0 0 1.4em 3.2em;
 }
 
-.abc-symptom__points li::before {
+.symptom__step > li::before {
+	content: "STEP " counter(symptom-step);
+	position: absolute;
+	left: 0;
+	top: .15em;
+	width: 2.4em;
+	padding: .15em 0;
+	background: var(--symptom-accent);
+	border-radius: 3px;
+	color: #fff;
+	font-size: .65em;
+	font-weight: 700;
+	text-align: center;
+	line-height: 1.4;
+}
+
+.symptom__step > li:not(:last-child)::after {
 	content: "";
 	position: absolute;
-	left: .15em;
-	top: .65em;
-	width: .45em;
-	height: .45em;
-	background: var(--abc-accent);
-	border-radius: 50%;
+	left: 1.15em;
+	top: 2.4em;
+	bottom: .6em;
+	width: 2px;
+	background: var(--symptom-border);
+}
+
+.symptom__step h3 {
+	margin: 0 0 .3em;
+}
+
+.symptom__step p {
+	margin: 0;
 }
 
 /* --------------------------------------------------------------------------
-   内部リンク（⑤・⑥共通）
-   テーマのボタンと競合しないよう、控えめなテキストリンク寄りの見た目にしています。
-   テーマにボタンスタイルがある場合は、そちらを使う方が統一感は出ます
-   （README「テーマのボタンを使う」参照）。
+   ⑤ 症例（実例を入れた場合のみ表示）
    -------------------------------------------------------------------------- */
-.abc-symptom__linkbox {
-	margin: 1.8em 0 0;
+.symptom__case--inner {
+	display: grid;
+	gap: 1em;
+	margin-bottom: 1.5em;
 }
 
-.abc-symptom__link-button {
-	display: inline-flex;
-	align-items: center;
-	gap: .5em;
-	padding: .7em 1.6em;
-	border: 1px solid var(--abc-border);
-	border-radius: var(--abc-radius);
-	font-weight: 700;
-	text-decoration: none;
+.symptom__case--box {
+	padding: 1.2em 1.3em;
+	background: var(--symptom-tint);
+	border-radius: var(--symptom-radius);
 }
 
-.abc-symptom__link-button::after {
-	content: "→";
-	line-height: 1;
-}
-
-.abc-symptom__link-button:hover,
-.abc-symptom__link-button:focus-visible {
-	border-color: var(--abc-accent);
-}
-
-/* --------------------------------------------------------------------------
-   ⑦ 行動：CTA
-   ページ全体を反転させる強い演出はやめ、囲みで区切る形にしています。
-   -------------------------------------------------------------------------- */
-.abc-symptom__section--cta > .abc-symptom__inner {
-	padding: 1.8em;
-	background: var(--abc-tint);
-	border: 1px solid var(--abc-border);
-	border-top: 3px solid var(--abc-accent-bright);
-	border-radius: var(--abc-radius);
-}
-
-.abc-symptom__price {
-	margin: 0 0 1.2em;
-	font-weight: 700;
-}
-
-.abc-symptom__price-note {
-	display: block;
-	margin-top: .2em;
+.symptom__case--meta {
+	margin: 0 0 .3em;
 	font-size: .8em;
-	font-weight: 400;
-	opacity: .75;
+	font-weight: 700;
+	color: var(--symptom-accent);
 }
 
-.abc-symptom__buttons {
-	display: flex;
-	flex-wrap: wrap;
-	gap: .8em;
-}
-
-.abc-symptom__btn {
-	flex: 1 1 15em;
-	max-width: 26em;
-	padding: 1em 1.2em;
-	border: 1px solid var(--abc-border);
-	border-radius: var(--abc-radius);
+/* --------------------------------------------------------------------------
+   内部リンク（⑤・⑥）
+   -------------------------------------------------------------------------- */
+.symptom__linkbox {
+	margin: 1.5em 0 0;
 	text-align: center;
+}
+
+.symptom__link {
+	display: inline-block;
+	padding: .8em 2.4em .8em 2em;
+	border: 1px solid var(--symptom-accent);
+	border-radius: 2em;
+	color: var(--symptom-accent);
+	font-weight: 700;
 	text-decoration: none;
-	color: inherit;
+	transition: background-color .2s ease, color .2s ease;
 }
 
-.abc-symptom__btn-label {
-	display: block;
-	font-size: .8em;
-	font-weight: 700;
-	opacity: .75;
+.symptom__link::after {
+	content: "→";
+	margin-left: .5em;
 }
 
-.abc-symptom__btn-main {
-	display: block;
-	margin: .2em 0 .3em;
-	font-size: 1.25em;
-	font-weight: 700;
-	line-height: 1.3;
-}
-
-.abc-symptom__btn-note {
-	display: block;
-	font-size: .75em;
-	line-height: 1.6;
-	opacity: .75;
-}
-
-/* LINEボタンだけは、認知されているブランド色を使ったほうが押されやすいため
-   例外的に色を指定しています。 */
-.abc-symptom__btn--line {
-	background: #06c755;
-	border-color: #06c755;
+.symptom__link:hover,
+.symptom__link:focus-visible {
+	background: var(--symptom-accent);
 	color: #fff;
 }
 
-.abc-symptom__btn--line .abc-symptom__btn-label,
-.abc-symptom__btn--line .abc-symptom__btn-note {
-	opacity: .9;
+/* --------------------------------------------------------------------------
+   ⑦ ご予約
+   -------------------------------------------------------------------------- */
+.symptom__cta {
+	padding: 1.8em;
+	background: var(--symptom-tint);
+	border: 1px solid var(--symptom-border);
+	border-top: 3px solid var(--symptom-accent-bright);
+	border-radius: var(--symptom-radius);
+	text-align: center;
 }
 
-.abc-symptom__info {
+.symptom__price {
+	font-weight: 700;
+}
+
+.symptom__price span {
+	display: block;
+	font-size: .8em;
+	font-weight: 400;
+	opacity: .8;
+}
+
+.symptom__btn--inner {
+	margin-top: 1.2em;
+}
+
+.symptom__btn {
+	display: block;
+	max-width: 22em;
+	margin: 0 auto;
+	padding: .9em 1.4em;
+	border-radius: var(--symptom-radius);
+	font-size: 1.1em;
+	font-weight: 700;
+	text-decoration: none;
+	transition: opacity .2s ease;
+}
+
+.symptom__btn:hover,
+.symptom__btn:focus-visible {
+	opacity: .85;
+}
+
+/* LINEは認知されたブランド色を使ったほうが押されやすいため、例外的に色を指定 */
+.symptom__btn--line {
+	background: #06c755;
+	color: #fff;
+}
+
+.symptom__btn--tel,
+.symptom__btn--web {
+	background: #fff;
+	border: 1px solid var(--symptom-accent);
+	color: var(--symptom-accent);
+}
+
+.symptom__btn--note {
+	margin: .5em 0 1.2em;
+	font-size: .8em;
+	opacity: .75;
+}
+
+.symptom__btn--note:last-child {
+	margin-bottom: 0;
+}
+
+.symptom__info {
 	margin: 1.5em 0 0;
 	padding-top: 1.2em;
-	border-top: 1px solid var(--abc-border);
+	border-top: 1px solid var(--symptom-border);
 	font-size: .9em;
+	text-align: left;
 }
 
-.abc-symptom__info > div {
-	display: grid;
-	grid-template-columns: 6em 1fr;
-	gap: .2em 1em;
-	padding: .4em 0;
-}
-
-.abc-symptom__info dt {
+.symptom__info dt {
 	font-weight: 700;
 	opacity: .75;
 }
 
-.abc-symptom__info dd {
-	margin: 0;
+.symptom__info dd {
+	margin: 0 0 .6em;
 }
 
 /* --------------------------------------------------------------------------
-   免責 / 管理者向け表示
+   免責
    -------------------------------------------------------------------------- */
-.abc-symptom__disclaimer {
-	margin: 0;
-	padding-block: 1.6em;
-	border-top: 1px solid var(--abc-border);
+.symptom__disclaimer {
+	margin: 2em 0 0;
 	font-size: .8em;
 	opacity: .7;
-}
-
-.abc-symptom__admin-notice {
-	margin-top: 2em;
-	padding: 1em 1.2em;
-	border: 1px solid var(--abc-accent);
-	border-radius: var(--abc-radius);
-	font-size: .875em;
-}
-
-.abc-symptom--fallback {
-	padding-block: var(--abc-gap);
 }
 
 /* --------------------------------------------------------------------------
    スマートフォン
    -------------------------------------------------------------------------- */
-@media (max-width: 600px) {
-	.abc-symptom {
-		--abc-gap: 2.6em;
+@media (max-width: 767px) {
+	.symptom__voice--inner {
+		justify-content: flex-start;
 	}
 
-	.abc-symptom__card,
-	.abc-symptom__case,
-	.abc-symptom__section--cta > .abc-symptom__inner {
-		padding: 1.1em 1.2em;
+	.symptom__box,
+	.symptom__cta {
+		margin-bottom: 2.2em;
 	}
 
-	.abc-symptom__checklist,
-	.abc-symptom__points {
-		padding: 1.2em 1.3em;
+	.symptom__cta {
+		padding: 1.3em;
 	}
 
-	.abc-symptom__info > div {
+	.symptom__check--inner {
 		grid-template-columns: 1fr;
 	}
-
-	.abc-symptom__btn {
-		flex-basis: 100%;
-	}
 }
-
-/* ==========================================================================
-   【任意】もう少し見た目にメリハリを付けたい場合
-   下のブロックのコメントを外すと、セクションに背景色が付き、
-   ランディングページ寄りの印象になります。
-   他ページとの統一感より訴求力を優先したいときだけ有効にしてください。
-   --------------------------------------------------------------------------
-   .abc-symptom__section--empathy,
-   .abc-symptom__section--check,
-   .abc-symptom__section--expertise {
-       background: var(--abc-tint);
-       border-top: 0;
-   }
-
-   .abc-symptom__section--empathy .abc-symptom__checklist,
-   .abc-symptom__section--expertise .abc-symptom__points {
-       background: #fff;
-   }
-   ========================================================================== */

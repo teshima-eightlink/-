@@ -138,66 +138,59 @@ function abc_symptom_tel_href( $tel ) {
 }
 
 /**
- * 独自CSSを使わない表示モードかどうか。
+ * セクション見出しを出力する。
  *
- * @return bool
+ * <p class="symptom__label">① 悩み</p>
+ * <h2>見出し</h2>
+ * <p>リード文</p>
+ *
+ * @param int   $number  通し番号（1〜7）。
+ * @param array $section セクションのデータ（label / heading / lead）。
  */
-function abc_symptom_is_plain() {
-	return 'styled' !== abc_symptom_get( abc_symptom_config(), 'theme.style_mode', 'plain' );
+function abc_symptom_heading( $number, $section ) {
+	$circled = array( '', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨' );
+	$mark    = isset( $circled[ $number ] ) ? $circled[ $number ] : (string) $number;
+	$label   = abc_symptom_get( $section, 'label' );
+	$heading = abc_symptom_get( $section, 'heading' );
+	$lead    = abc_symptom_get( $section, 'lead' );
+
+	if ( $label ) {
+		printf(
+			'<p class="symptom__label"><span class="symptom__label--num">%s</span>%s</p>',
+			esc_html( $mark ),
+			esc_html( $label )
+		);
+	}
+
+	if ( $heading ) {
+		printf( '<h2>%s</h2>', esc_html( $heading ) );
+	}
+
+	if ( $lead ) {
+		printf( '<p>%s</p>', wp_kses_post( $lead ) );
+	}
 }
 
 /**
- * セクション見出しに添える通し番号ラベル。
+ * 内部リンクのボタンを出力する。URLが空なら何も出しません。
  *
- * plain モードでは、CSSに頼らず読める形（①悩み）で小さめに出力します。
- *
- * @param int    $number 番号。
- * @param string $label  ラベル（悩み・原因 など）。
- * @return string エスケープ済みHTML。
+ * @param string $url   リンク先。
+ * @param string $label ラベル。
  */
-function abc_symptom_step_label( $number, $label ) {
-	if ( abc_symptom_is_plain() ) {
-		$circled = array( '', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨' );
-		$mark    = isset( $circled[ $number ] ) ? $circled[ $number ] : (string) $number;
-
-		return sprintf( '<small>%s %s</small><br>', $mark, esc_html( $label ) );
+function abc_symptom_link( $url, $label ) {
+	if ( ! $url ) {
+		return;
 	}
 
-	return sprintf(
-		'<span class="abc-symptom__step"><span class="abc-symptom__step-num">%02d</span><span class="abc-symptom__step-text">%s</span></span>',
-		(int) $number,
+	printf(
+		'<p class="symptom__linkbox"><a class="symptom__link" href="%s">%s</a></p>',
+		esc_url( $url ),
 		esc_html( $label )
 	);
 }
 
 /**
- * 属性値としてのクラス名。plain モードでは class を一切出力しません。
- *
- * @param string $class クラス名。
- * @return string ' class="..."' もしくは空文字。
- */
-function abc_symptom_class( $class ) {
-	if ( abc_symptom_is_plain() ) {
-		return '';
-	}
-
-	return ' class="' . esc_attr( $class ) . '"';
-}
-
-/**
- * セクションの区切り。plain モードでは <hr> を出し、テーマの罫線スタイルに任せます。
- */
-function abc_symptom_separator() {
-	if ( abc_symptom_is_plain() ) {
-		echo "\n<hr>\n";
-	}
-}
-
-/**
- * 予約ボタンを描画する。
- *
- * plain モードでは WordPress 標準のボタンブロックと同じマークアップを出力するため、
- * テーマがボタンに当てているデザインがそのまま適用されます。
+ * 予約ボタンを出力する。URLが空のボタンは表示されません。
  *
  * @param array $buttons array( array( 'url', 'text', 'note', 'modifier', 'blank' ) )
  */
@@ -213,48 +206,53 @@ function abc_symptom_render_buttons( $buttons ) {
 		return;
 	}
 
-	if ( abc_symptom_is_plain() ) {
-		echo '<div class="wp-block-buttons">';
-
-		foreach ( $buttons as $b ) {
-			printf(
-				'<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="%s"%s>%s</a></div>',
-				esc_url( $b['url'] ),
-				empty( $b['blank'] ) ? '' : ' target="_blank" rel="noopener"',
-				esc_html( $b['text'] )
-			);
-		}
-
-		echo '</div>';
-
-		foreach ( $buttons as $b ) {
-			if ( ! empty( $b['note'] ) ) {
-				printf( '<p><small>%s</small></p>', esc_html( $b['note'] ) );
-			}
-		}
-
-		return;
-	}
-
-	echo '<div class="abc-symptom__buttons">';
+	echo '<div class="symptom__btn--inner">';
 
 	foreach ( $buttons as $b ) {
 		printf(
-			'<a class="abc-symptom__btn abc-symptom__btn--%s" href="%s"%s>'
-				. '<span class="abc-symptom__btn-label">%s</span>'
-				. '<span class="abc-symptom__btn-main">%s</span>'
-				. '<span class="abc-symptom__btn-note">%s</span>'
-				. '</a>',
+			'<a class="symptom__btn symptom__btn--%s" href="%s"%s>%s</a>',
 			esc_attr( $b['modifier'] ),
 			esc_url( $b['url'] ),
 			empty( $b['blank'] ) ? '' : ' target="_blank" rel="noopener"',
-			esc_html( $b['label'] ),
-			esc_html( $b['main'] ),
-			esc_html( $b['note'] )
+			esc_html( $b['text'] )
 		);
+
+		if ( ! empty( $b['note'] ) ) {
+			printf( '<p class="symptom__btn--note">%s</p>', esc_html( $b['note'] ) );
+		}
 	}
 
 	echo '</div>';
+}
+
+/**
+ * 院の基本情報を出力する。すべて空欄なら何も出しません。
+ *
+ * @param array $clinic 院の情報。
+ */
+function abc_symptom_clinic_info( $clinic ) {
+	$rows = array(
+		'院名'     => abc_symptom_get( $clinic, 'name' ),
+		'住所'     => abc_symptom_get( $clinic, 'address' ),
+		'アクセス' => abc_symptom_get( $clinic, 'access' ),
+		'受付時間' => abc_symptom_get( $clinic, 'hours' ),
+		'休診日'   => abc_symptom_get( $clinic, 'holiday' ),
+	);
+
+	// 院名だけしか無いときは、情報として出す意味がないので省く
+	$filled = array_filter( array_slice( $rows, 1 ) );
+
+	if ( empty( $filled ) ) {
+		return;
+	}
+
+	echo '<dl class="symptom__info">';
+
+	foreach ( array_filter( $rows ) as $label => $value ) {
+		printf( '<dt>%s</dt><dd>%s</dd>', esc_html( $label ), esc_html( $value ) );
+	}
+
+	echo '</dl>';
 }
 
 /**
@@ -266,7 +264,7 @@ function abc_symptom_render_buttons( $buttons ) {
 function abc_symptom_styles() {
 	static $done = false;
 
-	if ( $done || abc_symptom_is_plain() ) {
+	if ( $done ) {
 		return;
 	}
 	$done = true;

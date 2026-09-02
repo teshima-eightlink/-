@@ -14,14 +14,13 @@
 		font-size: 16px;
 		line-height: 1.9;
 	}
-	/* テーマ（TCD系）が本文エリアのクラス配下にだけ書式を当てる想定を再現 */
-	.post_content h1 { font-size: 1.9rem; line-height: 1.45; }
-	.post_content h2 { font-size: 1.45rem; line-height: 1.5; }
-	.post_content h3 { font-size: 1.05rem; line-height: 1.6; }
-	.post_content p  { margin: 0 0 1.6em; }
+	/* テーマが .content_inner .inner 配下に当てている書式の代役 */
+	.content_inner h2 { font-size: 1.5rem; line-height: 1.5; margin: 0 0 .8em; }
+	.content_inner h3 { font-size: 1.05rem; line-height: 1.6; }
+	.content_inner p  { margin: 0 0 1.4em; }
+	.content_full     { padding: 2.5em 0; }
+	.content_inner.inner { width: min(100% - 40px, 900px); margin-inline: auto; }
 	a  { color: #008080; }
-	.theme-frame { padding: 0 20px; }
-	.theme-frame > * { max-width: 860px; margin-inline: auto; }
 	/* ▲ ここまでが仮テーマ */
 
 	.preview-bar {
@@ -32,245 +31,569 @@
 </style>
 </head>
 <body>
-<div class="preview-bar">表示確認用プレビューです。フォント・文字サイズ・見出し・リンク色は「仮テーマ」のもので、実サイトではテーマのスタイルをそのまま受け継ぎます。</div>
-<div class="theme-frame">
+<div class="preview-bar">表示確認用プレビューです。フォント・文字サイズ・見出しは「仮テーマ」のもので、実サイトではSTORYのスタイルを受け継ぎます。</div>
 
 	
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebPage","@id":"https://abc-chiro.net/kubikori-katakori/","url":"https://abc-chiro.net/kubikori-katakori/","name":"首こり・肩こり｜ABCカイロプラクティック整体院","description":"新潟市の整体・ABCカイロプラクティック整体院の首こり・肩こりのページ。首や肩だけでなく、AI姿勢分析で頭・肩の位置、背骨のバランス、骨盤の傾き、肩甲骨周囲の動きまで確認し、身体全体のバランスから整えます。","inLanguage":"ja"}]}</script>
+<style id="abc-symptom-css">
+/* ==========================================================================
+   症状ページ 専用スタイル
+   --------------------------------------------------------------------------
+   ・クラス名は既存ページ（料金ページ）の規約に合わせています
+       price__box / price__caution--inner → symptom__box / symptom__cause--inner
+   ・フォント・文字サイズ・行間・文字色・見出しの装飾は指定しません。
+     テーマ（STORY）のスタイルをそのまま受け継ぎます。
+   ・幅と左右の余白は .content_inner .inner が持っているため、ここでは触りません。
 
-	<main class="abc-symptom post_content" id="abc-symptom">
+   ここが決めるのは「症状ページにだけ出てくる部品」の見た目だけです。
+   ========================================================================== */
 
-				<header>
-			<div>
-									<p>
-						新潟市の整体
-						ABCカイロプラクティック整体院					</p>
-					<h1>
-						首こり・肩こり					</h1>
-													<ul>
-													<li>首がいつも重い</li>
-													<li>肩までガチガチになる</li>
-													<li>マッサージしてもまた戻る</li>
-													<li>デスクワークやスマホの後につらい</li>
-											</ul>
-				
-													<p>このような首こり・肩こりは、<strong>首や肩だけに負担の原因があるとは限りません。</strong></p>
-							</div>
-		</header>
+.symptom__inner {
+	/* ---- アクセントカラー ----
+	 * テーマカラー #00ffff は白地でコントラスト比 1.25:1 しかなく、
+	 * 文字や細い線に使うと読めません（WCAG AA の本文基準は 4.5:1）。
+	 * 色相180°（純粋なシアン）を保ったまま、用途で2つに分けています。
+	 *
+	 *   --symptom-accent        #008080  文字・番号・チェックなど意味を持つ要素（4.77:1）
+	 *   --symptom-accent-bright #00ffff  マーカーや帯など装飾だけの要素
+	 */
+	--symptom-accent: #008080;
+	--symptom-accent-bright: #00ffff;
+	--symptom-tint: rgba(0, 255, 255, .08);
+	--symptom-border: rgba(0, 128, 128, .22);
+	--symptom-radius: 6px;
+}
 
-						
-<hr>
-		<section id="empathy">
-			<div>
-				<h2>
-					<small>① 悩み</small><br>					その首・肩のつらさ、「いつものこと」になっていませんか				</h2>
-									<p>当院には、次のようなお悩みでご相談にみえる方が多くいらっしゃいます。</p>
-				
-				<ul>
-											<li>朝、起きた時点ですでに首と肩が重い</li>
-											<li>夕方になると、肩が上がらないほど張ってくる</li>
-											<li>首を回すとゴリゴリと音が鳴り、動かせる範囲が狭くなってきた</li>
-											<li>肩こりと一緒に、頭の重さや目の奥の疲れを感じることがある</li>
-											<li>枕を何度買い替えても、しっくりくるものに出会えない</li>
-											<li>家族に「姿勢が悪い」「猫背だね」とよく言われる</li>
-											<li>「歳のせい」「デスクワークだから仕方ない」と言われ、あきらめかけている</li>
+.symptom__inner * {
+	box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+   冒頭：お悩みの声
+   -------------------------------------------------------------------------- */
+.symptom__voice--inner {
+	margin: 0 0 1.5em;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: .6em;
+	justify-content: center;
+}
+
+.symptom__voice {
+	position: relative;
+	padding: .55em 1.4em;
+	background: var(--symptom-tint);
+	border: 1px solid var(--symptom-border);
+	border-radius: 2em;
+	font-weight: 700;
+}
+
+.symptom__voice::after {
+	content: "";
+	position: absolute;
+	left: 1.6em;
+	bottom: -.42em;
+	width: .7em;
+	height: .7em;
+	background: var(--symptom-tint);
+	border-right: 1px solid var(--symptom-border);
+	border-bottom: 1px solid var(--symptom-border);
+	transform: rotate(45deg);
+}
+
+.symptom__lead {
+	margin: 0 0 2.5em;
+	text-align: center;
+}
+
+.symptom__lead strong {
+	background: linear-gradient(transparent 62%, var(--symptom-accent-bright) 62%);
+}
+
+/* --------------------------------------------------------------------------
+   セクションの箱（既存の price__box と同じ役割）
+   -------------------------------------------------------------------------- */
+.symptom__box,
+.symptom__cta {
+	margin-bottom: 3em;
+}
+
+/* セクション番号のラベル */
+.symptom__label {
+	margin: 0 0 .3em;
+	font-size: .8em;
+	font-weight: 700;
+	letter-spacing: .08em;
+	color: var(--symptom-accent);
+}
+
+.symptom__label--num {
+	margin-right: .4em;
+	font-size: 1.3em;
+	vertical-align: -.1em;
+}
+
+.symptom__conclusion {
+	margin-top: 1.4em;
+	padding: .9em 1.2em;
+	background: var(--symptom-tint);
+	border-left: 3px solid var(--symptom-accent);
+	border-radius: 0 var(--symptom-radius) var(--symptom-radius) 0;
+	font-weight: 700;
+}
+
+.symptom__note {
+	margin-top: 1.2em;
+	font-size: .85em;
+	opacity: .75;
+}
+
+/* --------------------------------------------------------------------------
+   ① 悩みのチェックリスト
+   -------------------------------------------------------------------------- */
+.symptom__check {
+	margin: 0;
+	padding: 1.3em 1.5em;
+	list-style: none;
+	border: 1px solid var(--symptom-border);
+	border-radius: var(--symptom-radius);
+}
+
+.symptom__check li {
+	position: relative;
+	padding-left: 1.8em;
+}
+
+.symptom__check li + li {
+	margin-top: .6em;
+}
+
+.symptom__check li::before {
+	content: "";
+	position: absolute;
+	left: .1em;
+	top: .45em;
+	width: .85em;
+	height: .45em;
+	border-left: 2px solid var(--symptom-accent);
+	border-bottom: 2px solid var(--symptom-accent);
+	transform: rotate(-45deg);
+}
+
+/* --------------------------------------------------------------------------
+   ② 原因（3項目・横並び）
+   -------------------------------------------------------------------------- */
+.symptom__cause--inner {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(15em, 1fr));
+	gap: 1em;
+}
+
+.symptom__cause--box {
+	padding: 1.2em 1.3em;
+	background: var(--symptom-tint);
+	border-radius: var(--symptom-radius);
+}
+
+.symptom__cause--box h3,
+.symptom__check--box h3 {
+	margin: 0 0 .4em;
+}
+
+.symptom__cause--box p,
+.symptom__check--box p {
+	margin: 0;
+}
+
+.symptom__num {
+	display: inline-block;
+	min-width: 1.6em;
+	margin-right: .4em;
+	background: var(--symptom-accent);
+	border-radius: 3px;
+	color: #fff;
+	font-size: .75em;
+	text-align: center;
+	vertical-align: .1em;
+}
+
+/* --------------------------------------------------------------------------
+   ③ 確認する項目（6項目・タイル）
+   -------------------------------------------------------------------------- */
+.symptom__check--inner {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(14em, 1fr));
+	gap: 1px;
+	background: var(--symptom-border);
+	border: 1px solid var(--symptom-border);
+	border-radius: var(--symptom-radius);
+	overflow: hidden;
+}
+
+.symptom__check--box {
+	padding: 1.1em 1.2em;
+	background: #fff;
+}
+
+.symptom__check--box h3 {
+	padding-bottom: .3em;
+	border-bottom: 2px solid var(--symptom-accent-bright);
+}
+
+.symptom__check--box p {
+	font-size: .9em;
+	opacity: .85;
+}
+
+/* --------------------------------------------------------------------------
+   ④ 施術のステップ
+   -------------------------------------------------------------------------- */
+.symptom__step {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	counter-reset: symptom-step;
+}
+
+.symptom__step > li {
+	counter-increment: symptom-step;
+	position: relative;
+	padding: 0 0 1.4em 3.2em;
+}
+
+.symptom__step > li::before {
+	content: "STEP " counter(symptom-step);
+	position: absolute;
+	left: 0;
+	top: .15em;
+	width: 2.4em;
+	padding: .15em 0;
+	background: var(--symptom-accent);
+	border-radius: 3px;
+	color: #fff;
+	font-size: .65em;
+	font-weight: 700;
+	text-align: center;
+	line-height: 1.4;
+}
+
+.symptom__step > li:not(:last-child)::after {
+	content: "";
+	position: absolute;
+	left: 1.15em;
+	top: 2.4em;
+	bottom: .6em;
+	width: 2px;
+	background: var(--symptom-border);
+}
+
+.symptom__step h3 {
+	margin: 0 0 .3em;
+}
+
+.symptom__step p {
+	margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   ⑤ 症例（実例を入れた場合のみ表示）
+   -------------------------------------------------------------------------- */
+.symptom__case--inner {
+	display: grid;
+	gap: 1em;
+	margin-bottom: 1.5em;
+}
+
+.symptom__case--box {
+	padding: 1.2em 1.3em;
+	background: var(--symptom-tint);
+	border-radius: var(--symptom-radius);
+}
+
+.symptom__case--meta {
+	margin: 0 0 .3em;
+	font-size: .8em;
+	font-weight: 700;
+	color: var(--symptom-accent);
+}
+
+/* --------------------------------------------------------------------------
+   内部リンク（⑤・⑥）
+   -------------------------------------------------------------------------- */
+.symptom__linkbox {
+	margin: 1.5em 0 0;
+	text-align: center;
+}
+
+.symptom__link {
+	display: inline-block;
+	padding: .8em 2.4em .8em 2em;
+	border: 1px solid var(--symptom-accent);
+	border-radius: 2em;
+	color: var(--symptom-accent);
+	font-weight: 700;
+	text-decoration: none;
+	transition: background-color .2s ease, color .2s ease;
+}
+
+.symptom__link::after {
+	content: "→";
+	margin-left: .5em;
+}
+
+.symptom__link:hover,
+.symptom__link:focus-visible {
+	background: var(--symptom-accent);
+	color: #fff;
+}
+
+/* --------------------------------------------------------------------------
+   ⑦ ご予約
+   -------------------------------------------------------------------------- */
+.symptom__cta {
+	padding: 1.8em;
+	background: var(--symptom-tint);
+	border: 1px solid var(--symptom-border);
+	border-top: 3px solid var(--symptom-accent-bright);
+	border-radius: var(--symptom-radius);
+	text-align: center;
+}
+
+.symptom__price {
+	font-weight: 700;
+}
+
+.symptom__price span {
+	display: block;
+	font-size: .8em;
+	font-weight: 400;
+	opacity: .8;
+}
+
+.symptom__btn--inner {
+	margin-top: 1.2em;
+}
+
+.symptom__btn {
+	display: block;
+	max-width: 22em;
+	margin: 0 auto;
+	padding: .9em 1.4em;
+	border-radius: var(--symptom-radius);
+	font-size: 1.1em;
+	font-weight: 700;
+	text-decoration: none;
+	transition: opacity .2s ease;
+}
+
+.symptom__btn:hover,
+.symptom__btn:focus-visible {
+	opacity: .85;
+}
+
+/* LINEは認知されたブランド色を使ったほうが押されやすいため、例外的に色を指定 */
+.symptom__btn--line {
+	background: #06c755;
+	color: #fff;
+}
+
+.symptom__btn--tel,
+.symptom__btn--web {
+	background: #fff;
+	border: 1px solid var(--symptom-accent);
+	color: var(--symptom-accent);
+}
+
+.symptom__btn--note {
+	margin: .5em 0 1.2em;
+	font-size: .8em;
+	opacity: .75;
+}
+
+.symptom__btn--note:last-child {
+	margin-bottom: 0;
+}
+
+.symptom__info {
+	margin: 1.5em 0 0;
+	padding-top: 1.2em;
+	border-top: 1px solid var(--symptom-border);
+	font-size: .9em;
+	text-align: left;
+}
+
+.symptom__info dt {
+	font-weight: 700;
+	opacity: .75;
+}
+
+.symptom__info dd {
+	margin: 0 0 .6em;
+}
+
+/* --------------------------------------------------------------------------
+   免責
+   -------------------------------------------------------------------------- */
+.symptom__disclaimer {
+	margin: 2em 0 0;
+	font-size: .8em;
+	opacity: .7;
+}
+
+/* --------------------------------------------------------------------------
+   スマートフォン
+   -------------------------------------------------------------------------- */
+@media (max-width: 767px) {
+	.symptom__voice--inner {
+		justify-content: flex-start;
+	}
+
+	.symptom__box,
+	.symptom__cta {
+		margin-bottom: 2.2em;
+	}
+
+	.symptom__cta {
+		padding: 1.3em;
+	}
+
+	.symptom__check--inner {
+		grid-template-columns: 1fr;
+	}
+}
+
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebPage","@id":"https://abc-chiro.net/kubikori-katakori/","url":"https://abc-chiro.net/kubikori-katakori/","name":"首こり・肩こり｜ABCカイロプラクティック整体院","description":"新潟市のABCカイロプラクティック整体院の首こり・肩こりのページ。AI姿勢診断で頭・肩の位置や骨盤の傾きまで確認し、つらい部分だけでなく身体全体のバランスから整えます。","inLanguage":"ja"}]}</script>
+
+	<section class="content_full">
+		<div class="content_inner inner symptom__inner">
+
+										<ul class="symptom__voice--inner">
+											<li class="symptom__voice">首がいつも重い</li>
+											<li class="symptom__voice">肩までガチガチになる</li>
+											<li class="symptom__voice">マッサージしてもまた戻る</li>
+											<li class="symptom__voice">デスクワークやスマホの後につらい</li>
 									</ul>
-
-									<p>
-						ひとつでも当てはまる方へ。首こり・肩こりは、<strong>こっている場所だけの問題ではないこと</strong>がほとんどです。					</p>
-							</div>
-		</section>
-		
-						
-<hr>
-		<section id="cause">
-			<div>
-				<h2>
-					<small>② 原因・背景</small><br>					なぜ首こり・肩こりが起こる？				</h2>
-									<p>長時間のスマホやパソコン、猫背、肩甲骨周囲の動き、身体全体のバランスなど、さまざまな要素が関係します。ABCカイロでは、つらい部分だけを見るのではなく、姿勢や身体のバランスも確認します。</p>
-				
-				<div>
-											<div>
-							<h3>
-								<span>1.</span>
-								長時間のスマホ・パソコンで、頭が前に出る							</h3>
-							<p>成人の頭部の重さは、およそ5〜6kg。ボウリングの球ほどの重さがあります。この頭が背骨の真上に乗っていれば負担は最小限ですが、画面をのぞき込む時間が続いて前に出るほど、首の後ろと肩の筋肉は「引っ張られないよう耐え続ける」状態になります。</p>
-						</div>
-											<div>
-							<h3>
-								<span>2.</span>
-								猫背によって、背中と首の位置が変わる							</h3>
-							<p>背中が丸まると、その上に乗る首は自然と前へ出ます。同時に胸まわりが広がりにくくなり呼吸が浅くなるため、本来は補助的な役割の首まわりの筋肉まで、呼吸のたびに働き続けることになります。</p>
-						</div>
-											<div>
-							<h3>
-								<span>3.</span>
-								肩甲骨周囲が動かなくなる							</h3>
-							<p>肩が内側に入ると、肩甲骨は外に開いたまま固定されます。すると本来なめらかに動くはずの肩甲骨まわりの筋肉が、伸ばされたまま緊張し続けることに。「もんでもゆるまない」感覚の正体は、この状態であることが少なくありません。</p>
-						</div>
-											<div>
-							<h3>
-								<span>4.</span>
-								身体全体のバランス（骨盤・背骨）が崩れている							</h3>
-							<p>土台である骨盤が後ろに傾くと、背中は丸まり、首はさらに前へ出ます。つまり首・肩の負担は、<strong>座り方や骨盤の状態から始まっている</strong>ことが多いのです。首だけを緩めても戻ってしまうのは、この土台が変わっていないためです。</p>
-						</div>
-											<div>
-							<h3>
-								<span>5.</span>
-								日常生活・身体の使い方の癖							</h3>
-							<p>片側だけで持つ荷物、合わない寝具、脚を組む癖、冷え、緊張の続く時間。ひとつひとつは小さくても、毎日続くことで身体の使い方に癖が定着していきます。</p>
-						</div>
-									</div>
-
-									<p>
-						こっている筋肉は「原因」ではなく、多くの場合「結果」です。<br>だからこそ、つらい部分だけをゆるめても戻ってしまいます。					</p>
-							</div>
-		</section>
-		
-						
-<hr>
-		<section id="check">
-			<div>
-				<h2>
-					<small>③ ABCは何を見る？</small><br>					ABCでは何を確認する？				</h2>
-									<p>当院では、いきなり施術を始めることはありません。まず「なぜ、あなたの首と肩に負担が集まっているのか」を、次の項目から確認します。</p>
-				
-				<ol>
-											<li>
-							<h3>AI姿勢分析</h3>
-							<p>姿勢を撮影し、頭・肩・骨盤の位置のズレを画像で見える化します。感覚や主観ではなく記録として残るため、いまの状態と、その後の変化を並べて確認できます。</p>
-						</li>
-											<li>
-							<h3>頭・肩の位置</h3>
-							<p>頭が身体の中心線からどれだけ前に出ているか、左右の肩の高さに差がないかを確認します。首・肩にかかる負担の大きさは、ここで大きく変わります。</p>
-						</li>
-											<li>
-							<h3>背骨のバランス</h3>
-							<p>背骨は本来ゆるやかなS字カーブを描いています。そのカーブがどう変化しているか、どの高さで動きが硬くなっているかを確認します。</p>
-						</li>
-											<li>
-							<h3>骨盤の傾き</h3>
-							<p>身体の土台にあたる骨盤が、前後左右のどちらに傾いているかを確認します。首から遠い場所ですが、首・肩の負担につながっているケースは珍しくありません。</p>
-						</li>
-											<li>
-							<h3>肩甲骨周囲の動き</h3>
-							<p>腕を上げる、回すといった動作のなかで、肩甲骨がどこまで動いているかを確認します。ここが動いていないと、首だけで動きを補うことになります。</p>
-						</li>
-											<li>
-							<h3>日常生活や身体の使い方</h3>
-							<p>お仕事の姿勢、スマホを見る時間、睡眠環境、つらさが強くなる時間帯をうかがいます。「夕方だけつらい」と「朝がつらい」では、負担のかかり方が違います。</p>
-						</li>
-									</ol>
-
-									<p>
-						確認した内容は、その場で一緒に見ながらご説明します。<br>「その場の気持ちよさ」ではなく、「戻りにくい状態」を目指すために、まず現状を知るところから始めています。					</p>
-							</div>
-		</section>
-		
-						
-<hr>
-		<section id="policy">
-			<div>
-				<h2>
-					<small>④ どう施術する？</small><br>					土台から整え、首と肩に負担を集めない身体へ				</h2>
-									<p>確認した内容をもとに、次の流れで進めていきます。</p>
-				
-				<div>
-											<div>
-							<div>STEP 1</div>
-							<div>
-								<h3>まず、首・肩まわりの緊張をゆるめる</h3>
-								<p>張りが強いままでは、身体は正しい位置に動いてくれません。はじめに首から背中にかけての緊張をやわらげ、次の調整を受け入れられる状態をつくります。</p>
-							</div>
-						</div>
-											<div>
-							<div>STEP 2</div>
-							<div>
-								<h3>骨盤と背骨のバランスを整える</h3>
-								<p>身体の土台である骨盤、そしてその上に積み重なる背骨のバランスを調整します。土台が整うと、頭が自然と背骨の上に乗りやすくなり、首が支える重さそのものが軽くなっていきます。</p>
-							</div>
-						</div>
-											<div>
-							<div>STEP 3</div>
-							<div>
-								<h3>肩甲骨・胸まわりの動きを取り戻す</h3>
-								<p>固まった肩甲骨と胸郭の動きを引き出し、腕や肩の動作を「首だけで支えない」状態に近づけます。呼吸のしやすさも一緒に変わっていきます。</p>
-							</div>
-						</div>
-											<div>
-							<div>STEP 4</div>
-							<div>
-								<h3>戻りにくくするための習慣を一緒に整える</h3>
-								<p>施術室を出たあとの時間のほうが、圧倒的に長いものです。デスクや椅子の高さ、座り方、スマートフォンの見方、寝るときの姿勢、1分でできるセルフケアを、生活に合わせてお伝えします。</p>
-							</div>
-						</div>
-									</div>
-
-									<p>※当院では、力任せの矯正やボキボキと大きな音を鳴らす施術は行いません。ご年配の方、女性、整体がはじめての方にも受けていただけるソフトな方法で進めます。<br>※お身体の状態によって進め方は変わります。効果の感じ方や必要な回数には個人差があります。</p>
-							</div>
-		</section>
-		
-						
-<hr>
-		<section id="cases">
-			<div>
-				<h2>
-					<small>⑤ 実例</small><br>					実際に、こんな変化がありました				</h2>
-									<p>当院で首こり・肩こりのご相談を受けたお客様の経過を、症例ページで紹介しています。ご自身に近い状況の方がいるかどうか、探してみてください。</p>
-				
-				
-													<p>
-						<a href="https://abc-chiro.net/case/">
-							首こり・肩こりの症例を見る						</a>
-					</p>
-				
-				<p>※効果の感じ方や必要な回数には個人差があります。</p>
-			</div>
-		</section>
-		
-						
-<hr>
-		<section id="expertise">
-			<div>
-				<h2>
-					<small>⑥ 専門性</small><br>					根本にあるのは、やはり「姿勢」です				</h2>
-									<p>ここまでお読みいただいて気づかれたかもしれませんが、首こり・肩こりの原因をたどっていくと、その多くが<strong>姿勢の癖</strong>に行き着きます。頭の位置、背中の丸まり、骨盤の傾き。これらはすべてつながっています。</p>
-									<p>当院が姿勢改善に力を入れているのは、姿勢が変われば、首と肩にかかる負担そのものが減っていくからです。こりを取ることと、こりにくい身体をつくることは、別の作業です。</p>
-				
-									<ul>
-													<li>AI姿勢分析で変化を記録し、その場の変化で終わらせない</li>
-													<li>座り方・立ち方・スマートフォンの見方まで、生活単位で見直す</li>
-													<li>ご自宅で続けられる、簡単なセルフケアをお渡しする</li>
+			
+							<p class="symptom__lead">このような首こり・肩こりは、<strong>首や肩だけに負担の原因があるとは限りません。</strong></p>
+			
+										<div class="symptom__box" id="empathy">
+					<p class="symptom__label"><span class="symptom__label--num">①</span>悩み</p><h2>こんなお悩みはありませんか</h2>
+					<ul class="symptom__check">
+													<li>朝、起きた時点ですでに首と肩が重い</li>
+													<li>夕方になると、肩が張って上がらない</li>
+													<li>首を回すと音が鳴り、動かせる範囲が狭い</li>
+													<li>頭の重さや目の疲れも一緒に出る</li>
+													<li>枕を替えても、しっくりこない</li>
 											</ul>
-				
-													<p>
-						<a href="https://abc-chiro.net/posture/">
-							姿勢改善への取り組みを詳しく見る						</a>
-					</p>
+
+											<p class="symptom__conclusion">首こり・肩こりは、こっている場所だけの問題ではないことがほとんどです。</p>
+									</div>
+			
+										<div class="symptom__box" id="cause">
+					<p class="symptom__label"><span class="symptom__label--num">②</span>原因</p><h2>なぜ首こり・肩こりが起こる？</h2><p>長時間のスマホやパソコン、猫背、肩甲骨周囲の動き、身体全体のバランス。さまざまな要素が関係します。</p>
+					<div class="symptom__cause--inner">
+													<div class="symptom__cause--box">
+								<h3><span class="symptom__num">1</span>頭が前に出る</h3>
+								<p>頭の重さは約5〜6kg。前に出るほど、首と肩はそれを支え続けることになります。</p>
 							</div>
-		</section>
-		
-				
-<hr>
-		<section id="reserve">
-			<div>
-				<h2>
-					<small>⑦ ご予約</small><br>					まずは、いまの状態を知るところから				</h2>
-									<p>「これくらいで行っていいのかな」という段階でも大丈夫です。<br>何が原因で首と肩に負担が集まっているのかを知るだけでも、これからの向き合い方は変わります。ご予約・ご相談はLINEからお受けしています。</p>
-				
-				
-				<div class="wp-block-buttons"><div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://lin.ee/VG1WL3J" target="_blank" rel="noopener">LINEで予約・相談する</a></div></div><p><small>24時間受付・ご相談だけでも大丈夫です</small></p>
+													<div class="symptom__cause--box">
+								<h3><span class="symptom__num">2</span>肩甲骨が動かない</h3>
+								<p>巻き肩で肩甲骨が開いたまま固定されると、周囲の筋肉は緊張し続けます。</p>
 							</div>
-		</section>
+													<div class="symptom__cause--box">
+								<h3><span class="symptom__num">3</span>土台のバランスが崩れる</h3>
+								<p>骨盤が傾けば背中は丸まり、首はさらに前へ。首だけをゆるめても戻るのは、このためです。</p>
+							</div>
+											</div>
 
-					<p>
-				<span>当院は医療機関ではありません。施術は治療・診断を目的とするものではなく、効果の感じ方や必要な回数には個人差があります。強い痛みやしびれ、発熱をともなう場合は、まず医療機関の受診をおすすめします。</span>
-			</p>
-		
-	</main>
+											<p class="symptom__conclusion">こっている筋肉は、原因ではなく<strong>結果</strong>です。</p>
+									</div>
+			
+										<div class="symptom__box" id="check">
+					<p class="symptom__label"><span class="symptom__label--num">③</span>確認</p><h2>ABCでは何を確認する？</h2><p>つらい部分だけを見るのではなく、姿勢や身体のバランスも確認します。</p>
+					<div class="symptom__check--inner">
+													<div class="symptom__check--box">
+								<h3>AI姿勢診断</h3>
+								<p>頭・肩・骨盤の位置を画像で見える化します</p>
+							</div>
+													<div class="symptom__check--box">
+								<h3>頭・肩の位置</h3>
+								<p>どれだけ前に出ているか、左右差はないか</p>
+							</div>
+													<div class="symptom__check--box">
+								<h3>背骨のバランス</h3>
+								<p>S字カーブの崩れと、動きの硬さ</p>
+							</div>
+													<div class="symptom__check--box">
+								<h3>骨盤の傾き</h3>
+								<p>土台が前後左右のどちらに傾いているか</p>
+							</div>
+													<div class="symptom__check--box">
+								<h3>肩甲骨周囲の動き</h3>
+								<p>腕を動かしたとき、どこまで動いているか</p>
+							</div>
+													<div class="symptom__check--box">
+								<h3>日常生活や身体の使い方</h3>
+								<p>仕事の姿勢、スマホを見る時間、睡眠環境</p>
+							</div>
+											</div>
+
+											<p>確認した内容は、その場で一緒に見ながらご説明します。</p>
+									</div>
+			
+										<div class="symptom__box" id="policy">
+					<p class="symptom__label"><span class="symptom__label--num">④</span>施術</p><h2>どう施術する？</h2>
+					<ol class="symptom__step">
+													<li>
+								<h3>首・肩の緊張をゆるめる</h3>
+								<p>まず張りをやわらげ、身体が動ける状態にします。</p>
+							</li>
+													<li>
+								<h3>骨盤と背骨から整える</h3>
+								<p>土台が整うと、頭が自然に背骨の上へ戻っていきます。</p>
+							</li>
+													<li>
+								<h3>戻りにくい習慣にする</h3>
+								<p>座り方や枕、1分でできるセルフケアをお伝えします。</p>
+							</li>
+											</ol>
+
+											<p class="symptom__note">※ボキボキと大きな音を鳴らす施術は行いません。効果の感じ方や必要な回数には個人差があります。</p>
+									</div>
+			
+										<div class="symptom__box" id="cases">
+					<p class="symptom__label"><span class="symptom__label--num">⑤</span>実例</p><h2>実際の変化</h2><p>当院での経過を、症例ページで紹介しています。</p>
+											<p>当院での経過を、症例ページで紹介しています。</p>
+					
+					
+					<p class="symptom__linkbox"><a class="symptom__link" href="https://abc-chiro.net/case/">首こり・肩こりの症例を見る</a></p>
+					<p class="symptom__note">※効果の感じ方や必要な回数には個人差があります。</p>
+				</div>
+			
+										<div class="symptom__box" id="expertise">
+					<p class="symptom__label"><span class="symptom__label--num">⑥</span>専門性</p><h2>根本にあるのは「姿勢」</h2>
+											<p>首こり・肩こりの原因をたどると、その多くが姿勢の癖に行き着きます。姿勢が変われば、首と肩にかかる負担そのものが減っていきます。</p>
+					
+					
+					<p class="symptom__linkbox"><a class="symptom__link" href="https://abc-chiro.net/posture/">姿勢改善への取り組みを見る</a></p>				</div>
+			
+						<div class="symptom__cta" id="reserve">
+				<p class="symptom__label"><span class="symptom__label--num">⑦</span>ご予約</p><h2>まずは、いまの状態を知るところから</h2><p>「これくらいで行っていいのかな」という段階でも大丈夫です。</p>
+									<p>「これくらいで行っていいのかな」という段階でも大丈夫です。</p>
+				
+				
+				<div class="symptom__btn--inner"><a class="symptom__btn symptom__btn--line" href="https://lin.ee/VG1WL3J" target="_blank" rel="noopener">LINEで予約・相談する</a><p class="symptom__btn--note">24時間受付・ご相談だけでも大丈夫です</p></div>
+							</div>
+
+							<p class="symptom__disclaimer">当院は医療機関ではありません。施術は治療・診断を目的とするものではなく、効果の感じ方や必要な回数には個人差があります。強い痛みやしびれ、発熱をともなう場合は、まず医療機関の受診をおすすめします。</p>
+			
+		</div>
+	</section>
 
 
 
-</div>
 </body>
 </html>
