@@ -11,9 +11,7 @@
  *   php tools/build-preview.php kubikori-katakori   1つだけ書き出し
  *
  * 書き出されるもの:
- *   preview/〇〇.html          plain モード（独自CSSなし・テーマのデザインに任せる）
- *   preview/〇〇--styled.html  styled モード（付属CSSあり）
- *   paste/〇〇.html            ブロックエディタの「カスタムHTML」に貼るための本文だけ
+ *   preview/〇〇.html   ブラウザで表示を確認するためのHTML
  */
 
 declare( strict_types = 1 );
@@ -241,12 +239,8 @@ if ( empty( $targets ) ) {
 	}
 }
 
-$paste_dir = __DIR__ . '/../paste';
-
-foreach ( array( $output_dir, $paste_dir ) as $dir ) {
-	if ( ! is_dir( $dir ) ) {
-		mkdir( $dir, 0755, true );
-	}
+if ( ! is_dir( $output_dir ) ) {
+	mkdir( $output_dir, 0755, true );
 }
 
 foreach ( $targets as $slug ) {
@@ -261,14 +255,4 @@ foreach ( $targets as $slug ) {
 
 	file_put_contents( $output_dir . '/' . $slug . '.html', $html );
 	printf( "preview/%s.html  （表示確認用 / %d bytes）\n", $slug, strlen( $html ) );
-
-	// 本文だけを切り出し、ブロックエディタ貼り付け用として保存する
-	if ( preg_match( '#<section class="content_full">.*</section>#s', $html, $m ) ) {
-		$fragment = '<!-- ABCカイロプラクティック整体院 症状ページ：' . ( $data['title'] ?? $slug ) . " -->\n"
-			. "<!-- 固定ページの編集画面でブロック「カスタムHTML」を追加し、このまま貼り付けてください -->\n"
-			. "<!-- ※CSSは「外観 → カスタマイズ → 追加CSS」に symptom.css の内容を1度だけ貼り付けてください -->\n"
-			. abc_preview_tidy( $m[0] ) . "\n";
-		file_put_contents( $paste_dir . '/' . $slug . '.html', $fragment );
-		printf( "paste/%s.html        （貼り付け用 / %d bytes）\n", $slug, strlen( $fragment ) );
-	}
 }
