@@ -218,19 +218,26 @@
 /* --------------------------------------------------------------------------
    ③ 確認する項目（6項目・タイル）
    -------------------------------------------------------------------------- */
+/*
+ * 確認項目は6つ。列数を6の約数（3・2・1）に固定しているため、
+ * どの幅でも最終行に空きマスが出ません。
+ * 区切り線は「隙間の色」ではなく各タイルの罫線で描いています。
+ * 隙間を色で見せる方法だと、空きマスが出たときに
+ * その部分が塗りつぶされたように見えてしまうためです。
+ */
 .symptom__inner .symptom__check-inner {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(14em, 1fr));
-	gap: 1px;
-	background: var(--symptom-border);
-	border: 1px solid var(--symptom-border);
+	grid-template-columns: repeat(3, 1fr);
+	border-top: 1px solid var(--symptom-border);
+	border-left: 1px solid var(--symptom-border);
 	border-radius: var(--symptom-radius);
 	overflow: hidden;
 }
 
 .symptom__inner .symptom__check-box {
 	padding: 1.1em 1.2em;
-	background: #fff;
+	border-right: 1px solid var(--symptom-border);
+	border-bottom: 1px solid var(--symptom-border);
 }
 
 .symptom__inner .symptom__check-box h3 {
@@ -447,6 +454,12 @@
 /* --------------------------------------------------------------------------
    スマートフォン
    -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+	.symptom__inner .symptom__check-inner {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
 @media (max-width: 767px) {
 	.symptom__inner .symptom__voice-inner {
 		justify-content: flex-start;
