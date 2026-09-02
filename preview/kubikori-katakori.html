@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>首こり・肩こり｜ABCカイロプラクティック整体院（プレビュー）</title>
+<style>
+	body { margin: 0; }
+	.preview-bar {
+		position: sticky; top: 0; z-index: 99;
+		padding: 8px 16px; background: #333b42; color: #fff;
+		font: 13px/1.6 -apple-system, "Hiragino Sans", sans-serif;
+	}
+</style>
+</head>
+<body>
+<div class="preview-bar">表示確認用プレビューです。ヘッダー・フッターは実際のテーマのものに置き換わります。【プレビュー用】と書かれた箇所は inc/symptom-config.php で設定してください。</div>
+
+	
+<style id="abc-symptom-css">
+/* ==========================================================================
+   症状ページ 共通スタイル
+   すべて .abc-symptom 配下にスコープしているため、テーマ側のCSSと干渉しません。
+   色やフォントサイズを変えたい場合は、下の :root 変数だけ触れば全ページに反映されます。
+   ========================================================================== */
+
+.abc-symptom {
+	/* ---- 配色（ここを変えるとページ全体の印象が変わります） ---- */
+	--abc-main: #1f6f8b;          /* メインカラー（見出し・ボタン） */
+	--abc-main-dark: #17566c;
+	--abc-accent: #e2a03f;        /* アクセント（番号・強調） */
+	--abc-line: #06c755;          /* LINEブランドカラー */
+	--abc-text: #333b42;
+	--abc-text-sub: #6a747c;
+	--abc-bg: #ffffff;
+	--abc-bg-soft: #f4f8fa;
+	--abc-bg-tint: #eef4f7;
+	--abc-border: #dce5ea;
+
+	/* ---- 余白・角丸 ---- */
+	--abc-gap: clamp(48px, 8vw, 88px);
+	--abc-radius: 10px;
+
+	color: var(--abc-text);
+	background: var(--abc-bg);
+	font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
+	font-size: 16px;
+	line-height: 1.9;
+	letter-spacing: 0.02em;
+	overflow-wrap: break-word;
+}
+
+.abc-symptom *,
+.abc-symptom *::before,
+.abc-symptom *::after {
+	box-sizing: border-box;
+}
+
+.abc-symptom__inner {
+	width: min(100% - 40px, 860px);
+	margin-inline: auto;
+}
+
+/* --------------------------------------------------------------------------
+   ヒーロー
+   -------------------------------------------------------------------------- */
+.abc-symptom__hero {
+	background: linear-gradient(180deg, var(--abc-bg-tint) 0%, var(--abc-bg) 100%);
+	padding-block: clamp(40px, 7vw, 72px) clamp(32px, 6vw, 56px);
+	text-align: center;
+}
+
+.abc-symptom__eyebrow {
+	margin: 0 0 14px;
+	font-size: 0.8125rem;
+	letter-spacing: 0.12em;
+	color: var(--abc-text-sub);
+}
+
+.abc-symptom__title {
+	margin: 0;
+	font-size: clamp(1.75rem, 5.5vw, 2.625rem);
+	font-weight: 700;
+	line-height: 1.4;
+	color: var(--abc-main-dark);
+}
+
+.abc-symptom__title::after {
+	content: "";
+	display: block;
+	width: 48px;
+	height: 3px;
+	margin: 20px auto 0;
+	background: var(--abc-accent);
+	border-radius: 2px;
+}
+
+.abc-symptom__catch {
+	margin: 24px 0 0;
+	font-size: clamp(1.0625rem, 3vw, 1.375rem);
+	font-weight: 700;
+	line-height: 1.7;
+}
+
+.abc-symptom__lead {
+	margin: 16px auto 0;
+	max-width: 40em;
+	text-align: left;
+	color: var(--abc-text-sub);
+}
+
+/* --------------------------------------------------------------------------
+   セクション共通
+   -------------------------------------------------------------------------- */
+.abc-symptom__section {
+	padding-block: var(--abc-gap);
+}
+
+.abc-symptom__section--empathy,
+.abc-symptom__section--check,
+.abc-symptom__section--expertise {
+	background: var(--abc-bg-soft);
+}
+
+.abc-symptom__heading {
+	margin: 0 0 28px;
+	font-size: clamp(1.3125rem, 4vw, 1.75rem);
+	font-weight: 700;
+	line-height: 1.55;
+	color: var(--abc-main-dark);
+}
+
+.abc-symptom__step {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 12px;
+	font-size: 0.8125rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	color: var(--abc-accent);
+}
+
+.abc-symptom__step-num {
+	font-size: 1.5rem;
+	line-height: 1;
+	font-family: Georgia, "Times New Roman", serif;
+}
+
+.abc-symptom__step-text {
+	padding-left: 10px;
+	border-left: 1px solid currentColor;
+	color: var(--abc-text-sub);
+}
+
+.abc-symptom__text {
+	margin: 0 0 1.2em;
+}
+
+.abc-symptom__text--emphasis {
+	margin-top: 28px;
+	font-size: 1.0625rem;
+	font-weight: 500;
+}
+
+.abc-symptom__conclusion {
+	margin: 32px 0 0;
+	padding: 20px 24px;
+	background: #fff;
+	border-left: 4px solid var(--abc-accent);
+	border-radius: 0 var(--abc-radius) var(--abc-radius) 0;
+	font-weight: 700;
+	line-height: 1.8;
+}
+
+.abc-symptom__section--empathy .abc-symptom__conclusion,
+.abc-symptom__section--check .abc-symptom__conclusion {
+	background: #fff;
+}
+
+.abc-symptom__note {
+	margin: 24px 0 0;
+	font-size: 0.875rem;
+	line-height: 1.8;
+	color: var(--abc-text-sub);
+}
+
+/* --------------------------------------------------------------------------
+   ① 共感：チェックリスト
+   -------------------------------------------------------------------------- */
+.abc-symptom__checklist {
+	margin: 0;
+	padding: clamp(20px, 4vw, 32px);
+	list-style: none;
+	background: #fff;
+	border: 1px solid var(--abc-border);
+	border-radius: var(--abc-radius);
+	display: grid;
+	gap: 14px;
+}
+
+.abc-symptom__checklist li {
+	position: relative;
+	padding-left: 34px;
+	line-height: 1.75;
+}
+
+.abc-symptom__checklist li::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 0.45em;
+	width: 18px;
+	height: 10px;
+	border-left: 3px solid var(--abc-main);
+	border-bottom: 3px solid var(--abc-main);
+	transform: rotate(-45deg);
+	border-radius: 1px;
+}
+
+/* --------------------------------------------------------------------------
+   ② 解説：原因カード
+   -------------------------------------------------------------------------- */
+.abc-symptom__cards {
+	display: grid;
+	gap: 18px;
+}
+
+.abc-symptom__card {
+	padding: clamp(20px, 3.5vw, 28px);
+	background: var(--abc-bg-soft);
+	border-radius: var(--abc-radius);
+}
+
+.abc-symptom__card-title {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	margin: 0 0 10px;
+	font-size: 1.0625rem;
+	font-weight: 700;
+	line-height: 1.6;
+	color: var(--abc-main-dark);
+}
+
+.abc-symptom__card-num {
+	flex: none;
+	width: 28px;
+	height: 28px;
+	margin-top: 0.15em;
+	display: grid;
+	place-items: center;
+	background: var(--abc-main);
+	color: #fff;
+	border-radius: 50%;
+	font-size: 0.875rem;
+	font-family: Georgia, serif;
+}
+
+.abc-symptom__card-body {
+	margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   ③ 評価：番号付きリスト
+   -------------------------------------------------------------------------- */
+.abc-symptom__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	counter-reset: abc-check;
+	display: grid;
+	gap: 4px;
+}
+
+.abc-symptom__list-item {
+	counter-increment: abc-check;
+	position: relative;
+	padding: 22px 24px 22px 64px;
+	background: #fff;
+	border-radius: var(--abc-radius);
+}
+
+.abc-symptom__list-item::before {
+	content: counter(abc-check);
+	position: absolute;
+	left: 24px;
+	top: 22px;
+	width: 26px;
+	height: 26px;
+	display: grid;
+	place-items: center;
+	border: 2px solid var(--abc-main);
+	border-radius: 50%;
+	color: var(--abc-main);
+	font-size: 0.8125rem;
+	font-weight: 700;
+	font-family: Georgia, serif;
+	line-height: 1;
+}
+
+.abc-symptom__list-title {
+	margin: 0 0 6px;
+	font-size: 1.0625rem;
+	font-weight: 700;
+	line-height: 1.6;
+}
+
+.abc-symptom__list-body {
+	margin: 0;
+	color: var(--abc-text-sub);
+}
+
+/* --------------------------------------------------------------------------
+   ④ 方針：ステップ
+   -------------------------------------------------------------------------- */
+.abc-symptom__steps {
+	display: grid;
+	gap: 0;
+}
+
+.abc-symptom__step-item {
+	position: relative;
+	display: grid;
+	grid-template-columns: 92px 1fr;
+	gap: 20px;
+	padding-bottom: 28px;
+}
+
+.abc-symptom__step-item:not(:last-child)::before {
+	content: "";
+	position: absolute;
+	left: 45px;
+	top: 34px;
+	bottom: 0;
+	width: 2px;
+	background: var(--abc-border);
+}
+
+.abc-symptom__step-badge {
+	position: relative;
+	z-index: 1;
+	align-self: start;
+	padding: 6px 0;
+	background: var(--abc-main);
+	color: #fff;
+	border-radius: 100px;
+	text-align: center;
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+}
+
+.abc-symptom__step-title {
+	margin: 0 0 6px;
+	font-size: 1.0625rem;
+	font-weight: 700;
+	line-height: 1.6;
+	color: var(--abc-main-dark);
+}
+
+.abc-symptom__step-body {
+	margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   ⑤ 実例
+   -------------------------------------------------------------------------- */
+.abc-symptom__cases {
+	display: grid;
+	gap: 18px;
+	margin-bottom: 8px;
+}
+
+.abc-symptom__case {
+	padding: clamp(20px, 3.5vw, 28px);
+	background: var(--abc-bg-soft);
+	border-radius: var(--abc-radius);
+}
+
+.abc-symptom__case-meta {
+	margin: 0 0 8px;
+	display: inline-block;
+	padding: 3px 12px;
+	background: var(--abc-main);
+	color: #fff;
+	border-radius: 100px;
+	font-size: 0.75rem;
+	letter-spacing: 0.04em;
+}
+
+.abc-symptom__case-title {
+	margin: 0 0 8px;
+	font-size: 1.0625rem;
+	font-weight: 700;
+	line-height: 1.6;
+}
+
+.abc-symptom__case-body {
+	margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   ⑥ 専門性
+   -------------------------------------------------------------------------- */
+.abc-symptom__points {
+	margin: 24px 0 0;
+	padding: clamp(20px, 4vw, 28px);
+	list-style: none;
+	background: #fff;
+	border: 1px solid var(--abc-border);
+	border-radius: var(--abc-radius);
+	display: grid;
+	gap: 12px;
+}
+
+.abc-symptom__points li {
+	position: relative;
+	padding-left: 26px;
+	line-height: 1.75;
+}
+
+.abc-symptom__points li::before {
+	content: "";
+	position: absolute;
+	left: 4px;
+	top: 0.7em;
+	width: 8px;
+	height: 8px;
+	background: var(--abc-accent);
+	border-radius: 50%;
+}
+
+/* --------------------------------------------------------------------------
+   内部リンクボタン（⑤・⑥共通）
+   -------------------------------------------------------------------------- */
+.abc-symptom__linkbox {
+	margin: 32px 0 0;
+	text-align: center;
+}
+
+.abc-symptom__link-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	padding: 15px 34px;
+	background: #fff;
+	border: 2px solid var(--abc-main);
+	border-radius: 100px;
+	color: var(--abc-main);
+	font-weight: 700;
+	text-decoration: none;
+	transition: background-color .2s ease, color .2s ease;
+}
+
+.abc-symptom__link-button::after {
+	content: "→";
+	font-size: 1.1em;
+	line-height: 1;
+}
+
+.abc-symptom__link-button:hover,
+.abc-symptom__link-button:focus-visible {
+	background: var(--abc-main);
+	color: #fff;
+}
+
+/* --------------------------------------------------------------------------
+   ⑦ 行動：CTA
+   -------------------------------------------------------------------------- */
+.abc-symptom__section--cta {
+	background: var(--abc-main-dark);
+	color: #fff;
+}
+
+.abc-symptom__section--cta .abc-symptom__heading,
+.abc-symptom__section--cta .abc-symptom__step-text {
+	color: #fff;
+}
+
+.abc-symptom__section--cta .abc-symptom__note {
+	color: rgba(255, 255, 255, .75);
+}
+
+.abc-symptom__price {
+	margin: 0 0 28px;
+	padding: 16px 20px;
+	background: rgba(255, 255, 255, .12);
+	border-radius: var(--abc-radius);
+	font-size: 1.125rem;
+	font-weight: 700;
+	text-align: center;
+}
+
+.abc-symptom__price-note {
+	display: block;
+	margin-top: 4px;
+	font-size: 0.8125rem;
+	font-weight: 400;
+	opacity: .8;
+}
+
+.abc-symptom__buttons {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 14px;
+}
+
+.abc-symptom__btn {
+	display: block;
+	padding: 20px 18px;
+	background: #fff;
+	border-radius: var(--abc-radius);
+	color: var(--abc-main-dark);
+	text-align: center;
+	text-decoration: none;
+	transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.abc-symptom__btn:hover,
+.abc-symptom__btn:focus-visible {
+	transform: translateY(-2px);
+	box-shadow: 0 8px 20px rgba(0, 0, 0, .18);
+}
+
+.abc-symptom__btn-label {
+	display: block;
+	font-size: 0.8125rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	opacity: .8;
+}
+
+.abc-symptom__btn-main {
+	display: block;
+	margin: 4px 0 6px;
+	font-size: 1.375rem;
+	font-weight: 700;
+	line-height: 1.3;
+	letter-spacing: 0.02em;
+}
+
+.abc-symptom__btn-note {
+	display: block;
+	font-size: 0.75rem;
+	line-height: 1.6;
+	color: var(--abc-text-sub);
+}
+
+.abc-symptom__btn--line {
+	background: var(--abc-line);
+	color: #fff;
+}
+
+.abc-symptom__btn--line .abc-symptom__btn-note {
+	color: rgba(255, 255, 255, .85);
+}
+
+.abc-symptom__info {
+	margin: 32px 0 0;
+	padding: 24px;
+	background: rgba(255, 255, 255, .1);
+	border-radius: var(--abc-radius);
+	font-size: 0.9375rem;
+}
+
+.abc-symptom__info > div {
+	display: grid;
+	grid-template-columns: 6em 1fr;
+	gap: 4px 16px;
+	padding: 8px 0;
+	border-bottom: 1px solid rgba(255, 255, 255, .18);
+}
+
+.abc-symptom__info > div:last-child {
+	border-bottom: 0;
+}
+
+.abc-symptom__info dt {
+	font-weight: 700;
+	opacity: .85;
+}
+
+.abc-symptom__info dd {
+	margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   免責 / 管理者向け表示
+   -------------------------------------------------------------------------- */
+.abc-symptom__disclaimer {
+	margin: 0;
+	padding-block: 28px;
+	background: var(--abc-bg-soft);
+	font-size: 0.8125rem;
+	line-height: 1.8;
+	color: var(--abc-text-sub);
+}
+
+.abc-symptom__admin-notice {
+	margin-top: 32px;
+	padding: 16px 20px;
+	background: #fff4e5;
+	border: 1px solid #e2a03f;
+	border-radius: var(--abc-radius);
+	font-size: 0.875rem;
+}
+
+.abc-symptom--fallback {
+	padding-block: var(--abc-gap);
+}
+
+/* --------------------------------------------------------------------------
+   スマートフォン
+   -------------------------------------------------------------------------- */
+@media (max-width: 600px) {
+	.abc-symptom {
+		font-size: 15.5px;
+		line-height: 1.85;
+	}
+
+	.abc-symptom__step-item {
+		grid-template-columns: 1fr;
+		gap: 10px;
+	}
+
+	.abc-symptom__step-item::before {
+		display: none;
+	}
+
+	.abc-symptom__step-badge {
+		justify-self: start;
+		padding: 5px 16px;
+	}
+
+	.abc-symptom__list-item {
+		padding: 20px 20px 20px 20px;
+	}
+
+	.abc-symptom__list-item::before {
+		position: static;
+		display: inline-grid;
+		margin-bottom: 8px;
+	}
+
+	.abc-symptom__info > div {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.abc-symptom * {
+		transition: none !important;
+	}
+}
+
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebPage","@id":"https://abc-chiro.net/kubikori-katakori/","url":"https://abc-chiro.net/kubikori-katakori/","name":"首こり・肩こり｜ABCカイロプラクティック整体院","description":"新潟市中央区の整体・ABCカイロプラクティック整体院の首こり・肩こりのページ。もんでも戻ってしまう原因を姿勢と骨盤・背骨のバランスから見直し、根本から整えることを目指します。","inLanguage":"ja"}]}</script>
+
+	<main class="abc-symptom" id="abc-symptom">
+
+				<header class="abc-symptom__hero">
+			<div class="abc-symptom__inner">
+				<p class="abc-symptom__eyebrow">
+					新潟市中央区の整体
+					ABCカイロプラクティック整体院				</p>
+				<h1 class="abc-symptom__title">
+					首こり・肩こり				</h1>
+									<p class="abc-symptom__catch">もんでも、その日のうちに戻ってしまう。</p>
+													<p class="abc-symptom__lead">それは、こっている筋肉そのものではなく、<strong>首と肩に負担を集め続けている姿勢</strong>が変わっていないからかもしれません。当院は、こりの出どころを姿勢と身体の土台から見直します。</p>
+							</div>
+		</header>
+
+						<section class="abc-symptom__section abc-symptom__section--empathy" id="empathy">
+			<div class="abc-symptom__inner">
+				<h2 class="abc-symptom__heading">
+					<span class="abc-symptom__step"><span class="abc-symptom__step-num">01</span><span class="abc-symptom__step-text">悩み</span></span>					その首・肩のつらさ、「いつものこと」になっていませんか				</h2>
+									<p class="abc-symptom__text">当院には、次のようなお悩みでご相談にみえる方が多くいらっしゃいます。</p>
+				
+				<ul class="abc-symptom__checklist">
+											<li>朝、起きた時点ですでに首と肩が重い</li>
+											<li>パソコン作業が続くと、夕方には肩が上がらないほど張ってくる</li>
+											<li>マッサージに行くとその場は楽になるが、2〜3日で元に戻る</li>
+											<li>首を回すとゴリゴリと音が鳴り、動かせる範囲が狭くなってきた</li>
+											<li>肩こりと一緒に、頭の重さや目の奥の疲れ、吐き気を感じることがある</li>
+											<li>枕を何度買い替えても、しっくりくるものに出会えない</li>
+											<li>家族に「姿勢が悪い」「猫背だね」とよく言われる</li>
+											<li>「歳のせい」「デスクワークだから仕方ない」と言われ、あきらめかけている</li>
+									</ul>
+
+									<p class="abc-symptom__text abc-symptom__text--emphasis">
+						ひとつでも当てはまる方へ。首こり・肩こりは、<strong>こっている場所だけの問題ではないこと</strong>がほとんどです。					</p>
+							</div>
+		</section>
+		
+						<section class="abc-symptom__section abc-symptom__section--cause" id="cause">
+			<div class="abc-symptom__inner">
+				<h2 class="abc-symptom__heading">
+					<span class="abc-symptom__step"><span class="abc-symptom__step-num">02</span><span class="abc-symptom__step-text">原因・背景</span></span>					なぜ、もんでも戻ってしまうのか				</h2>
+									<p class="abc-symptom__text">首・肩のこりは、多くの場合「そこに負担が集まる状態」が日常的に続いていることで起こります。当院が原因として重視しているのは、次の5つです。</p>
+				
+				<div class="abc-symptom__cards">
+											<div class="abc-symptom__card">
+							<h3 class="abc-symptom__card-title">
+								<span class="abc-symptom__card-num">1</span>
+								頭の重さを、首だけで支えている							</h3>
+							<p class="abc-symptom__card-body">成人の頭部の重さは、およそ5〜6kg。ボウリングの球ほどの重さがあります。この頭が背骨の真上に乗っていれば負担は最小限ですが、前に出るほど、首の後ろと肩の筋肉は「引っ張られないよう耐え続ける」状態になります。</p>
+						</div>
+											<div class="abc-symptom__card">
+							<h3 class="abc-symptom__card-title">
+								<span class="abc-symptom__card-num">2</span>
+								猫背・巻き肩で、肩甲骨が動かなくなる							</h3>
+							<p class="abc-symptom__card-body">背中が丸まり肩が内側に入ると、肩甲骨は外に開いたまま固定されます。すると本来なめらかに動くはずの肩甲骨まわりの筋肉が、伸ばされたまま緊張し続けることに。「もんでもゆるまない」感覚の正体は、この状態であることが少なくありません。</p>
+						</div>
+											<div class="abc-symptom__card">
+							<h3 class="abc-symptom__card-title">
+								<span class="abc-symptom__card-num">3</span>
+								骨盤の傾きが、背骨のカーブを変える							</h3>
+							<p class="abc-symptom__card-body">身体の土台である骨盤が後ろに傾くと、背中は丸まり、その上にある首は自然と前へ出ます。つまり、首・肩の負担は<strong>座り方や骨盤の状態から始まっている</strong>ことが多いのです。首だけを緩めても戻ってしまうのは、この土台が変わっていないためです。</p>
+						</div>
+											<div class="abc-symptom__card">
+							<h3 class="abc-symptom__card-title">
+								<span class="abc-symptom__card-num">4</span>
+								呼吸が浅くなり、首の筋肉が呼吸を手伝う							</h3>
+							<p class="abc-symptom__card-body">背中が丸まると胸まわりが広がりにくくなり、呼吸が浅くなります。すると本来は補助的な役割の首まわりの筋肉が、呼吸のたびに働き続けることに。1日約2万回の呼吸のたびに使われれば、休まる時間がなくなってしまいます。</p>
+						</div>
+											<div class="abc-symptom__card">
+							<h3 class="abc-symptom__card-title">
+								<span class="abc-symptom__card-num">5</span>
+								同じ姿勢・生活習慣の積み重ね							</h3>
+							<p class="abc-symptom__card-body">デスクワーク、スマートフォン、片側だけで持つ荷物、合わない寝具、冷え、緊張の続く時間。ひとつひとつは小さくても、毎日続くことで身体の使い方に癖が定着していきます。</p>
+						</div>
+									</div>
+
+									<p class="abc-symptom__conclusion">
+						こっている筋肉は「原因」ではなく、多くの場合「結果」です。<br>だからこそ、ゆるめるだけでは戻ってしまいます。					</p>
+							</div>
+		</section>
+		
+						<section class="abc-symptom__section abc-symptom__section--check" id="check">
+			<div class="abc-symptom__inner">
+				<h2 class="abc-symptom__heading">
+					<span class="abc-symptom__step"><span class="abc-symptom__step-num">03</span><span class="abc-symptom__step-text">ABCは何を見る？</span></span>					ABCカイロプラクティックが、施術の前に確認すること				</h2>
+									<p class="abc-symptom__text">当院では、いきなり施術を始めることはありません。まず「なぜ、あなたの首と肩に負担が集まっているのか」を確認するところから始めます。</p>
+				
+				<ol class="abc-symptom__list">
+											<li class="abc-symptom__list-item">
+							<h3 class="abc-symptom__list-title">問診：いつから、どんなときにつらいか</h3>
+							<p class="abc-symptom__list-body">お仕事の内容、1日の姿勢、睡眠環境、症状が強くなる時間帯や動作をうかがいます。「夕方だけつらい」「朝がつらい」では、負担のかかり方が違います。</p>
+						</li>
+											<li class="abc-symptom__list-item">
+							<h3 class="abc-symptom__list-title">姿勢の分析：頭・肩・骨盤の位置</h3>
+							<p class="abc-symptom__list-body">立った状態と座った状態を、前後・左右から確認します。頭がどれだけ前に出ているか、左右の肩の高さに差はないか、骨盤はどちらに傾いているか。ご自身の姿勢を実際に見ていただきます。</p>
+						</li>
+											<li class="abc-symptom__list-item">
+							<h3 class="abc-symptom__list-title">動きのチェック：どこが動いていないか</h3>
+							<p class="abc-symptom__list-body">首の前後屈・回旋、肩甲骨の動き、胸まわりの広がりを確認します。こりの強い場所より、その手前で「動いていない場所」が見つかることがよくあります。</p>
+						</li>
+											<li class="abc-symptom__list-item">
+							<h3 class="abc-symptom__list-title">背骨・骨盤のバランス：土台の状態</h3>
+							<p class="abc-symptom__list-body">触診で、背骨と骨盤のどこに動きの硬さが出ているかを確認します。首から遠い場所が、首の負担につながっているケースも珍しくありません。</p>
+						</li>
+											<li class="abc-symptom__list-item">
+							<h3 class="abc-symptom__list-title">現状の共有：何から整えるかをご説明</h3>
+							<p class="abc-symptom__list-body">確認した内容をもとに、いま身体に何が起きているのか、どこから順に整えていくのか、どのくらいの期間を目安に考えるのかをお伝えします。ご納得いただいてから施術に入ります。</p>
+						</li>
+									</ol>
+
+									<p class="abc-symptom__conclusion">
+						「その場の気持ちよさ」ではなく、「戻りにくい状態」を目指すために、評価から始めています。					</p>
+							</div>
+		</section>
+		
+						<section class="abc-symptom__section abc-symptom__section--policy" id="policy">
+			<div class="abc-symptom__inner">
+				<h2 class="abc-symptom__heading">
+					<span class="abc-symptom__step"><span class="abc-symptom__step-num">04</span><span class="abc-symptom__step-text">どう施術する？</span></span>					土台から整え、首と肩に負担を集めない身体へ				</h2>
+									<p class="abc-symptom__text">確認した内容をもとに、次の流れで進めていきます。</p>
+				
+				<div class="abc-symptom__steps">
+											<div class="abc-symptom__step-item">
+							<div class="abc-symptom__step-badge">STEP 1</div>
+							<div class="abc-symptom__step-content">
+								<h3 class="abc-symptom__step-title">まず、首・肩まわりの緊張をゆるめる</h3>
+								<p class="abc-symptom__step-body">張りが強いままでは、身体は正しい位置に動いてくれません。はじめに首から背中にかけての緊張をやわらげ、次の調整を受け入れられる状態をつくります。</p>
+							</div>
+						</div>
+											<div class="abc-symptom__step-item">
+							<div class="abc-symptom__step-badge">STEP 2</div>
+							<div class="abc-symptom__step-content">
+								<h3 class="abc-symptom__step-title">骨盤と背骨のバランスを整える</h3>
+								<p class="abc-symptom__step-body">身体の土台である骨盤、そしてその上に積み重なる背骨のバランスを調整します。土台が整うと、頭が自然と背骨の上に乗りやすくなり、首が支える重さそのものが軽くなっていきます。</p>
+							</div>
+						</div>
+											<div class="abc-symptom__step-item">
+							<div class="abc-symptom__step-badge">STEP 3</div>
+							<div class="abc-symptom__step-content">
+								<h3 class="abc-symptom__step-title">肩甲骨・胸まわりの動きを取り戻す</h3>
+								<p class="abc-symptom__step-body">固まった肩甲骨と胸郭の動きを引き出し、腕や肩の動作を「首だけで支えない」状態に近づけます。呼吸のしやすさも一緒に変わっていきます。</p>
+							</div>
+						</div>
+											<div class="abc-symptom__step-item">
+							<div class="abc-symptom__step-badge">STEP 4</div>
+							<div class="abc-symptom__step-content">
+								<h3 class="abc-symptom__step-title">戻りにくくするための習慣を一緒に整える</h3>
+								<p class="abc-symptom__step-body">施術室を出たあとの時間のほうが、圧倒的に長いものです。デスクや椅子の高さ、座り方、スマートフォンの見方、寝るときの姿勢、1分でできるセルフケアを、生活に合わせてお伝えします。</p>
+							</div>
+						</div>
+									</div>
+
+									<p class="abc-symptom__note">※当院では、力任せの矯正やボキボキと大きな音を鳴らす施術は行いません。ご年配の方、女性、整体がはじめての方にも受けていただけるソフトな方法で進めます。<br>※お身体の状態によって進め方は変わります。効果の感じ方や必要な回数には個人差があります。</p>
+							</div>
+		</section>
+		
+						<section class="abc-symptom__section abc-symptom__section--cases" id="cases">
+			<div class="abc-symptom__inner">
+				<h2 class="abc-symptom__heading">
+					<span class="abc-symptom__step"><span class="abc-symptom__step-num">05</span><span class="abc-symptom__step-text">実例</span></span>					実際に、こんな変化がありました				</h2>
+									<p class="abc-symptom__text">当院で首こり・肩こりのご相談を受けたお客様の経過を、症例ページで紹介しています。ご自身に近い状況の方がいるかどうか、探してみてください。</p>
+				
+				
+													<p class="abc-symptom__linkbox">
+						<a class="abc-symptom__link-button" href="https://abc-chiro.net/case/">
+							首こり・肩こりの症例を見る						</a>
+					</p>
+				
+				<p class="abc-symptom__note">※効果の感じ方や必要な回数には個人差があります。</p>
+			</div>
+		</section>
+		
+						<section class="abc-symptom__section abc-symptom__section--expertise" id="expertise">
+			<div class="abc-symptom__inner">
+				<h2 class="abc-symptom__heading">
+					<span class="abc-symptom__step"><span class="abc-symptom__step-num">06</span><span class="abc-symptom__step-text">専門性</span></span>					根本にあるのは、やはり「姿勢」です				</h2>
+									<p class="abc-symptom__text">ここまでお読みいただいて気づかれたかもしれませんが、首こり・肩こりの原因をたどっていくと、その多くが<strong>姿勢の癖</strong>に行き着きます。頭の位置、背中の丸まり、骨盤の傾き。これらはすべてつながっています。</p>
+									<p class="abc-symptom__text">当院が姿勢改善に力を入れているのは、姿勢が変われば、首と肩にかかる負担そのものが減っていくからです。こりを取ることと、こりにくい身体をつくることは、別の作業です。</p>
+				
+									<ul class="abc-symptom__points">
+													<li>施術のたびに姿勢の変化を確認し、その場の変化で終わらせない</li>
+													<li>座り方・立ち方・スマートフォンの見方まで、生活単位で見直す</li>
+													<li>ご自宅で続けられる、簡単なセルフケアをお渡しする</li>
+											</ul>
+				
+													<p class="abc-symptom__linkbox">
+						<a class="abc-symptom__link-button" href="https://abc-chiro.net/posture/">
+							姿勢改善への取り組みを詳しく見る						</a>
+					</p>
+							</div>
+		</section>
+		
+				<section class="abc-symptom__section abc-symptom__section--cta" id="reserve">
+			<div class="abc-symptom__inner">
+				<h2 class="abc-symptom__heading">
+					<span class="abc-symptom__step"><span class="abc-symptom__step-num">07</span><span class="abc-symptom__step-text">ご予約</span></span>					まずは、いまの状態を知るところから				</h2>
+									<p class="abc-symptom__text">「これくらいで行っていいのかな」という段階でも大丈夫です。<br>何が原因で首と肩に負担が集まっているのかを知るだけでも、これからの向き合い方は変わります。ご予約・ご相談は、お電話・LINE・Webからお受けしています。</p>
+				
+									<p class="abc-symptom__price">
+						【プレビュー用】初回 60分 ○,○○○円													<span class="abc-symptom__price-note">2回目以降の料金はこちらに表示されます</span>
+											</p>
+				
+				<div class="abc-symptom__buttons">
+											<a class="abc-symptom__btn abc-symptom__btn--tel" href="tel:0250000000">
+							<span class="abc-symptom__btn-label">電話で予約する</span>
+							<span class="abc-symptom__btn-main">025-000-0000</span>
+							<span class="abc-symptom__btn-note">受付時間内におかけください</span>
+						</a>
+					
+											<a class="abc-symptom__btn abc-symptom__btn--line" href="https://line.me/" target="_blank" rel="noopener">
+							<span class="abc-symptom__btn-label">LINEで予約・相談</span>
+							<span class="abc-symptom__btn-main">LINEを開く</span>
+							<span class="abc-symptom__btn-note">24時間受付・空き状況の確認だけでもOK</span>
+						</a>
+					
+											<a class="abc-symptom__btn abc-symptom__btn--web" href="https://abc-chiro.net/contact/">
+							<span class="abc-symptom__btn-label">Webで予約する</span>
+							<span class="abc-symptom__btn-main">予約フォームへ</span>
+							<span class="abc-symptom__btn-note">フォームから希望日時をお送りください</span>
+						</a>
+									</div>
+
+									<dl class="abc-symptom__info">
+													<div><dt>院名</dt><dd>ABCカイロプラクティック整体院</dd></div>
+																			<div><dt>住所</dt><dd>【プレビュー用】新潟県新潟市中央区○○1-2-3</dd></div>
+																			<div><dt>アクセス</dt><dd>【プレビュー用】JR新潟駅より徒歩○分／駐車場あり</dd></div>
+																			<div><dt>受付時間</dt><dd>【プレビュー用】9:00〜20:00（最終受付19:00）</dd></div>
+																			<div><dt>休診日</dt><dd>【プレビュー用】日曜・祝日</dd></div>
+											</dl>
+							</div>
+		</section>
+
+					<p class="abc-symptom__disclaimer">
+				<span class="abc-symptom__inner">当院は医療機関ではありません。施術は治療・診断を目的とするものではなく、効果の感じ方や必要な回数には個人差があります。強い痛みやしびれ、発熱をともなう場合は、まず医療機関の受診をおすすめします。</span>
+			</p>
+		
+	</main>
+
+
+
+</body>
+</html>
