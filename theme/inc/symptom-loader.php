@@ -138,18 +138,123 @@ function abc_symptom_tel_href( $tel ) {
 }
 
 /**
+ * 独自CSSを使わない表示モードかどうか。
+ *
+ * @return bool
+ */
+function abc_symptom_is_plain() {
+	return 'styled' !== abc_symptom_get( abc_symptom_config(), 'theme.style_mode', 'plain' );
+}
+
+/**
  * セクション見出しに添える通し番号ラベル。
+ *
+ * plain モードでは、CSSに頼らず読める形（①悩み）で小さめに出力します。
  *
  * @param int    $number 番号。
  * @param string $label  ラベル（悩み・原因 など）。
  * @return string エスケープ済みHTML。
  */
 function abc_symptom_step_label( $number, $label ) {
+	if ( abc_symptom_is_plain() ) {
+		$circled = array( '', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨' );
+		$mark    = isset( $circled[ $number ] ) ? $circled[ $number ] : (string) $number;
+
+		return sprintf( '<small>%s %s</small><br>', $mark, esc_html( $label ) );
+	}
+
 	return sprintf(
 		'<span class="abc-symptom__step"><span class="abc-symptom__step-num">%02d</span><span class="abc-symptom__step-text">%s</span></span>',
 		(int) $number,
 		esc_html( $label )
 	);
+}
+
+/**
+ * 属性値としてのクラス名。plain モードでは class を一切出力しません。
+ *
+ * @param string $class クラス名。
+ * @return string ' class="..."' もしくは空文字。
+ */
+function abc_symptom_class( $class ) {
+	if ( abc_symptom_is_plain() ) {
+		return '';
+	}
+
+	return ' class="' . esc_attr( $class ) . '"';
+}
+
+/**
+ * セクションの区切り。plain モードでは <hr> を出し、テーマの罫線スタイルに任せます。
+ */
+function abc_symptom_separator() {
+	if ( abc_symptom_is_plain() ) {
+		echo "\n<hr>\n";
+	}
+}
+
+/**
+ * 予約ボタンを描画する。
+ *
+ * plain モードでは WordPress 標準のボタンブロックと同じマークアップを出力するため、
+ * テーマがボタンに当てているデザインがそのまま適用されます。
+ *
+ * @param array $buttons array( array( 'url', 'text', 'note', 'modifier', 'blank' ) )
+ */
+function abc_symptom_render_buttons( $buttons ) {
+	$buttons = array_filter(
+		$buttons,
+		static function ( $b ) {
+			return ! empty( $b['url'] );
+		}
+	);
+
+	if ( empty( $buttons ) ) {
+		return;
+	}
+
+	if ( abc_symptom_is_plain() ) {
+		echo '<div class="wp-block-buttons">';
+
+		foreach ( $buttons as $b ) {
+			printf(
+				'<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="%s"%s>%s</a></div>',
+				esc_url( $b['url'] ),
+				empty( $b['blank'] ) ? '' : ' target="_blank" rel="noopener"',
+				esc_html( $b['text'] )
+			);
+		}
+
+		echo '</div>';
+
+		foreach ( $buttons as $b ) {
+			if ( ! empty( $b['note'] ) ) {
+				printf( '<p><small>%s</small></p>', esc_html( $b['note'] ) );
+			}
+		}
+
+		return;
+	}
+
+	echo '<div class="abc-symptom__buttons">';
+
+	foreach ( $buttons as $b ) {
+		printf(
+			'<a class="abc-symptom__btn abc-symptom__btn--%s" href="%s"%s>'
+				. '<span class="abc-symptom__btn-label">%s</span>'
+				. '<span class="abc-symptom__btn-main">%s</span>'
+				. '<span class="abc-symptom__btn-note">%s</span>'
+				. '</a>',
+			esc_attr( $b['modifier'] ),
+			esc_url( $b['url'] ),
+			empty( $b['blank'] ) ? '' : ' target="_blank" rel="noopener"',
+			esc_html( $b['label'] ),
+			esc_html( $b['main'] ),
+			esc_html( $b['note'] )
+		);
+	}
+
+	echo '</div>';
 }
 
 /**
@@ -161,7 +266,7 @@ function abc_symptom_step_label( $number, $label ) {
 function abc_symptom_styles() {
 	static $done = false;
 
-	if ( $done ) {
+	if ( $done || abc_symptom_is_plain() ) {
 		return;
 	}
 	$done = true;

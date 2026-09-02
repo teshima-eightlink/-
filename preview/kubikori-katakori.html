@@ -36,636 +36,37 @@
 <div class="theme-frame">
 
 	
-<style id="abc-symptom-css">
-/* ==========================================================================
-   症状ページ 共通スタイル（テーマ追従型）
-   --------------------------------------------------------------------------
-   【設計方針】
-   このページだけ浮かないよう、テーマから受け継ぐものと、このCSSが決めるものを
-   はっきり分けています。
-
-     テーマに任せる … フォント、文字サイズ、行間、文字色、背景色、見出しの装飾、
-                      リンク色、本文の横幅
-     ここで決める   … セクションの並び、余白、箱組み（カード・リスト・ステップ）
-
-   アクセントカラーは、サイトのテーマカラー cyan に合わせてあります。
-   ただし #00ffff をそのまま文字や線に使うと読めないため、用途で色を分けています
-   （詳しくは下の変数のコメントを参照）。
-   ========================================================================== */
-
-.abc-symptom {
-	/* ---- ここだけ調整すれば全ページに反映されます ---- */
-
-	/* ---- アクセントカラー（サイトのテーマカラー cyan に合わせています） ----
-	 *
-	 * サイトのテーマカラー #00ffff は、白背景に対するコントラスト比が 1.25:1 しかなく、
-	 * 文字・アイコン・細い線に使うと読めません（WCAG AAの本文基準は 4.5:1）。
-	 * そのため用途で2つに分けています。色相はどちらも 180°（純粋なシアン）のままです。
-	 *
-	 *   --abc-accent        #008080  … 文字・番号・チェック・点など「意味を持つ要素」
-	 *                                  白地で 4.77:1（AA適合）。#00ffff を暗くしただけの同色相。
-	 *   --abc-accent-bright #00ffff  … マーカーや区切り線など「装飾だけの要素」
-	 *                                  濃い文字の背面に敷く使い方なら 10:1 で読めます。
-	 */
-	--abc-accent: #008080;
-	--abc-accent-bright: #00ffff;
-
-	/* 面と罫線。シアンをごく薄く効かせ、テーマの背景色に重ねて使います。 */
-	--abc-tint: rgba(0, 255, 255, .08);
-	--abc-border: rgba(0, 128, 128, .22);
-
-	/* 本文幅。初期値はテーマの本文幅をそのまま使います。
-	   このページだけ幅を絞りたい場合の例： --abc-width: 760px; */
-	--abc-width: 100%;
-
-	/* セクション間の余白と角丸 */
-	--abc-gap: 3.4em;
-	--abc-radius: 6px;
-
-	/* フォント・文字色・背景は指定しません（テーマから継承します） */
-	overflow-wrap: break-word;
-}
-
-.abc-symptom *,
-.abc-symptom *::before,
-.abc-symptom *::after {
-	box-sizing: border-box;
-}
-
-.abc-symptom__inner {
-	width: min(100%, var(--abc-width));
-	margin-inline: auto;
-}
-
-/* --------------------------------------------------------------------------
-   導入（冒頭）
-   -------------------------------------------------------------------------- */
-.abc-symptom__hero {
-	padding-bottom: 2em;
-}
-
-.abc-symptom__eyebrow {
-	margin: 0 0 .5em;
-	font-size: .85em;
-	opacity: .7;
-}
-
-/* テーマ側の h1 スタイルをそのまま活かし、余白だけ整えます */
-.abc-symptom__title {
-	margin: 0 0 .6em;
-}
-
-.abc-symptom__catch {
-	margin: 0 0 1em;
-	font-weight: 700;
-}
-
-.abc-symptom__lead {
-	margin: 1.4em 0 0;
-}
-
-/* 冒頭のお悩みの声 */
-.abc-symptom__voices {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-	display: grid;
-	gap: .6em;
-}
-
-.abc-symptom__voice {
-	position: relative;
-	padding: .7em 1.2em;
-	background: var(--abc-tint);
-	border: 1px solid var(--abc-border);
-	border-radius: 2em;
-	line-height: 1.6;
-}
-
-.abc-symptom__voice::before {
-	content: "";
-	position: absolute;
-	left: 2em;
-	bottom: -.45em;
-	width: .8em;
-	height: .8em;
-	background: var(--abc-tint);
-	border-right: 1px solid var(--abc-border);
-	border-bottom: 1px solid var(--abc-border);
-	transform: rotate(45deg);
-}
-
-/* --------------------------------------------------------------------------
-   セクション共通
-   セクションの区切りは背景色ではなく罫線で表現し、
-   ページ全体のトーンがテーマから離れないようにしています。
-   -------------------------------------------------------------------------- */
-.abc-symptom__section {
-	padding-block: var(--abc-gap);
-	border-top: 1px solid var(--abc-border);
-}
-
-/* テーマ側の h2 の見た目（サイズ・色・装飾）はそのまま活かします */
-.abc-symptom__heading {
-	margin-top: 0;
-	margin-bottom: .9em;
-}
-
-/* 見出しの上に添える通し番号 */
-.abc-symptom__step {
-	display: flex;
-	align-items: baseline;
-	gap: .5em;
-	margin-bottom: .5em;
-	font-size: .75em;
-	font-weight: 700;
-	letter-spacing: .08em;
-	opacity: .65;
-}
-
-.abc-symptom__step-num {
-	color: var(--abc-accent);
-	font-size: 1.3em;
-	line-height: 1;
-}
-
-.abc-symptom__step-text {
-	padding-left: .6em;
-	border-left: 1px solid currentColor;
-}
-
-.abc-symptom__text {
-	margin: 0 0 1.2em;
-}
-
-.abc-symptom__text--emphasis {
-	margin-top: 1.5em;
-	font-weight: 700;
-}
-
-/* 強調文の <strong> にシアンのマーカーを敷く。
-   文字色はテーマのまま／背面だけを塗るので、コントラストは落ちません。 */
-.abc-symptom__text--emphasis strong,
-.abc-symptom__lead strong {
-	background: linear-gradient(transparent 62%, var(--abc-accent-bright) 62%);
-}
-
-.abc-symptom__conclusion {
-	margin: 1.8em 0 0;
-	padding: 1em 1.3em;
-	border-left: 3px solid var(--abc-accent);
-	background: var(--abc-tint);
-	border-radius: 0 var(--abc-radius) var(--abc-radius) 0;
-	font-weight: 700;
-}
-
-.abc-symptom__note {
-	margin: 1.4em 0 0;
-	font-size: .875em;
-	opacity: .75;
-}
-
-/* --------------------------------------------------------------------------
-   ① 共感：チェックリスト
-   -------------------------------------------------------------------------- */
-.abc-symptom__checklist {
-	margin: 0;
-	padding: 1.4em 1.6em;
-	list-style: none;
-	border: 1px solid var(--abc-border);
-	border-radius: var(--abc-radius);
-	display: grid;
-	gap: .7em;
-}
-
-.abc-symptom__checklist li {
-	position: relative;
-	padding-left: 1.8em;
-}
-
-.abc-symptom__checklist li::before {
-	content: "";
-	position: absolute;
-	left: .1em;
-	top: .45em;
-	width: .9em;
-	height: .5em;
-	border-left: 2px solid var(--abc-accent);
-	border-bottom: 2px solid var(--abc-accent);
-	transform: rotate(-45deg);
-}
-
-/* --------------------------------------------------------------------------
-   ② 解説：原因カード
-   -------------------------------------------------------------------------- */
-.abc-symptom__cards {
-	display: grid;
-	gap: 1em;
-}
-
-.abc-symptom__card {
-	padding: 1.3em 1.5em;
-	background: var(--abc-tint);
-	border-radius: var(--abc-radius);
-}
-
-/* テーマ側の h3 の見た目を活かし、番号の配置だけ整えます */
-.abc-symptom__card-title {
-	display: flex;
-	align-items: baseline;
-	gap: .6em;
-	margin: 0 0 .5em;
-}
-
-.abc-symptom__card-num {
-	flex: none;
-	color: var(--abc-accent);
-	opacity: .8;
-}
-
-.abc-symptom__card-body {
-	margin: 0;
-}
-
-/* --------------------------------------------------------------------------
-   ③ 評価：番号付きリスト
-   -------------------------------------------------------------------------- */
-.abc-symptom__list {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-	counter-reset: abc-check;
-	display: grid;
-	gap: 0;
-}
-
-.abc-symptom__list-item {
-	counter-increment: abc-check;
-	padding: 1.2em 0;
-	border-bottom: 1px dashed var(--abc-border);
-}
-
-.abc-symptom__list-item:first-child {
-	padding-top: 0;
-}
-
-.abc-symptom__list-item:last-child {
-	border-bottom: 0;
-	padding-bottom: 0;
-}
-
-.abc-symptom__list-title {
-	display: flex;
-	align-items: baseline;
-	gap: .6em;
-	margin: 0 0 .4em;
-}
-
-.abc-symptom__list-title::before {
-	content: counter(abc-check);
-	flex: none;
-	color: var(--abc-accent);
-	opacity: .8;
-}
-
-.abc-symptom__list-body {
-	margin: 0;
-	padding-left: 1.4em;
-}
-
-/* --------------------------------------------------------------------------
-   ④ 方針：ステップ
-   -------------------------------------------------------------------------- */
-.abc-symptom__steps {
-	display: grid;
-	gap: 1.6em;
-}
-
-.abc-symptom__step-item {
-	position: relative;
-	padding-left: 1.6em;
-	border-left: 2px solid var(--abc-border);
-}
-
-.abc-symptom__step-item::before {
-	content: "";
-	position: absolute;
-	left: -.42em;
-	top: .35em;
-	width: .7em;
-	height: .7em;
-	background: var(--abc-accent);
-	border-radius: 50%;
-}
-
-.abc-symptom__step-badge {
-	display: inline-block;
-	margin-bottom: .3em;
-	font-size: .75em;
-	font-weight: 700;
-	letter-spacing: .08em;
-	color: var(--abc-accent);
-	opacity: .85;
-}
-
-.abc-symptom__step-title {
-	margin: 0 0 .4em;
-}
-
-.abc-symptom__step-body {
-	margin: 0;
-}
-
-/* --------------------------------------------------------------------------
-   ⑤ 実例
-   -------------------------------------------------------------------------- */
-.abc-symptom__cases {
-	display: grid;
-	gap: 1em;
-}
-
-.abc-symptom__case {
-	padding: 1.3em 1.5em;
-	background: var(--abc-tint);
-	border-radius: var(--abc-radius);
-}
-
-.abc-symptom__case-meta {
-	margin: 0 0 .4em;
-	font-size: .8em;
-	font-weight: 700;
-	opacity: .7;
-}
-
-.abc-symptom__case-title {
-	margin: 0 0 .4em;
-}
-
-.abc-symptom__case-body {
-	margin: 0;
-}
-
-/* --------------------------------------------------------------------------
-   ⑥ 専門性
-   -------------------------------------------------------------------------- */
-.abc-symptom__points {
-	margin: 1.5em 0 0;
-	padding: 1.4em 1.6em;
-	list-style: none;
-	border: 1px solid var(--abc-border);
-	border-radius: var(--abc-radius);
-	display: grid;
-	gap: .7em;
-}
-
-.abc-symptom__points li {
-	position: relative;
-	padding-left: 1.3em;
-}
-
-.abc-symptom__points li::before {
-	content: "";
-	position: absolute;
-	left: .15em;
-	top: .65em;
-	width: .45em;
-	height: .45em;
-	background: var(--abc-accent);
-	border-radius: 50%;
-}
-
-/* --------------------------------------------------------------------------
-   内部リンク（⑤・⑥共通）
-   テーマのボタンと競合しないよう、控えめなテキストリンク寄りの見た目にしています。
-   テーマにボタンスタイルがある場合は、そちらを使う方が統一感は出ます
-   （README「テーマのボタンを使う」参照）。
-   -------------------------------------------------------------------------- */
-.abc-symptom__linkbox {
-	margin: 1.8em 0 0;
-}
-
-.abc-symptom__link-button {
-	display: inline-flex;
-	align-items: center;
-	gap: .5em;
-	padding: .7em 1.6em;
-	border: 1px solid var(--abc-border);
-	border-radius: var(--abc-radius);
-	font-weight: 700;
-	text-decoration: none;
-}
-
-.abc-symptom__link-button::after {
-	content: "→";
-	line-height: 1;
-}
-
-.abc-symptom__link-button:hover,
-.abc-symptom__link-button:focus-visible {
-	border-color: var(--abc-accent);
-}
-
-/* --------------------------------------------------------------------------
-   ⑦ 行動：CTA
-   ページ全体を反転させる強い演出はやめ、囲みで区切る形にしています。
-   -------------------------------------------------------------------------- */
-.abc-symptom__section--cta > .abc-symptom__inner {
-	padding: 1.8em;
-	background: var(--abc-tint);
-	border: 1px solid var(--abc-border);
-	border-top: 3px solid var(--abc-accent-bright);
-	border-radius: var(--abc-radius);
-}
-
-.abc-symptom__price {
-	margin: 0 0 1.2em;
-	font-weight: 700;
-}
-
-.abc-symptom__price-note {
-	display: block;
-	margin-top: .2em;
-	font-size: .8em;
-	font-weight: 400;
-	opacity: .75;
-}
-
-.abc-symptom__buttons {
-	display: flex;
-	flex-wrap: wrap;
-	gap: .8em;
-}
-
-.abc-symptom__btn {
-	flex: 1 1 15em;
-	max-width: 26em;
-	padding: 1em 1.2em;
-	border: 1px solid var(--abc-border);
-	border-radius: var(--abc-radius);
-	text-align: center;
-	text-decoration: none;
-	color: inherit;
-}
-
-.abc-symptom__btn-label {
-	display: block;
-	font-size: .8em;
-	font-weight: 700;
-	opacity: .75;
-}
-
-.abc-symptom__btn-main {
-	display: block;
-	margin: .2em 0 .3em;
-	font-size: 1.25em;
-	font-weight: 700;
-	line-height: 1.3;
-}
-
-.abc-symptom__btn-note {
-	display: block;
-	font-size: .75em;
-	line-height: 1.6;
-	opacity: .75;
-}
-
-/* LINEボタンだけは、認知されているブランド色を使ったほうが押されやすいため
-   例外的に色を指定しています。 */
-.abc-symptom__btn--line {
-	background: #06c755;
-	border-color: #06c755;
-	color: #fff;
-}
-
-.abc-symptom__btn--line .abc-symptom__btn-label,
-.abc-symptom__btn--line .abc-symptom__btn-note {
-	opacity: .9;
-}
-
-.abc-symptom__info {
-	margin: 1.5em 0 0;
-	padding-top: 1.2em;
-	border-top: 1px solid var(--abc-border);
-	font-size: .9em;
-}
-
-.abc-symptom__info > div {
-	display: grid;
-	grid-template-columns: 6em 1fr;
-	gap: .2em 1em;
-	padding: .4em 0;
-}
-
-.abc-symptom__info dt {
-	font-weight: 700;
-	opacity: .75;
-}
-
-.abc-symptom__info dd {
-	margin: 0;
-}
-
-/* --------------------------------------------------------------------------
-   免責 / 管理者向け表示
-   -------------------------------------------------------------------------- */
-.abc-symptom__disclaimer {
-	margin: 0;
-	padding-block: 1.6em;
-	border-top: 1px solid var(--abc-border);
-	font-size: .8em;
-	opacity: .7;
-}
-
-.abc-symptom__admin-notice {
-	margin-top: 2em;
-	padding: 1em 1.2em;
-	border: 1px solid var(--abc-accent);
-	border-radius: var(--abc-radius);
-	font-size: .875em;
-}
-
-.abc-symptom--fallback {
-	padding-block: var(--abc-gap);
-}
-
-/* --------------------------------------------------------------------------
-   スマートフォン
-   -------------------------------------------------------------------------- */
-@media (max-width: 600px) {
-	.abc-symptom {
-		--abc-gap: 2.6em;
-	}
-
-	.abc-symptom__card,
-	.abc-symptom__case,
-	.abc-symptom__section--cta > .abc-symptom__inner {
-		padding: 1.1em 1.2em;
-	}
-
-	.abc-symptom__checklist,
-	.abc-symptom__points {
-		padding: 1.2em 1.3em;
-	}
-
-	.abc-symptom__info > div {
-		grid-template-columns: 1fr;
-	}
-
-	.abc-symptom__btn {
-		flex-basis: 100%;
-	}
-}
-
-/* ==========================================================================
-   【任意】もう少し見た目にメリハリを付けたい場合
-   下のブロックのコメントを外すと、セクションに背景色が付き、
-   ランディングページ寄りの印象になります。
-   他ページとの統一感より訴求力を優先したいときだけ有効にしてください。
-   --------------------------------------------------------------------------
-   .abc-symptom__section--empathy,
-   .abc-symptom__section--check,
-   .abc-symptom__section--expertise {
-       background: var(--abc-tint);
-       border-top: 0;
-   }
-
-   .abc-symptom__section--empathy .abc-symptom__checklist,
-   .abc-symptom__section--expertise .abc-symptom__points {
-       background: #fff;
-   }
-   ========================================================================== */
-
-</style>
-
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebPage","@id":"https://abc-chiro.net/kubikori-katakori/","url":"https://abc-chiro.net/kubikori-katakori/","name":"首こり・肩こり｜ABCカイロプラクティック整体院","description":"新潟市の整体・ABCカイロプラクティック整体院の首こり・肩こりのページ。首や肩だけでなく、AI姿勢分析で頭・肩の位置、背骨のバランス、骨盤の傾き、肩甲骨周囲の動きまで確認し、身体全体のバランスから整えます。","inLanguage":"ja"}]}</script>
 
 	<main class="abc-symptom post_content" id="abc-symptom">
 
-				<header class="abc-symptom__hero">
-			<div class="abc-symptom__inner">
-									<p class="abc-symptom__eyebrow">
+				<header>
+			<div>
+									<p>
 						新潟市の整体
 						ABCカイロプラクティック整体院					</p>
-					<h1 class="abc-symptom__title">
+					<h1>
 						首こり・肩こり					</h1>
-													<ul class="abc-symptom__voices">
-													<li class="abc-symptom__voice">首がいつも重い</li>
-													<li class="abc-symptom__voice">肩までガチガチになる</li>
-													<li class="abc-symptom__voice">マッサージしてもまた戻る</li>
-													<li class="abc-symptom__voice">デスクワークやスマホの後につらい</li>
+													<ul>
+													<li>首がいつも重い</li>
+													<li>肩までガチガチになる</li>
+													<li>マッサージしてもまた戻る</li>
+													<li>デスクワークやスマホの後につらい</li>
 											</ul>
 				
-													<p class="abc-symptom__lead">このような首こり・肩こりは、<strong>首や肩だけに負担の原因があるとは限りません。</strong></p>
+													<p>このような首こり・肩こりは、<strong>首や肩だけに負担の原因があるとは限りません。</strong></p>
 							</div>
 		</header>
 
-						<section class="abc-symptom__section abc-symptom__section--empathy" id="empathy">
-			<div class="abc-symptom__inner">
-				<h2 class="abc-symptom__heading">
-					<span class="abc-symptom__step"><span class="abc-symptom__step-num">01</span><span class="abc-symptom__step-text">悩み</span></span>					その首・肩のつらさ、「いつものこと」になっていませんか				</h2>
-									<p class="abc-symptom__text">当院には、次のようなお悩みでご相談にみえる方が多くいらっしゃいます。</p>
+						
+<hr>
+		<section id="empathy">
+			<div>
+				<h2>
+					<small>① 悩み</small><br>					その首・肩のつらさ、「いつものこと」になっていませんか				</h2>
+									<p>当院には、次のようなお悩みでご相談にみえる方が多くいらっしゃいます。</p>
 				
-				<ul class="abc-symptom__checklist">
+				<ul>
 											<li>朝、起きた時点ですでに首と肩が重い</li>
 											<li>夕方になると、肩が上がらないほど張ってくる</li>
 											<li>首を回すとゴリゴリと音が鳴り、動かせる範囲が狭くなってきた</li>
@@ -675,192 +76,195 @@
 											<li>「歳のせい」「デスクワークだから仕方ない」と言われ、あきらめかけている</li>
 									</ul>
 
-									<p class="abc-symptom__text abc-symptom__text--emphasis">
+									<p>
 						ひとつでも当てはまる方へ。首こり・肩こりは、<strong>こっている場所だけの問題ではないこと</strong>がほとんどです。					</p>
 							</div>
 		</section>
 		
-						<section class="abc-symptom__section abc-symptom__section--cause" id="cause">
-			<div class="abc-symptom__inner">
-				<h2 class="abc-symptom__heading">
-					<span class="abc-symptom__step"><span class="abc-symptom__step-num">02</span><span class="abc-symptom__step-text">原因・背景</span></span>					なぜ首こり・肩こりが起こる？				</h2>
-									<p class="abc-symptom__text">長時間のスマホやパソコン、猫背、肩甲骨周囲の動き、身体全体のバランスなど、さまざまな要素が関係します。ABCカイロでは、つらい部分だけを見るのではなく、姿勢や身体のバランスも確認します。</p>
+						
+<hr>
+		<section id="cause">
+			<div>
+				<h2>
+					<small>② 原因・背景</small><br>					なぜ首こり・肩こりが起こる？				</h2>
+									<p>長時間のスマホやパソコン、猫背、肩甲骨周囲の動き、身体全体のバランスなど、さまざまな要素が関係します。ABCカイロでは、つらい部分だけを見るのではなく、姿勢や身体のバランスも確認します。</p>
 				
-				<div class="abc-symptom__cards">
-											<div class="abc-symptom__card">
-							<h3 class="abc-symptom__card-title">
-								<span class="abc-symptom__card-num">1</span>
+				<div>
+											<div>
+							<h3>
+								<span>1.</span>
 								長時間のスマホ・パソコンで、頭が前に出る							</h3>
-							<p class="abc-symptom__card-body">成人の頭部の重さは、およそ5〜6kg。ボウリングの球ほどの重さがあります。この頭が背骨の真上に乗っていれば負担は最小限ですが、画面をのぞき込む時間が続いて前に出るほど、首の後ろと肩の筋肉は「引っ張られないよう耐え続ける」状態になります。</p>
+							<p>成人の頭部の重さは、およそ5〜6kg。ボウリングの球ほどの重さがあります。この頭が背骨の真上に乗っていれば負担は最小限ですが、画面をのぞき込む時間が続いて前に出るほど、首の後ろと肩の筋肉は「引っ張られないよう耐え続ける」状態になります。</p>
 						</div>
-											<div class="abc-symptom__card">
-							<h3 class="abc-symptom__card-title">
-								<span class="abc-symptom__card-num">2</span>
+											<div>
+							<h3>
+								<span>2.</span>
 								猫背によって、背中と首の位置が変わる							</h3>
-							<p class="abc-symptom__card-body">背中が丸まると、その上に乗る首は自然と前へ出ます。同時に胸まわりが広がりにくくなり呼吸が浅くなるため、本来は補助的な役割の首まわりの筋肉まで、呼吸のたびに働き続けることになります。</p>
+							<p>背中が丸まると、その上に乗る首は自然と前へ出ます。同時に胸まわりが広がりにくくなり呼吸が浅くなるため、本来は補助的な役割の首まわりの筋肉まで、呼吸のたびに働き続けることになります。</p>
 						</div>
-											<div class="abc-symptom__card">
-							<h3 class="abc-symptom__card-title">
-								<span class="abc-symptom__card-num">3</span>
+											<div>
+							<h3>
+								<span>3.</span>
 								肩甲骨周囲が動かなくなる							</h3>
-							<p class="abc-symptom__card-body">肩が内側に入ると、肩甲骨は外に開いたまま固定されます。すると本来なめらかに動くはずの肩甲骨まわりの筋肉が、伸ばされたまま緊張し続けることに。「もんでもゆるまない」感覚の正体は、この状態であることが少なくありません。</p>
+							<p>肩が内側に入ると、肩甲骨は外に開いたまま固定されます。すると本来なめらかに動くはずの肩甲骨まわりの筋肉が、伸ばされたまま緊張し続けることに。「もんでもゆるまない」感覚の正体は、この状態であることが少なくありません。</p>
 						</div>
-											<div class="abc-symptom__card">
-							<h3 class="abc-symptom__card-title">
-								<span class="abc-symptom__card-num">4</span>
+											<div>
+							<h3>
+								<span>4.</span>
 								身体全体のバランス（骨盤・背骨）が崩れている							</h3>
-							<p class="abc-symptom__card-body">土台である骨盤が後ろに傾くと、背中は丸まり、首はさらに前へ出ます。つまり首・肩の負担は、<strong>座り方や骨盤の状態から始まっている</strong>ことが多いのです。首だけを緩めても戻ってしまうのは、この土台が変わっていないためです。</p>
+							<p>土台である骨盤が後ろに傾くと、背中は丸まり、首はさらに前へ出ます。つまり首・肩の負担は、<strong>座り方や骨盤の状態から始まっている</strong>ことが多いのです。首だけを緩めても戻ってしまうのは、この土台が変わっていないためです。</p>
 						</div>
-											<div class="abc-symptom__card">
-							<h3 class="abc-symptom__card-title">
-								<span class="abc-symptom__card-num">5</span>
+											<div>
+							<h3>
+								<span>5.</span>
 								日常生活・身体の使い方の癖							</h3>
-							<p class="abc-symptom__card-body">片側だけで持つ荷物、合わない寝具、脚を組む癖、冷え、緊張の続く時間。ひとつひとつは小さくても、毎日続くことで身体の使い方に癖が定着していきます。</p>
+							<p>片側だけで持つ荷物、合わない寝具、脚を組む癖、冷え、緊張の続く時間。ひとつひとつは小さくても、毎日続くことで身体の使い方に癖が定着していきます。</p>
 						</div>
 									</div>
 
-									<p class="abc-symptom__conclusion">
+									<p>
 						こっている筋肉は「原因」ではなく、多くの場合「結果」です。<br>だからこそ、つらい部分だけをゆるめても戻ってしまいます。					</p>
 							</div>
 		</section>
 		
-						<section class="abc-symptom__section abc-symptom__section--check" id="check">
-			<div class="abc-symptom__inner">
-				<h2 class="abc-symptom__heading">
-					<span class="abc-symptom__step"><span class="abc-symptom__step-num">03</span><span class="abc-symptom__step-text">ABCは何を見る？</span></span>					ABCでは何を確認する？				</h2>
-									<p class="abc-symptom__text">当院では、いきなり施術を始めることはありません。まず「なぜ、あなたの首と肩に負担が集まっているのか」を、次の項目から確認します。</p>
+						
+<hr>
+		<section id="check">
+			<div>
+				<h2>
+					<small>③ ABCは何を見る？</small><br>					ABCでは何を確認する？				</h2>
+									<p>当院では、いきなり施術を始めることはありません。まず「なぜ、あなたの首と肩に負担が集まっているのか」を、次の項目から確認します。</p>
 				
-				<ol class="abc-symptom__list">
-											<li class="abc-symptom__list-item">
-							<h3 class="abc-symptom__list-title">AI姿勢分析</h3>
-							<p class="abc-symptom__list-body">姿勢を撮影し、頭・肩・骨盤の位置のズレを画像で見える化します。感覚や主観ではなく記録として残るため、いまの状態と、その後の変化を並べて確認できます。</p>
+				<ol>
+											<li>
+							<h3>AI姿勢分析</h3>
+							<p>姿勢を撮影し、頭・肩・骨盤の位置のズレを画像で見える化します。感覚や主観ではなく記録として残るため、いまの状態と、その後の変化を並べて確認できます。</p>
 						</li>
-											<li class="abc-symptom__list-item">
-							<h3 class="abc-symptom__list-title">頭・肩の位置</h3>
-							<p class="abc-symptom__list-body">頭が身体の中心線からどれだけ前に出ているか、左右の肩の高さに差がないかを確認します。首・肩にかかる負担の大きさは、ここで大きく変わります。</p>
+											<li>
+							<h3>頭・肩の位置</h3>
+							<p>頭が身体の中心線からどれだけ前に出ているか、左右の肩の高さに差がないかを確認します。首・肩にかかる負担の大きさは、ここで大きく変わります。</p>
 						</li>
-											<li class="abc-symptom__list-item">
-							<h3 class="abc-symptom__list-title">背骨のバランス</h3>
-							<p class="abc-symptom__list-body">背骨は本来ゆるやかなS字カーブを描いています。そのカーブがどう変化しているか、どの高さで動きが硬くなっているかを確認します。</p>
+											<li>
+							<h3>背骨のバランス</h3>
+							<p>背骨は本来ゆるやかなS字カーブを描いています。そのカーブがどう変化しているか、どの高さで動きが硬くなっているかを確認します。</p>
 						</li>
-											<li class="abc-symptom__list-item">
-							<h3 class="abc-symptom__list-title">骨盤の傾き</h3>
-							<p class="abc-symptom__list-body">身体の土台にあたる骨盤が、前後左右のどちらに傾いているかを確認します。首から遠い場所ですが、首・肩の負担につながっているケースは珍しくありません。</p>
+											<li>
+							<h3>骨盤の傾き</h3>
+							<p>身体の土台にあたる骨盤が、前後左右のどちらに傾いているかを確認します。首から遠い場所ですが、首・肩の負担につながっているケースは珍しくありません。</p>
 						</li>
-											<li class="abc-symptom__list-item">
-							<h3 class="abc-symptom__list-title">肩甲骨周囲の動き</h3>
-							<p class="abc-symptom__list-body">腕を上げる、回すといった動作のなかで、肩甲骨がどこまで動いているかを確認します。ここが動いていないと、首だけで動きを補うことになります。</p>
+											<li>
+							<h3>肩甲骨周囲の動き</h3>
+							<p>腕を上げる、回すといった動作のなかで、肩甲骨がどこまで動いているかを確認します。ここが動いていないと、首だけで動きを補うことになります。</p>
 						</li>
-											<li class="abc-symptom__list-item">
-							<h3 class="abc-symptom__list-title">日常生活や身体の使い方</h3>
-							<p class="abc-symptom__list-body">お仕事の姿勢、スマホを見る時間、睡眠環境、つらさが強くなる時間帯をうかがいます。「夕方だけつらい」と「朝がつらい」では、負担のかかり方が違います。</p>
+											<li>
+							<h3>日常生活や身体の使い方</h3>
+							<p>お仕事の姿勢、スマホを見る時間、睡眠環境、つらさが強くなる時間帯をうかがいます。「夕方だけつらい」と「朝がつらい」では、負担のかかり方が違います。</p>
 						</li>
 									</ol>
 
-									<p class="abc-symptom__conclusion">
+									<p>
 						確認した内容は、その場で一緒に見ながらご説明します。<br>「その場の気持ちよさ」ではなく、「戻りにくい状態」を目指すために、まず現状を知るところから始めています。					</p>
 							</div>
 		</section>
 		
-						<section class="abc-symptom__section abc-symptom__section--policy" id="policy">
-			<div class="abc-symptom__inner">
-				<h2 class="abc-symptom__heading">
-					<span class="abc-symptom__step"><span class="abc-symptom__step-num">04</span><span class="abc-symptom__step-text">どう施術する？</span></span>					土台から整え、首と肩に負担を集めない身体へ				</h2>
-									<p class="abc-symptom__text">確認した内容をもとに、次の流れで進めていきます。</p>
+						
+<hr>
+		<section id="policy">
+			<div>
+				<h2>
+					<small>④ どう施術する？</small><br>					土台から整え、首と肩に負担を集めない身体へ				</h2>
+									<p>確認した内容をもとに、次の流れで進めていきます。</p>
 				
-				<div class="abc-symptom__steps">
-											<div class="abc-symptom__step-item">
-							<div class="abc-symptom__step-badge">STEP 1</div>
-							<div class="abc-symptom__step-content">
-								<h3 class="abc-symptom__step-title">まず、首・肩まわりの緊張をゆるめる</h3>
-								<p class="abc-symptom__step-body">張りが強いままでは、身体は正しい位置に動いてくれません。はじめに首から背中にかけての緊張をやわらげ、次の調整を受け入れられる状態をつくります。</p>
+				<div>
+											<div>
+							<div>STEP 1</div>
+							<div>
+								<h3>まず、首・肩まわりの緊張をゆるめる</h3>
+								<p>張りが強いままでは、身体は正しい位置に動いてくれません。はじめに首から背中にかけての緊張をやわらげ、次の調整を受け入れられる状態をつくります。</p>
 							</div>
 						</div>
-											<div class="abc-symptom__step-item">
-							<div class="abc-symptom__step-badge">STEP 2</div>
-							<div class="abc-symptom__step-content">
-								<h3 class="abc-symptom__step-title">骨盤と背骨のバランスを整える</h3>
-								<p class="abc-symptom__step-body">身体の土台である骨盤、そしてその上に積み重なる背骨のバランスを調整します。土台が整うと、頭が自然と背骨の上に乗りやすくなり、首が支える重さそのものが軽くなっていきます。</p>
+											<div>
+							<div>STEP 2</div>
+							<div>
+								<h3>骨盤と背骨のバランスを整える</h3>
+								<p>身体の土台である骨盤、そしてその上に積み重なる背骨のバランスを調整します。土台が整うと、頭が自然と背骨の上に乗りやすくなり、首が支える重さそのものが軽くなっていきます。</p>
 							</div>
 						</div>
-											<div class="abc-symptom__step-item">
-							<div class="abc-symptom__step-badge">STEP 3</div>
-							<div class="abc-symptom__step-content">
-								<h3 class="abc-symptom__step-title">肩甲骨・胸まわりの動きを取り戻す</h3>
-								<p class="abc-symptom__step-body">固まった肩甲骨と胸郭の動きを引き出し、腕や肩の動作を「首だけで支えない」状態に近づけます。呼吸のしやすさも一緒に変わっていきます。</p>
+											<div>
+							<div>STEP 3</div>
+							<div>
+								<h3>肩甲骨・胸まわりの動きを取り戻す</h3>
+								<p>固まった肩甲骨と胸郭の動きを引き出し、腕や肩の動作を「首だけで支えない」状態に近づけます。呼吸のしやすさも一緒に変わっていきます。</p>
 							</div>
 						</div>
-											<div class="abc-symptom__step-item">
-							<div class="abc-symptom__step-badge">STEP 4</div>
-							<div class="abc-symptom__step-content">
-								<h3 class="abc-symptom__step-title">戻りにくくするための習慣を一緒に整える</h3>
-								<p class="abc-symptom__step-body">施術室を出たあとの時間のほうが、圧倒的に長いものです。デスクや椅子の高さ、座り方、スマートフォンの見方、寝るときの姿勢、1分でできるセルフケアを、生活に合わせてお伝えします。</p>
+											<div>
+							<div>STEP 4</div>
+							<div>
+								<h3>戻りにくくするための習慣を一緒に整える</h3>
+								<p>施術室を出たあとの時間のほうが、圧倒的に長いものです。デスクや椅子の高さ、座り方、スマートフォンの見方、寝るときの姿勢、1分でできるセルフケアを、生活に合わせてお伝えします。</p>
 							</div>
 						</div>
 									</div>
 
-									<p class="abc-symptom__note">※当院では、力任せの矯正やボキボキと大きな音を鳴らす施術は行いません。ご年配の方、女性、整体がはじめての方にも受けていただけるソフトな方法で進めます。<br>※お身体の状態によって進め方は変わります。効果の感じ方や必要な回数には個人差があります。</p>
+									<p>※当院では、力任せの矯正やボキボキと大きな音を鳴らす施術は行いません。ご年配の方、女性、整体がはじめての方にも受けていただけるソフトな方法で進めます。<br>※お身体の状態によって進め方は変わります。効果の感じ方や必要な回数には個人差があります。</p>
 							</div>
 		</section>
 		
-						<section class="abc-symptom__section abc-symptom__section--cases" id="cases">
-			<div class="abc-symptom__inner">
-				<h2 class="abc-symptom__heading">
-					<span class="abc-symptom__step"><span class="abc-symptom__step-num">05</span><span class="abc-symptom__step-text">実例</span></span>					実際に、こんな変化がありました				</h2>
-									<p class="abc-symptom__text">当院で首こり・肩こりのご相談を受けたお客様の経過を、症例ページで紹介しています。ご自身に近い状況の方がいるかどうか、探してみてください。</p>
+						
+<hr>
+		<section id="cases">
+			<div>
+				<h2>
+					<small>⑤ 実例</small><br>					実際に、こんな変化がありました				</h2>
+									<p>当院で首こり・肩こりのご相談を受けたお客様の経過を、症例ページで紹介しています。ご自身に近い状況の方がいるかどうか、探してみてください。</p>
 				
 				
-													<p class="abc-symptom__linkbox">
-						<a class="abc-symptom__link-button" href="https://abc-chiro.net/case/">
+													<p>
+						<a href="https://abc-chiro.net/case/">
 							首こり・肩こりの症例を見る						</a>
 					</p>
 				
-				<p class="abc-symptom__note">※効果の感じ方や必要な回数には個人差があります。</p>
+				<p>※効果の感じ方や必要な回数には個人差があります。</p>
 			</div>
 		</section>
 		
-						<section class="abc-symptom__section abc-symptom__section--expertise" id="expertise">
-			<div class="abc-symptom__inner">
-				<h2 class="abc-symptom__heading">
-					<span class="abc-symptom__step"><span class="abc-symptom__step-num">06</span><span class="abc-symptom__step-text">専門性</span></span>					根本にあるのは、やはり「姿勢」です				</h2>
-									<p class="abc-symptom__text">ここまでお読みいただいて気づかれたかもしれませんが、首こり・肩こりの原因をたどっていくと、その多くが<strong>姿勢の癖</strong>に行き着きます。頭の位置、背中の丸まり、骨盤の傾き。これらはすべてつながっています。</p>
-									<p class="abc-symptom__text">当院が姿勢改善に力を入れているのは、姿勢が変われば、首と肩にかかる負担そのものが減っていくからです。こりを取ることと、こりにくい身体をつくることは、別の作業です。</p>
+						
+<hr>
+		<section id="expertise">
+			<div>
+				<h2>
+					<small>⑥ 専門性</small><br>					根本にあるのは、やはり「姿勢」です				</h2>
+									<p>ここまでお読みいただいて気づかれたかもしれませんが、首こり・肩こりの原因をたどっていくと、その多くが<strong>姿勢の癖</strong>に行き着きます。頭の位置、背中の丸まり、骨盤の傾き。これらはすべてつながっています。</p>
+									<p>当院が姿勢改善に力を入れているのは、姿勢が変われば、首と肩にかかる負担そのものが減っていくからです。こりを取ることと、こりにくい身体をつくることは、別の作業です。</p>
 				
-									<ul class="abc-symptom__points">
+									<ul>
 													<li>AI姿勢分析で変化を記録し、その場の変化で終わらせない</li>
 													<li>座り方・立ち方・スマートフォンの見方まで、生活単位で見直す</li>
 													<li>ご自宅で続けられる、簡単なセルフケアをお渡しする</li>
 											</ul>
 				
-													<p class="abc-symptom__linkbox">
-						<a class="abc-symptom__link-button" href="https://abc-chiro.net/posture/">
+													<p>
+						<a href="https://abc-chiro.net/posture/">
 							姿勢改善への取り組みを詳しく見る						</a>
 					</p>
 							</div>
 		</section>
 		
-				<section class="abc-symptom__section abc-symptom__section--cta" id="reserve">
-			<div class="abc-symptom__inner">
-				<h2 class="abc-symptom__heading">
-					<span class="abc-symptom__step"><span class="abc-symptom__step-num">07</span><span class="abc-symptom__step-text">ご予約</span></span>					まずは、いまの状態を知るところから				</h2>
-									<p class="abc-symptom__text">「これくらいで行っていいのかな」という段階でも大丈夫です。<br>何が原因で首と肩に負担が集まっているのかを知るだけでも、これからの向き合い方は変わります。ご予約・ご相談はLINEからお受けしています。</p>
+				
+<hr>
+		<section id="reserve">
+			<div>
+				<h2>
+					<small>⑦ ご予約</small><br>					まずは、いまの状態を知るところから				</h2>
+									<p>「これくらいで行っていいのかな」という段階でも大丈夫です。<br>何が原因で首と肩に負担が集まっているのかを知るだけでも、これからの向き合い方は変わります。ご予約・ご相談はLINEからお受けしています。</p>
 				
 				
-				<div class="abc-symptom__buttons">
-					
-											<a class="abc-symptom__btn abc-symptom__btn--line" href="https://lin.ee/VG1WL3J" target="_blank" rel="noopener">
-							<span class="abc-symptom__btn-label">LINEで予約・相談</span>
-							<span class="abc-symptom__btn-main">LINEを開く</span>
-							<span class="abc-symptom__btn-note">24時間受付・ご相談だけでも大丈夫です</span>
-						</a>
-					
-									</div>
-
+				<div class="wp-block-buttons"><div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://lin.ee/VG1WL3J" target="_blank" rel="noopener">LINEで予約・相談する</a></div></div><p><small>24時間受付・ご相談だけでも大丈夫です</small></p>
 							</div>
 		</section>
 
-					<p class="abc-symptom__disclaimer">
-				<span class="abc-symptom__inner">当院は医療機関ではありません。施術は治療・診断を目的とするものではなく、効果の感じ方や必要な回数には個人差があります。強い痛みやしびれ、発熱をともなう場合は、まず医療機関の受診をおすすめします。</span>
+					<p>
+				<span>当院は医療機関ではありません。施術は治療・診断を目的とするものではなく、効果の感じ方や必要な回数には個人差があります。強い痛みやしびれ、発熱をともなう場合は、まず医療機関の受診をおすすめします。</span>
 			</p>
 		
 	</main>
