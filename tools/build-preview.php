@@ -12,6 +12,7 @@
  *
  * 書き出されるもの:
  *   preview/〇〇.html   ブラウザで表示を確認するためのHTML
+ *   paste/〇〇.html     クラシックエディタの本文に貼り付けるHTML
  */
 
 declare( strict_types = 1 );
@@ -209,11 +210,17 @@ function abc_preview_tidy( $html ) {
 		$out .= $doc->saveHTML( $child );
 	}
 
-	// インデント・連続する空白・空行をたたむ
-	$out = preg_replace( '/[ \t]*\R[ \t]*/u', "\n", $out );
-	$out = preg_replace( '/[ \t]{2,}/u', ' ', $out );
+	/*
+	 * クラシックエディタは本文を自動整形します（wpautop）。その際、
+	 *   ・空行があると <p> が勝手に差し込まれる
+	 *   ・文中の改行が <br /> に変換される
+	 * ため、次の形に整えて事故を防ぎます。
+	 *   ・空行をなくす
+	 *   ・改行はタグとタグの境目にだけ置き、文の途中には入れない
+	 */
+	$out = preg_replace( '/\s+/u', ' ', $out );        // すべての空白を1つの半角スペースに
+	$out = preg_replace( '/>\s+</u', ">\n<", $out );   // タグの境目だけ改行する
 	$out = preg_replace( '/\s+(<\/(?:p|h[1-6]|li|dt|dd|small|strong|a)>)/u', '$1', $out );
-	$out = preg_replace( '/\n{2,}/u', "\n", $out );
 
 	return trim( $out );
 }
@@ -239,8 +246,12 @@ if ( empty( $targets ) ) {
 	}
 }
 
-if ( ! is_dir( $output_dir ) ) {
-	mkdir( $output_dir, 0755, true );
+$paste_dir = __DIR__ . '/../paste';
+
+foreach ( array( $output_dir, $paste_dir ) as $dir ) {
+	if ( ! is_dir( $dir ) ) {
+		mkdir( $dir, 0755, true );
+	}
 }
 
 foreach ( $targets as $slug ) {
@@ -255,4 +266,11 @@ foreach ( $targets as $slug ) {
 
 	file_put_contents( $output_dir . '/' . $slug . '.html', $html );
 	printf( "preview/%s.html  （表示確認用 / %d bytes）\n", $slug, strlen( $html ) );
+
+	// クラシックエディタの本文に貼り付ける用（PHPを触らずに設置する場合）
+	if ( preg_match( '#<section class="content_full">.*</section>#s', $html, $m ) ) {
+		$fragment = abc_preview_tidy( $m[0] ) . "\n";
+		file_put_contents( $paste_dir . '/' . $slug . '.html', $fragment );
+		printf( "paste/%s.html        （本文貼り付け用 / %d bytes）\n", $slug, strlen( $fragment ) );
+	}
 }
