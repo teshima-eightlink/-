@@ -76,6 +76,14 @@ get_header();
 				<h1 class="abc-symptom__title">
 					<?php echo esc_html( abc_symptom_get( $abc_data, 'title', get_the_title() ) ); ?>
 				</h1>
+				<?php if ( abc_symptom_get( $abc_data, 'hero.voices', array() ) ) : ?>
+					<ul class="abc-symptom__voices">
+						<?php foreach ( $abc_data['hero']['voices'] as $abc_voice ) : ?>
+							<li class="abc-symptom__voice"><?php echo esc_html( $abc_voice ); ?></li>
+						<?php endforeach; ?>
+					</ul>
+				<?php endif; ?>
+
 				<?php if ( abc_symptom_get( $abc_data, 'hero.catch' ) ) : ?>
 					<p class="abc-symptom__catch"><?php echo esc_html( $abc_data['hero']['catch'] ); ?></p>
 				<?php endif; ?>

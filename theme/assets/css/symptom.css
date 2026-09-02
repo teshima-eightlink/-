@@ -75,6 +75,51 @@
 	border-radius: 2px;
 }
 
+.abc-symptom__voices {
+	margin: 28px auto 0;
+	padding: 0;
+	list-style: none;
+	max-width: 660px;
+	display: grid;
+	gap: 12px;
+}
+
+.abc-symptom__voice {
+	position: relative;
+	padding: 14px 22px;
+	background: #fff;
+	border: 1px solid var(--abc-border);
+	border-radius: 100px;
+	text-align: left;
+	font-size: clamp(0.9375rem, 2.6vw, 1.0625rem);
+	font-weight: 500;
+	line-height: 1.6;
+	box-shadow: 0 2px 8px rgba(31, 111, 139, .06);
+}
+
+.abc-symptom__voice::before {
+	content: "";
+	position: absolute;
+	left: 34px;
+	bottom: -9px;
+	width: 14px;
+	height: 14px;
+	background: #fff;
+	border-right: 1px solid var(--abc-border);
+	border-bottom: 1px solid var(--abc-border);
+	transform: rotate(45deg);
+}
+
+/* 吹き出しを左右交互に少しずらして、会話らしい見た目にする */
+.abc-symptom__voice:nth-child(even) {
+	margin-left: auto;
+	width: min(100%, 92%);
+}
+
+.abc-symptom__voice:nth-child(odd) {
+	width: min(100%, 92%);
+}
+
 .abc-symptom__catch {
 	margin: 24px 0 0;
 	font-size: clamp(1.0625rem, 3vw, 1.375rem);
@@ -480,15 +525,19 @@
 	opacity: .8;
 }
 
+/* ボタンが1つでも3つでも収まるよう、中央寄せの折り返しレイアウトにする */
 .abc-symptom__buttons {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
 	gap: 14px;
 }
 
 .abc-symptom__btn {
+	flex: 1 1 260px;
+	max-width: 420px;
 	display: block;
-	padding: 20px 18px;
+	padding: 22px 18px;
 	background: #fff;
 	border-radius: var(--abc-radius);
 	color: var(--abc-main-dark);
