@@ -22,6 +22,10 @@
 	--symptom-accent: #008080;
 	--symptom-accent-bright: #00ffff;
 	--symptom-tint: rgba(0, 255, 255, .08);
+
+	/* 吹き出しは半透明だと、しっぽとの重なりや枠線の継ぎ目が見えてしまうため、
+	   不透明色で塗って一体に見せています。 */
+	--symptom-bubble: #e9fafb;
 	--symptom-border: rgba(0, 128, 128, .22);
 	--symptom-radius: 6px;
 }
@@ -39,29 +43,31 @@
 	list-style: none;
 	display: flex;
 	flex-wrap: wrap;
-	gap: .6em;
+	/* 縦は、下の段にしっぽが当たらないよう広めに取る */
+	row-gap: 1.1em;
+	column-gap: .6em;
 	justify-content: center;
 }
 
 .symptom__voice {
 	position: relative;
 	padding: .55em 1.4em;
-	background: var(--symptom-tint);
-	border: 1px solid var(--symptom-border);
+	background: var(--symptom-bubble);
 	border-radius: 2em;
 	font-weight: 700;
 }
 
+/* しっぽは本体と同じ塗りの正方形を回転させたもの。
+   枠線を持たせないことで、本体との境目が出ません。 */
 .symptom__voice::after {
 	content: "";
 	position: absolute;
-	left: 1.6em;
-	bottom: -.42em;
-	width: .7em;
-	height: .7em;
-	background: var(--symptom-tint);
-	border-right: 1px solid var(--symptom-border);
-	border-bottom: 1px solid var(--symptom-border);
+	left: 1.5em;
+	bottom: -.3em;
+	width: .8em;
+	height: .8em;
+	background: var(--symptom-bubble);
+	border-radius: 0 0 .12em 0;
 	transform: rotate(45deg);
 }
 
