@@ -69,13 +69,22 @@ get_header();
 		 * ====================================================== */ ?>
 		<header class="abc-symptom__hero">
 			<div class="abc-symptom__inner">
-				<p class="abc-symptom__eyebrow">
-					<?php echo esc_html( abc_symptom_get( $abc_clinic, 'area', '' ) ); ?>の整体
-					<?php echo esc_html( abc_symptom_get( $abc_clinic, 'name', '' ) ); ?>
-				</p>
-				<h1 class="abc-symptom__title">
-					<?php echo esc_html( abc_symptom_get( $abc_data, 'title', get_the_title() ) ); ?>
-				</h1>
+				<?php
+				/*
+				 * テーマ側がページタイトルを自動で表示する場合、ここで出すと h1 が
+				 * 二重になります。その場合は原稿ファイルで 'show_title' => false に
+				 * してください（見出しと院名の行だけが出力されなくなります）。
+				 */
+				if ( false !== abc_symptom_get( $abc_data, 'hero.show_title', true ) ) :
+					?>
+					<p class="abc-symptom__eyebrow">
+						<?php echo esc_html( abc_symptom_get( $abc_clinic, 'area', '' ) ); ?>の整体
+						<?php echo esc_html( abc_symptom_get( $abc_clinic, 'name', '' ) ); ?>
+					</p>
+					<h1 class="abc-symptom__title">
+						<?php echo esc_html( abc_symptom_get( $abc_data, 'title', get_the_title() ) ); ?>
+					</h1>
+				<?php endif; ?>
 				<?php if ( abc_symptom_get( $abc_data, 'hero.voices', array() ) ) : ?>
 					<ul class="abc-symptom__voices">
 						<?php foreach ( $abc_data['hero']['voices'] as $abc_voice ) : ?>

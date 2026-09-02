@@ -121,6 +121,12 @@ function apply_filters( $hook, $value ) {
 
 function get_header() {
 	$title = esc_html( get_the_title() );
+
+	/*
+	 * ここで出しているフォント・見出し・リンク色は「テーマ側のスタイルの代わり」です。
+	 * 症状ページのCSSはこれらを一切上書きせず、そのまま受け継ぐ設計になっています。
+	 * 実サイトでは、この部分が実際のテーマのスタイルに置き換わります。
+	 */
 	echo <<<HTML
 <!doctype html>
 <html lang="ja">
@@ -129,21 +135,38 @@ function get_header() {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{$title}｜ABCカイロプラクティック整体院（プレビュー）</title>
 <style>
-	body { margin: 0; }
+	/* ▼ テーマ側のスタイルの代役（症状ページCSSはここに一切干渉しません） */
+	body {
+		margin: 0;
+		color: #333;
+		background: #fff;
+		font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
+		font-size: 16px;
+		line-height: 1.9;
+	}
+	h1 { font-size: 1.9rem; line-height: 1.45; }
+	h2 { font-size: 1.45rem; line-height: 1.5; }
+	h3 { font-size: 1.05rem; line-height: 1.6; }
+	a  { color: #1f6f8b; }
+	.theme-frame { padding: 0 20px; }
+	.theme-frame > * { max-width: 860px; margin-inline: auto; }
+	/* ▲ ここまでが仮テーマ */
+
 	.preview-bar {
 		position: sticky; top: 0; z-index: 99;
 		padding: 8px 16px; background: #333b42; color: #fff;
-		font: 13px/1.6 -apple-system, "Hiragino Sans", sans-serif;
+		font-size: 13px; line-height: 1.6;
 	}
 </style>
 </head>
 <body>
-<div class="preview-bar">表示確認用プレビューです。ヘッダー・フッターは実際のテーマのものに置き換わります。</div>
+<div class="preview-bar">表示確認用プレビューです。フォント・文字サイズ・見出し・リンク色は「仮テーマ」のもので、実サイトではテーマのスタイルをそのまま受け継ぎます。</div>
+<div class="theme-frame">
 HTML;
 }
 
 function get_footer() {
-	echo "\n</body>\n</html>\n";
+	echo "\n</div>\n</body>\n</html>\n";
 }
 
 /* ------------------------------------------------------------------
