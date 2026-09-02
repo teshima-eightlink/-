@@ -144,10 +144,12 @@ function get_header() {
 		font-size: 16px;
 		line-height: 1.9;
 	}
-	h1 { font-size: 1.9rem; line-height: 1.45; }
-	h2 { font-size: 1.45rem; line-height: 1.5; }
-	h3 { font-size: 1.05rem; line-height: 1.6; }
-	a  { color: #1f6f8b; }
+	/* テーマ（TCD系）が本文エリアのクラス配下にだけ書式を当てる想定を再現 */
+	.post_content h1 { font-size: 1.9rem; line-height: 1.45; }
+	.post_content h2 { font-size: 1.45rem; line-height: 1.5; }
+	.post_content h3 { font-size: 1.05rem; line-height: 1.6; }
+	.post_content p  { margin: 0 0 1.6em; }
+	a  { color: #008080; }
 	.theme-frame { padding: 0 20px; }
 	.theme-frame > * { max-width: 860px; margin-inline: auto; }
 	/* ▲ ここまでが仮テーマ */

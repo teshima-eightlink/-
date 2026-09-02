@@ -60,9 +60,15 @@ get_header();
 	$abc_clinic = $abc_config['clinic'];
 	$abc_cta    = $abc_config['cta'];
 	$abc_links  = $abc_config['links'];
+
+	// テーマの本文スタイルを継承するためのクラス（inc/symptom-config.php で設定）
+	$abc_classes = 'abc-symptom';
+	if ( abc_symptom_get( $abc_config, 'theme.content_class' ) ) {
+		$abc_classes .= ' ' . esc_attr( $abc_config['theme']['content_class'] );
+	}
 	?>
 
-	<main class="abc-symptom" id="abc-symptom">
+	<main class="<?php echo esc_attr( $abc_classes ); ?>" id="abc-symptom">
 
 		<?php /* =========================================================
 		 * ヒーロー（ページ導入）

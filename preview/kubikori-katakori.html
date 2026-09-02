@@ -14,10 +14,12 @@
 		font-size: 16px;
 		line-height: 1.9;
 	}
-	h1 { font-size: 1.9rem; line-height: 1.45; }
-	h2 { font-size: 1.45rem; line-height: 1.5; }
-	h3 { font-size: 1.05rem; line-height: 1.6; }
-	a  { color: #1f6f8b; }
+	/* テーマ（TCD系）が本文エリアのクラス配下にだけ書式を当てる想定を再現 */
+	.post_content h1 { font-size: 1.9rem; line-height: 1.45; }
+	.post_content h2 { font-size: 1.45rem; line-height: 1.5; }
+	.post_content h3 { font-size: 1.05rem; line-height: 1.6; }
+	.post_content p  { margin: 0 0 1.6em; }
+	a  { color: #008080; }
 	.theme-frame { padding: 0 20px; }
 	.theme-frame > * { max-width: 860px; margin-inline: auto; }
 	/* ▲ ここまでが仮テーマ */
@@ -46,22 +48,31 @@
                       リンク色、本文の横幅
      ここで決める   … セクションの並び、余白、箱組み（カード・リスト・ステップ）
 
-   初期状態のアクセントカラーは currentColor（＝テーマの文字色）です。
-   そのため、何も設定しなければ配色はテーマのままになります。
-   ブランドカラーに合わせたい場合のみ、下の --abc-accent を1行変えてください。
+   アクセントカラーは、サイトのテーマカラー cyan に合わせてあります。
+   ただし #00ffff をそのまま文字や線に使うと読めないため、用途で色を分けています
+   （詳しくは下の変数のコメントを参照）。
    ========================================================================== */
 
 .abc-symptom {
 	/* ---- ここだけ調整すれば全ページに反映されます ---- */
 
-	/* アクセント色。初期値はテーマの文字色。
-	   ブランドカラーに合わせる場合の例： --abc-accent: #1f6f8b; */
-	--abc-accent: currentColor;
+	/* ---- アクセントカラー（サイトのテーマカラー cyan に合わせています） ----
+	 *
+	 * サイトのテーマカラー #00ffff は、白背景に対するコントラスト比が 1.25:1 しかなく、
+	 * 文字・アイコン・細い線に使うと読めません（WCAG AAの本文基準は 4.5:1）。
+	 * そのため用途で2つに分けています。色相はどちらも 180°（純粋なシアン）のままです。
+	 *
+	 *   --abc-accent        #008080  … 文字・番号・チェック・点など「意味を持つ要素」
+	 *                                  白地で 4.77:1（AA適合）。#00ffff を暗くしただけの同色相。
+	 *   --abc-accent-bright #00ffff  … マーカーや区切り線など「装飾だけの要素」
+	 *                                  濃い文字の背面に敷く使い方なら 10:1 で読めます。
+	 */
+	--abc-accent: #008080;
+	--abc-accent-bright: #00ffff;
 
-	/* 面の色。テーマの背景が明るくても暗くても成立するよう、
-	   固定色ではなく「わずかに沈める」指定にしています。 */
-	--abc-tint: rgba(0, 0, 0, .035);
-	--abc-border: rgba(0, 0, 0, .14);
+	/* 面と罫線。シアンをごく薄く効かせ、テーマの背景色に重ねて使います。 */
+	--abc-tint: rgba(0, 255, 255, .08);
+	--abc-border: rgba(0, 128, 128, .22);
 
 	/* 本文幅。初期値はテーマの本文幅をそのまま使います。
 	   このページだけ幅を絞りたい場合の例： --abc-width: 760px; */
@@ -190,6 +201,13 @@
 .abc-symptom__text--emphasis {
 	margin-top: 1.5em;
 	font-weight: 700;
+}
+
+/* 強調文の <strong> にシアンのマーカーを敷く。
+   文字色はテーマのまま／背面だけを塗るので、コントラストは落ちません。 */
+.abc-symptom__text--emphasis strong,
+.abc-symptom__lead strong {
+	background: linear-gradient(transparent 62%, var(--abc-accent-bright) 62%);
 }
 
 .abc-symptom__conclusion {
@@ -455,6 +473,7 @@
 	padding: 1.8em;
 	background: var(--abc-tint);
 	border: 1px solid var(--abc-border);
+	border-top: 3px solid var(--abc-accent-bright);
 	border-radius: var(--abc-radius);
 }
 
@@ -620,7 +639,7 @@
 
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebPage","@id":"https://abc-chiro.net/kubikori-katakori/","url":"https://abc-chiro.net/kubikori-katakori/","name":"首こり・肩こり｜ABCカイロプラクティック整体院","description":"新潟市の整体・ABCカイロプラクティック整体院の首こり・肩こりのページ。首や肩だけでなく、AI姿勢分析で頭・肩の位置、背骨のバランス、骨盤の傾き、肩甲骨周囲の動きまで確認し、身体全体のバランスから整えます。","inLanguage":"ja"}]}</script>
 
-	<main class="abc-symptom" id="abc-symptom">
+	<main class="abc-symptom post_content" id="abc-symptom">
 
 				<header class="abc-symptom__hero">
 			<div class="abc-symptom__inner">
