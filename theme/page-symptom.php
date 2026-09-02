@@ -161,10 +161,6 @@ get_header();
 				<div class="symptom__box" id="cases">
 					<?php abc_symptom_heading( $abc_data['cases'] ); ?>
 
-					<?php if ( abc_symptom_get( $abc_data, 'cases.lead' ) ) : ?>
-						<p><?php echo wp_kses_post( $abc_data['cases']['lead'] ); ?></p>
-					<?php endif; ?>
-
 					<?php if ( abc_symptom_get( $abc_data, 'cases.items', array() ) ) : ?>
 						<div class="symptom__case--inner">
 							<?php foreach ( $abc_data['cases']['items'] as $abc_case ) : ?>
@@ -217,10 +213,6 @@ get_header();
 			<?php /* ============ ⑦ 行動 ─ 予約・LINE ============ */ ?>
 			<div class="symptom__cta" id="reserve">
 				<?php abc_symptom_heading( abc_symptom_get( $abc_data, 'cta', array() ) ); ?>
-
-				<?php if ( abc_symptom_get( $abc_data, 'cta.lead' ) ) : ?>
-					<p><?php echo wp_kses_post( $abc_data['cta']['lead'] ); ?></p>
-				<?php endif; ?>
 
 				<?php if ( abc_symptom_get( $abc_cta, 'first_price' ) ) : ?>
 					<p class="symptom__price">

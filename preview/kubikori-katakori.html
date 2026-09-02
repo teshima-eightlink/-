@@ -45,6 +45,12 @@
    ・幅と左右の余白は .content_inner .inner が持っているため、ここでは触りません。
 
    ここが決めるのは「症状ページにだけ出てくる部品」の見た目だけです。
+
+   【重要】すべてのセレクタを .symptom__inner で始めています。
+   テーマ側は .content_inner p のように「クラス＋要素」で余白を指定しており、
+   こちらが .symptom__conclusion のようにクラス1つだけで書くと詳細度で負けて
+   margin が効きません（実際に結論ボックスの上余白が無視される不具合が出ました）。
+   新しくルールを足すときも、必ず .symptom__inner から書き始めてください。
    ========================================================================== */
 
 .symptom__inner {
@@ -74,7 +80,7 @@
 /* --------------------------------------------------------------------------
    冒頭：お悩みの声
    -------------------------------------------------------------------------- */
-.symptom__voice--inner {
+.symptom__inner .symptom__voice--inner {
 	margin: 0 0 1.5em;
 	padding: 0;
 	list-style: none;
@@ -86,7 +92,7 @@
 	justify-content: center;
 }
 
-.symptom__voice {
+.symptom__inner .symptom__voice {
 	position: relative;
 	padding: .55em 1.4em;
 	background: var(--symptom-bubble);
@@ -96,7 +102,7 @@
 
 /* しっぽは本体と同じ塗りの正方形を回転させたもの。
    枠線を持たせないことで、本体との境目が出ません。 */
-.symptom__voice::after {
+.symptom__inner .symptom__voice::after {
 	content: "";
 	position: absolute;
 	left: 1.5em;
@@ -108,12 +114,12 @@
 	transform: rotate(45deg);
 }
 
-.symptom__lead {
+.symptom__inner .symptom__lead {
 	margin: 0 0 2.5em;
 	text-align: center;
 }
 
-.symptom__lead strong {
+.symptom__inner .symptom__lead strong {
 	background: linear-gradient(transparent 62%, var(--symptom-accent-bright) 62%);
 }
 
@@ -121,12 +127,14 @@
    セクションの箱（既存の price__box と同じ役割）
    -------------------------------------------------------------------------- */
 .symptom__box,
-.symptom__cta {
+.symptom__inner .symptom__cta {
 	margin-bottom: 3em;
 }
 
-.symptom__conclusion {
-	margin-top: 1.4em;
+/* 上のカードと同じ水色のため、間隔を詰めるとひと続きに見えてしまう。
+   はっきり切り離すために広めに空ける。 */
+.symptom__inner .symptom__conclusion {
+	margin-top: 2.4em;
 	padding: .9em 1.2em;
 	background: var(--symptom-tint);
 	border-left: 3px solid var(--symptom-accent);
@@ -134,8 +142,8 @@
 	font-weight: 700;
 }
 
-.symptom__note {
-	margin-top: 1.2em;
+.symptom__inner .symptom__note {
+	margin-top: 1.6em;
 	font-size: .85em;
 	opacity: .75;
 }
@@ -143,7 +151,7 @@
 /* --------------------------------------------------------------------------
    ① 悩みのチェックリスト
    -------------------------------------------------------------------------- */
-.symptom__check {
+.symptom__inner .symptom__check {
 	margin: 0;
 	padding: 1.3em 1.5em;
 	list-style: none;
@@ -151,16 +159,16 @@
 	border-radius: var(--symptom-radius);
 }
 
-.symptom__check li {
+.symptom__inner .symptom__check li {
 	position: relative;
 	padding-left: 1.8em;
 }
 
-.symptom__check li + li {
+.symptom__inner .symptom__check li + li {
 	margin-top: .6em;
 }
 
-.symptom__check li::before {
+.symptom__inner .symptom__check li::before {
 	content: "";
 	position: absolute;
 	left: .1em;
@@ -175,29 +183,29 @@
 /* --------------------------------------------------------------------------
    ② 原因（3項目・横並び）
    -------------------------------------------------------------------------- */
-.symptom__cause--inner {
+.symptom__inner .symptom__cause--inner {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(15em, 1fr));
 	gap: 1em;
 }
 
-.symptom__cause--box {
+.symptom__inner .symptom__cause--box {
 	padding: 1.2em 1.3em;
 	background: var(--symptom-tint);
 	border-radius: var(--symptom-radius);
 }
 
 .symptom__cause--box h3,
-.symptom__check--box h3 {
+.symptom__inner .symptom__check--box h3 {
 	margin: 0 0 .4em;
 }
 
 .symptom__cause--box p,
-.symptom__check--box p {
+.symptom__inner .symptom__check--box p {
 	margin: 0;
 }
 
-.symptom__num {
+.symptom__inner .symptom__num {
 	display: inline-block;
 	min-width: 1.6em;
 	margin-right: .4em;
@@ -212,7 +220,7 @@
 /* --------------------------------------------------------------------------
    ③ 確認する項目（6項目・タイル）
    -------------------------------------------------------------------------- */
-.symptom__check--inner {
+.symptom__inner .symptom__check--inner {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(14em, 1fr));
 	gap: 1px;
@@ -222,17 +230,17 @@
 	overflow: hidden;
 }
 
-.symptom__check--box {
+.symptom__inner .symptom__check--box {
 	padding: 1.1em 1.2em;
 	background: #fff;
 }
 
-.symptom__check--box h3 {
+.symptom__inner .symptom__check--box h3 {
 	padding-bottom: .3em;
 	border-bottom: 2px solid var(--symptom-accent-bright);
 }
 
-.symptom__check--box p {
+.symptom__inner .symptom__check--box p {
 	font-size: .9em;
 	opacity: .85;
 }
@@ -240,69 +248,75 @@
 /* --------------------------------------------------------------------------
    ④ 施術のステップ
    -------------------------------------------------------------------------- */
-.symptom__step {
+.symptom__inner .symptom__step {
 	margin: 0;
 	padding: 0;
 	list-style: none;
 	counter-reset: symptom-step;
 }
 
-.symptom__step > li {
+.symptom__inner .symptom__step > li {
 	counter-increment: symptom-step;
 	position: relative;
-	padding: 0 0 1.4em 3.2em;
+	padding: 0 0 2.4em 3.4em;
 }
 
-.symptom__step > li::before {
+/* 最後のステップの下は、注意書きとの間隔を別で取るため詰める */
+.symptom__inner .symptom__step > li:last-child {
+	padding-bottom: 0;
+}
+
+.symptom__inner .symptom__step > li::before {
 	content: "STEP " counter(symptom-step);
 	position: absolute;
 	left: 0;
 	top: .15em;
-	width: 2.4em;
-	padding: .15em 0;
+	width: 3.1em;              /* 「STEP」が折り返して切れないだけの幅 */
+	padding: .25em .2em;
 	background: var(--symptom-accent);
 	border-radius: 3px;
 	color: #fff;
 	font-size: .65em;
 	font-weight: 700;
+	letter-spacing: .02em;
 	text-align: center;
-	line-height: 1.4;
+	line-height: 1.35;
 }
 
-.symptom__step > li:not(:last-child)::after {
+.symptom__inner .symptom__step > li:not(:last-child)::after {
 	content: "";
 	position: absolute;
-	left: 1.15em;
-	top: 2.4em;
-	bottom: .6em;
+	left: calc(1em - 1px);
+	top: 2.8em;
+	bottom: .9em;
 	width: 2px;
 	background: var(--symptom-border);
 }
 
-.symptom__step h3 {
-	margin: 0 0 .3em;
+.symptom__inner .symptom__step h3 {
+	margin: 0 0 .45em;
 }
 
-.symptom__step p {
+.symptom__inner .symptom__step p {
 	margin: 0;
 }
 
 /* --------------------------------------------------------------------------
    ⑤ 症例（実例を入れた場合のみ表示）
    -------------------------------------------------------------------------- */
-.symptom__case--inner {
+.symptom__inner .symptom__case--inner {
 	display: grid;
 	gap: 1em;
 	margin-bottom: 1.5em;
 }
 
-.symptom__case--box {
+.symptom__inner .symptom__case--box {
 	padding: 1.2em 1.3em;
 	background: var(--symptom-tint);
 	border-radius: var(--symptom-radius);
 }
 
-.symptom__case--meta {
+.symptom__inner .symptom__case--meta {
 	margin: 0 0 .3em;
 	font-size: .8em;
 	font-weight: 700;
@@ -312,12 +326,12 @@
 /* --------------------------------------------------------------------------
    内部リンク（⑤・⑥）
    -------------------------------------------------------------------------- */
-.symptom__linkbox {
+.symptom__inner .symptom__linkbox {
 	margin: 1.5em 0 0;
 	text-align: center;
 }
 
-.symptom__link {
+.symptom__inner .symptom__link {
 	display: inline-block;
 	padding: .8em 2.4em .8em 2em;
 	border: 1px solid var(--symptom-accent);
@@ -328,13 +342,13 @@
 	transition: background-color .2s ease, color .2s ease;
 }
 
-.symptom__link::after {
+.symptom__inner .symptom__link::after {
 	content: "→";
 	margin-left: .5em;
 }
 
 .symptom__link:hover,
-.symptom__link:focus-visible {
+.symptom__inner .symptom__link:focus-visible {
 	background: var(--symptom-accent);
 	color: #fff;
 }
@@ -342,7 +356,7 @@
 /* --------------------------------------------------------------------------
    ⑦ ご予約
    -------------------------------------------------------------------------- */
-.symptom__cta {
+.symptom__inner .symptom__cta {
 	padding: 1.8em;
 	background: var(--symptom-tint);
 	border: 1px solid var(--symptom-border);
@@ -351,22 +365,22 @@
 	text-align: center;
 }
 
-.symptom__price {
+.symptom__inner .symptom__price {
 	font-weight: 700;
 }
 
-.symptom__price span {
+.symptom__inner .symptom__price span {
 	display: block;
 	font-size: .8em;
 	font-weight: 400;
 	opacity: .8;
 }
 
-.symptom__btn--inner {
+.symptom__inner .symptom__btn--inner {
 	margin-top: 1.2em;
 }
 
-.symptom__btn {
+.symptom__inner .symptom__btn {
 	display: block;
 	max-width: 22em;
 	margin: 0 auto;
@@ -379,34 +393,34 @@
 }
 
 .symptom__btn:hover,
-.symptom__btn:focus-visible {
+.symptom__inner .symptom__btn:focus-visible {
 	opacity: .85;
 }
 
 /* LINEは認知されたブランド色を使ったほうが押されやすいため、例外的に色を指定 */
-.symptom__btn--line {
+.symptom__inner .symptom__btn--line {
 	background: #06c755;
 	color: #fff;
 }
 
 .symptom__btn--tel,
-.symptom__btn--web {
+.symptom__inner .symptom__btn--web {
 	background: #fff;
 	border: 1px solid var(--symptom-accent);
 	color: var(--symptom-accent);
 }
 
-.symptom__btn--note {
+.symptom__inner .symptom__btn--note {
 	margin: .5em 0 1.2em;
 	font-size: .8em;
 	opacity: .75;
 }
 
-.symptom__btn--note:last-child {
+.symptom__inner .symptom__btn--note:last-child {
 	margin-bottom: 0;
 }
 
-.symptom__info {
+.symptom__inner .symptom__info {
 	margin: 1.5em 0 0;
 	padding-top: 1.2em;
 	border-top: 1px solid var(--symptom-border);
@@ -414,19 +428,19 @@
 	text-align: left;
 }
 
-.symptom__info dt {
+.symptom__inner .symptom__info dt {
 	font-weight: 700;
 	opacity: .75;
 }
 
-.symptom__info dd {
+.symptom__inner .symptom__info dd {
 	margin: 0 0 .6em;
 }
 
 /* --------------------------------------------------------------------------
    免責
    -------------------------------------------------------------------------- */
-.symptom__disclaimer {
+.symptom__inner .symptom__disclaimer {
 	margin: 2em 0 0;
 	font-size: .8em;
 	opacity: .7;
@@ -436,20 +450,20 @@
    スマートフォン
    -------------------------------------------------------------------------- */
 @media (max-width: 767px) {
-	.symptom__voice--inner {
+	.symptom__inner .symptom__voice--inner {
 		justify-content: flex-start;
 	}
 
 	.symptom__box,
-	.symptom__cta {
+	.symptom__inner .symptom__cta {
 		margin-bottom: 2.2em;
 	}
 
-	.symptom__cta {
+	.symptom__inner .symptom__cta {
 		padding: 1.3em;
 	}
 
-	.symptom__check--inner {
+	.symptom__inner .symptom__check--inner {
 		grid-template-columns: 1fr;
 	}
 }
@@ -557,8 +571,6 @@
 			
 										<div class="symptom__box" id="cases">
 					<h2>実際の変化</h2><p>当院での経過を、症例ページで紹介しています。</p>
-											<p>当院での経過を、症例ページで紹介しています。</p>
-					
 					
 					<p class="symptom__linkbox"><a class="symptom__link" href="https://abc-chiro.net/case/">首こり・肩こりの症例を見る</a></p>
 					<p class="symptom__note">※効果の感じ方や必要な回数には個人差があります。</p>
@@ -573,8 +585,6 @@
 			
 						<div class="symptom__cta" id="reserve">
 				<h2>まずは、いまの状態を知るところから</h2><p>「これくらいで行っていいのかな」という段階でも大丈夫です。</p>
-									<p>「これくらいで行っていいのかな」という段階でも大丈夫です。</p>
-				
 				
 				<div class="symptom__btn--inner"><a class="symptom__btn symptom__btn--line" href="https://lin.ee/VG1WL3J" target="_blank" rel="noopener">LINEで予約・相談する</a><p class="symptom__btn--note">24時間受付・ご相談だけでも大丈夫です</p></div>
 							</div>
