@@ -46,12 +46,8 @@ function abc_posture_render( $slug = 'shisei' ) {
 	<div class="<?php echo esc_attr( abc_symptom_get( $config, 'wrapper.inner', 'content_inner inner symptom__inner' ) ); ?>">
 
 		<?php /* ============ 冒頭 ============ */ ?>
-		<?php if ( abc_symptom_get( $data, 'hero.voices', array() ) ) : ?>
-			<ul class="symptom__voice-inner">
-				<?php foreach ( $data['hero']['voices'] as $voice ) : ?>
-					<li class="symptom__voice"><?php echo esc_html( $voice ); ?></li>
-				<?php endforeach; ?>
-			</ul>
+		<?php if ( abc_symptom_get( $data, 'hero.catch' ) ) : ?>
+			<p class="symptom__catch"><?php echo esc_html( $data['hero']['catch'] ); ?></p>
 		<?php endif; ?>
 
 		<?php if ( abc_symptom_get( $data, 'hero.lead' ) ) : ?>
@@ -59,11 +55,11 @@ function abc_posture_render( $slug = 'shisei' ) {
 		<?php endif; ?>
 
 		<?php /* ============ 01 姿勢が変わると生活がどう変わる？ ============ */ ?>
-		<?php if ( abc_symptom_get( $data, 'life.cards', array() ) ) : ?>
+		<?php if ( abc_symptom_get( $data, 'life.compare', array() ) ) : ?>
 			<div class="symptom__box" id="life">
 				<?php
 				abc_symptom_heading( $data['life'] );
-				abc_block_cards( $data['life']['cards'] );
+				abc_block_compare( $data['life']['compare'] );
 				abc_block_conclusion( abc_symptom_get( $data, 'life.closing' ) );
 				?>
 			</div>
@@ -74,18 +70,21 @@ function abc_posture_render( $slug = 'shisei' ) {
 			<div class="symptom__box" id="reason">
 				<?php
 				abc_symptom_heading( $data['reason'] );
-				abc_block_text( abc_symptom_get( $data, 'reason.body', array() ) );
-				abc_block_conclusion( abc_symptom_get( $data, 'reason.closing' ) );
+				abc_block_letter(
+					abc_symptom_get( $data, 'reason.body', array() ),
+					abc_symptom_get( $data, 'reason.closing' ),
+					abc_symptom_get( $data, 'reason.signature' )
+				);
 				?>
 			</div>
 		<?php endif; ?>
 
 		<?php /* ============ 03 AI姿勢分析とは ============ */ ?>
-		<?php if ( abc_symptom_get( $data, 'ai.tiles', array() ) ) : ?>
+		<?php if ( abc_symptom_get( $data, 'ai.flow', array() ) ) : ?>
 			<div class="symptom__box" id="ai">
 				<?php
 				abc_symptom_heading( $data['ai'] );
-				abc_block_tiles( $data['ai']['tiles'] );
+				abc_block_flow( $data['ai']['flow'] );
 				abc_block_text( abc_symptom_get( $data, 'ai.closing' ) );
 				abc_block_external_link(
 					abc_symptom_get( $data, 'ai.link_url' ),

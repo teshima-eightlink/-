@@ -77,6 +77,15 @@
 	transform: rotate(45deg);
 }
 
+.symptom__inner .symptom__catch {
+	margin: 0 0 .6em;
+	font-size: 1.5em;
+	font-weight: 700;
+	line-height: 1.5;
+	text-align: center;
+	color: var(--symptom-accent);
+}
+
 .symptom__inner .symptom__lead {
 	margin: 0 0 2.5em;
 	text-align: center;
@@ -293,6 +302,153 @@
 	color: var(--symptom-accent);
 }
 
+/* ==========================================================================
+   ここから下は姿勢改善ページ専用のパーツ
+   症状ページと見た目を変えるためのものです
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   対比（いまの状態 → 変わったあと）
+   -------------------------------------------------------------------------- */
+.symptom__inner .symptom__compare {
+	display: grid;
+	gap: .8em;
+}
+
+.symptom__inner .symptom__compare-row {
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
+	align-items: stretch;
+	gap: 0;
+}
+
+/* 矢印は図形を組み合わせず、矢印そのものの文字で描く。
+   線と線の交点がずれて別の記号に見えるのを避けるため。 */
+.symptom__inner .symptom__compare-row::before {
+	content: "→";
+	grid-column: 2;
+	grid-row: 1;
+	width: 2.4em;
+	display: grid;
+	place-items: center;
+	color: var(--symptom-accent);
+	font-size: 1.2em;
+	line-height: 1;
+}
+
+.symptom__inner .symptom__compare-before,
+.symptom__inner .symptom__compare-after {
+	grid-row: 1;
+	margin: 0;
+	padding: .9em 1.1em;
+	border-radius: var(--symptom-radius);
+	line-height: 1.6;
+}
+
+.symptom__inner .symptom__compare-before {
+	grid-column: 1;
+	background: rgba(0, 0, 0, .04);
+	opacity: .8;
+}
+
+.symptom__inner .symptom__compare-after {
+	grid-column: 3;
+	background: var(--symptom-tint);
+	border: 1px solid var(--symptom-border);
+	font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   院長の言葉（手紙のような囲み）
+   -------------------------------------------------------------------------- */
+.symptom__inner .symptom__letter {
+	padding: 1.8em 2em;
+	border: 1px solid var(--symptom-border);
+	border-left: 4px solid var(--symptom-accent);
+	border-radius: var(--symptom-radius);
+	background: linear-gradient(180deg, var(--symptom-tint), transparent 60%);
+}
+
+.symptom__inner .symptom__letter p {
+	margin: 0 0 1.1em;
+}
+
+.symptom__inner .symptom__letter-closing {
+	margin-top: 1.4em;
+	padding-top: 1.2em;
+	border-top: 1px dashed var(--symptom-border);
+	font-weight: 700;
+}
+
+.symptom__inner .symptom__letter-sign {
+	margin: 0;
+	text-align: right;
+	font-size: .9em;
+	opacity: .75;
+}
+
+/* --------------------------------------------------------------------------
+   流れ（横並びの番号付きステップ）
+   -------------------------------------------------------------------------- */
+.symptom__inner .symptom__flow {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	counter-reset: symptom-flow;
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1.6em;
+}
+
+.symptom__inner .symptom__flow > li {
+	counter-increment: symptom-flow;
+	position: relative;
+	padding-top: 2.8em;
+	text-align: center;
+}
+
+.symptom__inner .symptom__flow > li::before {
+	content: counter(symptom-flow);
+	position: absolute;
+	top: 0;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 2.1em;
+	height: 2.1em;
+	display: grid;
+	place-items: center;
+	background: var(--symptom-accent);
+	border-radius: 50%;
+	color: #fff;
+	font-weight: 700;
+}
+
+/* 項目のあいだに矢印を置く */
+.symptom__inner .symptom__flow > li:not(:last-child)::after {
+	content: "";
+	position: absolute;
+	top: 1em;
+	right: -1.1em;
+	width: .55em;
+	height: .55em;
+	border-top: 2px solid var(--symptom-border);
+	border-right: 2px solid var(--symptom-border);
+	transform: rotate(45deg);
+}
+
+.symptom__inner .symptom__flow-title {
+	display: block;
+	margin-bottom: .3em;
+	font-weight: 700;
+}
+
+.symptom__inner .symptom__flow-body {
+	display: block;
+	font-size: .9em;
+	opacity: .85;
+	text-align: left;
+}
+
 /* --------------------------------------------------------------------------
    Before / After の写真（姿勢改善ページ）
    -------------------------------------------------------------------------- */
@@ -478,5 +634,45 @@
 
 	.symptom__inner .symptom__check-inner {
 		grid-template-columns: 1fr;
+	}
+
+	/* 対比は上下に積み、矢印を下向きにする */
+	.symptom__inner .symptom__compare-row {
+		grid-template-columns: 1fr;
+	}
+
+	.symptom__inner .symptom__compare-row::before {
+		content: "↓";
+		grid-column: 1;
+		grid-row: 2;
+		width: auto;
+		padding: .15em 0;
+	}
+
+	.symptom__inner .symptom__compare-before {
+		grid-column: 1;
+		grid-row: 1;
+	}
+
+	.symptom__inner .symptom__compare-after {
+		grid-column: 1;
+		grid-row: 3;
+	}
+
+	.symptom__inner .symptom__letter {
+		padding: 1.3em 1.4em;
+	}
+
+	.symptom__inner .symptom__flow {
+		grid-template-columns: 1fr;
+		gap: 2em;
+	}
+
+	.symptom__inner .symptom__flow > li:not(:last-child)::after {
+		top: auto;
+		right: auto;
+		bottom: -1.4em;
+		left: 50%;
+		transform: translateX(-50%) rotate(135deg);
 	}
 }

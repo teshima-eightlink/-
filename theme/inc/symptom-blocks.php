@@ -208,3 +208,83 @@ function abc_block_external_link( $url, $label ) {
 		esc_html( $label )
 	);
 }
+
+/* ==========================================================================
+   ここから下は、姿勢改善ページ専用のパーツです。
+   症状ページと見た目を変えるために用意しています。
+   ========================================================================== */
+
+/**
+ * ビフォー・アフターの対比（いまの状態 → 変わったあと）
+ *
+ * @param array $rows array( array( 'before', 'after' ) )
+ */
+function abc_block_compare( $rows ) {
+	if ( empty( $rows ) ) {
+		return;
+	}
+	echo '<div class="symptom__compare">';
+	foreach ( $rows as $row ) {
+		printf(
+			'<div class="symptom__compare-row">'
+				. '<p class="symptom__compare-before">%s</p>'
+				. '<p class="symptom__compare-after">%s</p>'
+				. '</div>',
+			esc_html( $row['before'] ),
+			esc_html( $row['after'] )
+		);
+	}
+	echo '</div>';
+}
+
+/**
+ * 院長の言葉（手紙のような囲み）
+ *
+ * @param array  $paragraphs 段落の配列。
+ * @param string $closing    締めの一文（太字で表示）。
+ * @param string $signature  署名。
+ */
+function abc_block_letter( $paragraphs, $closing = '', $signature = '' ) {
+	if ( empty( $paragraphs ) ) {
+		return;
+	}
+
+	echo '<div class="symptom__letter">';
+
+	foreach ( (array) $paragraphs as $p ) {
+		printf( '<p>%s</p>', wp_kses_post( $p ) );
+	}
+
+	if ( $closing ) {
+		printf( '<p class="symptom__letter-closing">%s</p>', wp_kses_post( $closing ) );
+	}
+
+	if ( $signature ) {
+		printf( '<p class="symptom__letter-sign">%s</p>', esc_html( $signature ) );
+	}
+
+	echo '</div>';
+}
+
+/**
+ * 流れ（横並びの番号付きステップ）
+ *
+ * ステップとの違い：こちらは横に並び、矢印でつながります。
+ * 「撮影 → 解析 → 説明」のような手順を見せるときに使います。
+ *
+ * @param array $steps array( array( 'title', 'body' ) )
+ */
+function abc_block_flow( $steps ) {
+	if ( empty( $steps ) ) {
+		return;
+	}
+	echo '<ol class="symptom__flow">';
+	foreach ( $steps as $step ) {
+		printf(
+			'<li><span class="symptom__flow-title">%s</span><span class="symptom__flow-body">%s</span></li>',
+			esc_html( $step['title'] ),
+			wp_kses_post( $step['body'] )
+		);
+	}
+	echo '</ol>';
+}

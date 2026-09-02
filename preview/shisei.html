@@ -112,6 +112,15 @@
 	transform: rotate(45deg);
 }
 
+.symptom__inner .symptom__catch {
+	margin: 0 0 .6em;
+	font-size: 1.5em;
+	font-weight: 700;
+	line-height: 1.5;
+	text-align: center;
+	color: var(--symptom-accent);
+}
+
 .symptom__inner .symptom__lead {
 	margin: 0 0 2.5em;
 	text-align: center;
@@ -328,6 +337,153 @@
 	color: var(--symptom-accent);
 }
 
+/* ==========================================================================
+   ここから下は姿勢改善ページ専用のパーツ
+   症状ページと見た目を変えるためのものです
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   対比（いまの状態 → 変わったあと）
+   -------------------------------------------------------------------------- */
+.symptom__inner .symptom__compare {
+	display: grid;
+	gap: .8em;
+}
+
+.symptom__inner .symptom__compare-row {
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
+	align-items: stretch;
+	gap: 0;
+}
+
+/* 矢印は図形を組み合わせず、矢印そのものの文字で描く。
+   線と線の交点がずれて別の記号に見えるのを避けるため。 */
+.symptom__inner .symptom__compare-row::before {
+	content: "→";
+	grid-column: 2;
+	grid-row: 1;
+	width: 2.4em;
+	display: grid;
+	place-items: center;
+	color: var(--symptom-accent);
+	font-size: 1.2em;
+	line-height: 1;
+}
+
+.symptom__inner .symptom__compare-before,
+.symptom__inner .symptom__compare-after {
+	grid-row: 1;
+	margin: 0;
+	padding: .9em 1.1em;
+	border-radius: var(--symptom-radius);
+	line-height: 1.6;
+}
+
+.symptom__inner .symptom__compare-before {
+	grid-column: 1;
+	background: rgba(0, 0, 0, .04);
+	opacity: .8;
+}
+
+.symptom__inner .symptom__compare-after {
+	grid-column: 3;
+	background: var(--symptom-tint);
+	border: 1px solid var(--symptom-border);
+	font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   院長の言葉（手紙のような囲み）
+   -------------------------------------------------------------------------- */
+.symptom__inner .symptom__letter {
+	padding: 1.8em 2em;
+	border: 1px solid var(--symptom-border);
+	border-left: 4px solid var(--symptom-accent);
+	border-radius: var(--symptom-radius);
+	background: linear-gradient(180deg, var(--symptom-tint), transparent 60%);
+}
+
+.symptom__inner .symptom__letter p {
+	margin: 0 0 1.1em;
+}
+
+.symptom__inner .symptom__letter-closing {
+	margin-top: 1.4em;
+	padding-top: 1.2em;
+	border-top: 1px dashed var(--symptom-border);
+	font-weight: 700;
+}
+
+.symptom__inner .symptom__letter-sign {
+	margin: 0;
+	text-align: right;
+	font-size: .9em;
+	opacity: .75;
+}
+
+/* --------------------------------------------------------------------------
+   流れ（横並びの番号付きステップ）
+   -------------------------------------------------------------------------- */
+.symptom__inner .symptom__flow {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	counter-reset: symptom-flow;
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1.6em;
+}
+
+.symptom__inner .symptom__flow > li {
+	counter-increment: symptom-flow;
+	position: relative;
+	padding-top: 2.8em;
+	text-align: center;
+}
+
+.symptom__inner .symptom__flow > li::before {
+	content: counter(symptom-flow);
+	position: absolute;
+	top: 0;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 2.1em;
+	height: 2.1em;
+	display: grid;
+	place-items: center;
+	background: var(--symptom-accent);
+	border-radius: 50%;
+	color: #fff;
+	font-weight: 700;
+}
+
+/* 項目のあいだに矢印を置く */
+.symptom__inner .symptom__flow > li:not(:last-child)::after {
+	content: "";
+	position: absolute;
+	top: 1em;
+	right: -1.1em;
+	width: .55em;
+	height: .55em;
+	border-top: 2px solid var(--symptom-border);
+	border-right: 2px solid var(--symptom-border);
+	transform: rotate(45deg);
+}
+
+.symptom__inner .symptom__flow-title {
+	display: block;
+	margin-bottom: .3em;
+	font-weight: 700;
+}
+
+.symptom__inner .symptom__flow-body {
+	display: block;
+	font-size: .9em;
+	opacity: .85;
+	text-align: left;
+}
+
 /* --------------------------------------------------------------------------
    Before / After の写真（姿勢改善ページ）
    -------------------------------------------------------------------------- */
@@ -514,6 +670,46 @@
 	.symptom__inner .symptom__check-inner {
 		grid-template-columns: 1fr;
 	}
+
+	/* 対比は上下に積み、矢印を下向きにする */
+	.symptom__inner .symptom__compare-row {
+		grid-template-columns: 1fr;
+	}
+
+	.symptom__inner .symptom__compare-row::before {
+		content: "↓";
+		grid-column: 1;
+		grid-row: 2;
+		width: auto;
+		padding: .15em 0;
+	}
+
+	.symptom__inner .symptom__compare-before {
+		grid-column: 1;
+		grid-row: 1;
+	}
+
+	.symptom__inner .symptom__compare-after {
+		grid-column: 1;
+		grid-row: 3;
+	}
+
+	.symptom__inner .symptom__letter {
+		padding: 1.3em 1.4em;
+	}
+
+	.symptom__inner .symptom__flow {
+		grid-template-columns: 1fr;
+		gap: 2em;
+	}
+
+	.symptom__inner .symptom__flow > li:not(:last-child)::after {
+		top: auto;
+		right: auto;
+		bottom: -1.4em;
+		left: 50%;
+		transform: translateX(-50%) rotate(135deg);
+	}
 }
 
 </style>
@@ -522,23 +718,18 @@
 <section class="content_full">
 	<div class="content_inner inner symptom__inner">
 
-							<ul class="symptom__voice-inner">
-									<li class="symptom__voice">猫背が気になる</li>
-									<li class="symptom__voice">写真に写った姿勢にがっかりする</li>
-									<li class="symptom__voice">マッサージに行っても数日で戻る</li>
-									<li class="symptom__voice">年齢のせいだと言われた</li>
-							</ul>
+							<p class="symptom__catch">痛みを取るだけで、終わらせない。</p>
 		
-					<p class="symptom__lead">姿勢は、見た目の問題だけではありません。<strong>身体のどこに負担が集まっているかを教えてくれる手がかり</strong>です。</p>
+					<p class="symptom__lead">姿勢は見た目の問題ではありません。<strong>身体のどこに負担が集まっているかを教えてくれる手がかり</strong>です。ABCカイロプラクティック整体院は、そこから身体全体を整えていきます。</p>
 		
 							<div class="symptom__box" id="life">
-				<h2>姿勢が変わると、生活がどう変わる？</h2><p>姿勢が整うと、身体にかかる負担そのものが減っていきます。日常のこんな場面から変わっていきます。</p><div class="symptom__cause-inner"><div class="symptom__cause-box"><h3><span class="symptom__num">1</span>夕方の重さが軽くなる</h3><p>頭が背骨の上に戻ると、首と肩が一日中支え続ける必要がなくなります。</p></div><div class="symptom__cause-box"><h3><span class="symptom__num">2</span>呼吸がしやすくなる</h3><p>胸まわりが広がると、深く呼吸できるようになります。</p></div><div class="symptom__cause-box"><h3><span class="symptom__num">3</span>見た目の印象が変わる</h3><p>背筋が伸びると、写真や鏡に映る姿が変わります。</p></div></div><p class="symptom__conclusion">痛みを取ることと、<strong>痛みを繰り返しにくい身体をつくること</strong>は別の作業です。</p>			</div>
+				<h2>姿勢が変わると、生活がどう変わる？</h2><p>姿勢が整うと、身体にかかる負担そのものが減っていきます。</p><div class="symptom__compare"><div class="symptom__compare-row"><p class="symptom__compare-before">夕方には肩が重く、腕が上がらない</p><p class="symptom__compare-after">一日の終わりの重さが変わる</p></div><div class="symptom__compare-row"><p class="symptom__compare-before">呼吸が浅く、息が詰まる感じがする</p><p class="symptom__compare-after">胸が広がり、深く息を吸える</p></div><div class="symptom__compare-row"><p class="symptom__compare-before">写真に写った自分の姿勢にがっかりする</p><p class="symptom__compare-after">背筋が伸びて、印象が変わる</p></div></div><p class="symptom__conclusion">痛みを取ることと、<strong>痛みを繰り返しにくい身体をつくること</strong>は別の作業です。</p>			</div>
 		
 							<div class="symptom__box" id="reason">
-				<h2>ABCが姿勢を重視する理由</h2><p>首こり・肩こり・腰痛など、身体の痛みや不調で来院される方の多くは、まず「今ある痛みを何とかしてほしい」と思っていらっしゃいます。もちろん、今つらい症状を楽にすることは大切です。でも私は、それだけで終わらせたくありません。</p><p>「なぜ、そこに痛みが出たのか？」「一時的なものなのか、それとも長年の身体の使い方が関係しているのか？」そこまで考えることが大切だと思っています。</p><p>私が目指しているのは、痛いところだけを施術することではなく、<strong>なぜそこに負担がかかっているのかを一緒に考え、身体全体を整えていくこと</strong>。そして、施術を受けたその日だけではなく、これから先も同じような痛みや不調を繰り返しにくい身体をつくっていくことです。</p><p>そのために私は、「姿勢」を身体全体の状態を知るための大切な手がかりのひとつとして考えています。</p><p class="symptom__conclusion">痛みを取るだけで終わらせない。その先の「痛みを繰り返しにくい身体」まで一緒に目指す。それが、ABCカイロが姿勢改善にこだわる理由です。</p>			</div>
+				<h2>ABCが姿勢を重視する理由</h2><div class="symptom__letter"><p>首こり・肩こり・腰痛など、身体の痛みや不調で来院される方の多くは、まず「今ある痛みを何とかしてほしい」と思っていらっしゃいます。もちろん、今つらい症状を楽にすることは大切です。でも私は、それだけで終わらせたくありません。</p><p>「なぜ、そこに痛みが出たのか？」「一時的なものなのか、それとも長年の身体の使い方が関係しているのか？」そこまで考えることが大切だと思っています。</p><p>私が目指しているのは、痛いところだけを施術することではなく、<strong>なぜそこに負担がかかっているのかを一緒に考え、身体全体を整えていくこと</strong>。そして、施術を受けたその日だけではなく、これから先も同じような痛みや不調を繰り返しにくい身体をつくっていくことです。</p><p>そのために私は、「姿勢」を身体全体の状態を知るための大切な手がかりのひとつとして考えています。</p><p class="symptom__letter-closing">痛みを取るだけで終わらせない。その先の「痛みを繰り返しにくい身体」まで一緒に目指す。それが、ABCカイロが姿勢改善にこだわる理由です。</p><p class="symptom__letter-sign">ABCカイロプラクティック整体院　院長</p></div>			</div>
 		
 							<div class="symptom__box" id="ai">
-				<h2>AI姿勢分析とは</h2><p>お身体を撮影し、頭・肩・骨盤の位置を解析します。感覚だけに頼らず、いまの状態を客観的に確認するための仕組みです。</p><div class="symptom__check-inner"><div class="symptom__check-box"><h3>数値と画像で見える化</h3><p>頭がどれだけ前に出ているか、左右の傾きはどうかが一目で分かります</p></div><div class="symptom__check-box"><h3>記録として残る</h3><p>施術前後を並べて比べられるので、変化を自分の目で確認できます</p></div><div class="symptom__check-box"><h3>説明を一緒に見ながら</h3><p>画面をご覧いただきながら、どこから整えるかをご説明します</p></div></div><p>初回はAI姿勢分析を含めてお身体の状態を確認します。</p><p class="symptom__linkbox"><a class="symptom__link" href="https://zenkenkai.jp/photopos/" target="_blank" rel="noopener">AI姿勢分析について（外部サイト）</a></p>			</div>
+				<h2>AI姿勢分析とは</h2><p>お身体を撮影し、頭・肩・骨盤の位置を解析します。感覚だけに頼らず、いまの状態を客観的に確認するための仕組みです。</p><ol class="symptom__flow"><li><span class="symptom__flow-title">撮影する</span><span class="symptom__flow-body">立った姿勢を正面と横から撮影します。更衣スペースがあるので、お着替えも可能です。</span></li><li><span class="symptom__flow-title">解析する</span><span class="symptom__flow-body">頭・肩・骨盤の位置を解析し、傾きやズレを画像に描き出します。</span></li><li><span class="symptom__flow-title">一緒に見る</span><span class="symptom__flow-body">画面をご覧いただきながら、いま何が起きていて、どこから整えるかをご説明します。</span></li></ol><p>初回はAI姿勢分析を含めて、お身体の状態を確認します。</p><p class="symptom__linkbox"><a class="symptom__link" href="https://zenkenkai.jp/photopos/" target="_blank" rel="noopener">AI姿勢分析について（外部サイト）</a></p>			</div>
 		
 							<div class="symptom__box" id="care">
 				<h2>施術とセルフケア</h2><p>確認した内容をもとに、院での施術とご自宅でのセルフケアを組み合わせて進めます。</p><ol class="symptom__step"><li><h3>緊張をゆるめる</h3><p>まず張りをやわらげ、身体が動ける状態にします。</p></li><li><h3>骨盤と背骨から整える</h3><p>土台が整うと、頭が自然に背骨の上へ戻っていきます。</p></li><li><h3>ご自宅で続けていただく</h3><p>座り方や枕、1分でできる簡単な運動を、生活に合わせてお伝えします。</p></li></ol><p class="symptom__note">※ボキボキと大きな音を鳴らす施術は行いません。ご年配の方、女性、整体がはじめての方にも受けていただけるソフトな方法で進めます。<br>※お身体の状態によって進め方は変わります。感じ方や必要な回数には個人差があります。</p>			</div>
