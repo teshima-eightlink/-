@@ -249,18 +249,26 @@ foreach ( array( $output_dir, $paste_dir ) as $dir ) {
 function abc_preview_write( $slug, $type ) {
 	global $theme_dir, $output_dir, $paste_dir;
 
-	$file = 'posture' === $type
-		? $theme_dir . '/inc/pages/' . $slug . '.php'
-		: $theme_dir . '/inc/symptoms/' . $slug . '.php';
+	$dirs = array(
+		'posture' => '/inc/pages/',
+		'case'    => '/inc/posts/',
+		'symptom' => '/inc/symptoms/',
+	);
+	$file = $theme_dir . $dirs[ $type ] . $slug . '.php';
 
 	$data = require $file;
 
 	$GLOBALS['abc_preview_slug']  = $slug;
 	$GLOBALS['abc_preview_title'] = $data['title'] ?? $slug;
 
-	if ( 'posture' === $type ) {
-		require_once $theme_dir . '/inc/posture-render.php';
-		$body = abc_posture_render( $slug );
+	if ( 'posture' === $type || 'case' === $type ) {
+		if ( 'posture' === $type ) {
+			require_once $theme_dir . '/inc/posture-render.php';
+			$body = abc_posture_render( $slug );
+		} else {
+			require_once $theme_dir . '/inc/case-render.php';
+			$body = abc_case_render( $slug );
+		}
 
 		ob_start();
 		get_header();
@@ -297,6 +305,10 @@ $pages = array();
 
 foreach ( glob( $theme_dir . '/inc/pages/*.php' ) as $f ) {
 	$pages[] = array( basename( $f, '.php' ), 'posture' );
+}
+
+foreach ( glob( $theme_dir . '/inc/posts/*.php' ) as $f ) {
+	$pages[] = array( basename( $f, '.php' ), 'case' );
 }
 
 foreach ( glob( $theme_dir . '/inc/symptoms/*.php' ) as $f ) {

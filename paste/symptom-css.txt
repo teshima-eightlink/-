@@ -311,6 +311,75 @@ font-size: .9em;
 opacity: .85;
 text-align: left;
 }
+.symptom__inner .symptom__profile {
+margin: 0;
+padding: 1.2em 1.4em;
+background: rgba(0, 255, 255, .08);
+border-radius: 6px;
+display: grid;
+grid-template-columns: 7em 1fr;
+gap: .5em 1.2em;
+}
+.symptom__inner .symptom__profile dt {
+font-weight: 700;
+font-size: .9em;
+opacity: .8;
+}
+.symptom__inner .symptom__profile dd {
+margin: 0;
+}
+.symptom__inner .symptom__timeline {
+margin: 0;
+padding: 0;
+list-style: none;
+}
+.symptom__inner .symptom__timeline > li {
+position: relative;
+padding: 0 0 1.6em 1.8em;
+border-left: 2px solid rgba(0, 128, 128, .22);
+}
+.symptom__inner .symptom__timeline > li:last-child {
+padding-bottom: 0;
+border-left-color: transparent;
+}
+.symptom__inner .symptom__timeline > li::before {
+content: "";
+position: absolute;
+left: -.45em;
+top: .35em;
+width: .7em;
+height: .7em;
+background: #008080;
+border-radius: 50%;
+}
+.symptom__inner .symptom__timeline-label {
+display: block;
+margin-bottom: .2em;
+font-weight: 700;
+color: #008080;
+}
+.symptom__inner .symptom__timeline-body {
+display: block;
+}
+.symptom__inner .symptom__quote {
+margin: 0;
+padding: 1.4em 1.6em;
+background: rgba(0, 255, 255, .08);
+border-radius: 6px;
+position: relative;
+}
+.symptom__inner .symptom__quote p {
+margin: 0;
+font-weight: 700;
+}
+.symptom__inner .symptom__quote cite {
+display: block;
+margin-top: .6em;
+font-size: .85em;
+font-style: normal;
+opacity: .75;
+text-align: right;
+}
 .symptom__inner .symptom__ba {
 margin: 0 0 1.2em;
 padding: 1em;
@@ -474,6 +543,13 @@ grid-row: 3;
 }
 .symptom__inner .symptom__letter {
 padding: 1.3em 1.4em;
+}
+.symptom__inner .symptom__profile {
+grid-template-columns: 1fr;
+gap: .1em;
+}
+.symptom__inner .symptom__profile dd {
+margin-bottom: .7em;
 }
 .symptom__inner .symptom__flow {
 grid-template-columns: 1fr;
