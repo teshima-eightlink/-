@@ -215,6 +215,17 @@ function abc_case_render( $slug ) {
 	 * q_button_wrap / q_button / bt_blue / bt_green はテーマ側のクラスなので、
 	 * こちらでCSSを用意する必要はありません。
 	 */
+	if ( abc_symptom_get( $cta, 'line_url' ) ) {
+		printf(
+			'<div class="q_button_wrap" style="text-align: center;"><a class="q_button bt_green" href="%s" target="_blank" rel="noopener">LINEで予約・相談する</a></div>',
+			esc_url( abc_symptom_url( $cta['line_url'] ) )
+		);
+
+		if ( abc_symptom_get( $cta, 'line_note' ) ) {
+			printf( '<p style="text-align: center;"><small>%s</small></p>', esc_html( $cta['line_note'] ) );
+		}
+	}
+
 	if ( abc_symptom_get( $cta, 'contact_url' ) ) {
 		printf(
 			'<div class="q_button_wrap" style="text-align: center;"><a class="q_button bt_blue" href="%s">お問合せはこちら</a></div>',
@@ -224,7 +235,7 @@ function abc_case_render( $slug ) {
 
 	if ( abc_symptom_get( $cta, 'reserve_url' ) ) {
 		printf(
-			'<div class="q_button_wrap" style="text-align: center; margin-top: 1em;"><a class="q_button bt_green" href="%s">ご予約はこちら</a></div>',
+			'<div class="q_button_wrap" style="text-align: center;"><a class="q_button bt_green" href="%s">ご予約はこちら</a></div>',
 			esc_url( $cta['reserve_url'] )
 		);
 	}
