@@ -48,6 +48,10 @@ return array(
 		'line_url'    => 'https://lin.ee/VG1WL3J',
 		'line_note'   => '24時間受付・ご相談だけでも大丈夫です',
 
+		// 症例記事で使うボタン（テーマのボタンクイックタグを利用）
+		'contact_url' => 'https://abc-chiro.net/contact/',
+		'reserve_url' => 'https://www.peakmanager.com/online/index/m9u2k9/eNpLtDK0qi62MjSyUsovKMnMzytJTIPTFGyLrYys1IytrAwMDNQsq4FXDD1BAue',
+
 		'tel'         => '',
 		'tel_note'    => '',
 		'web_url'     => '',   // 例: /contact/

@@ -112,12 +112,12 @@ function abc_case_render( $slug ) {
 	abc_case_note( abc_symptom_get( $data, 'caution_top' ) );
 
 	/* ===== 1 どんな方？ ===== */
-	printf( '<h2>%s</h2>', esc_html( abc_symptom_get( $data, 'profile.heading', 'どんな方が来院されたか' ) ) );
+	printf( '<h2 style="margin-top: 2em;">%s</h2>', esc_html( abc_symptom_get( $data, 'profile.heading', 'どんな方が来院されたか' ) ) );
 	abc_case_deflist( abc_symptom_get( $data, 'profile.rows', array() ) );
 	abc_case_text( abc_symptom_get( $data, 'profile.body', '' ) );
 
 	/* ===== 2 何に困った？ ===== */
-	printf( '<h2>%s</h2>', esc_html( abc_symptom_get( $data, 'trouble.heading', '何にお困りだったか' ) ) );
+	printf( '<h2 style="margin-top: 2em;">%s</h2>', esc_html( abc_symptom_get( $data, 'trouble.heading', '何にお困りだったか' ) ) );
 	abc_case_text( abc_symptom_get( $data, 'trouble.body', '' ) );
 
 	if ( abc_symptom_get( $data, 'trouble.items', array() ) ) {
@@ -133,7 +133,7 @@ function abc_case_render( $slug ) {
 	}
 
 	/* ===== 3 何が分かった？ ===== */
-	printf( '<h2>%s</h2>', esc_html( abc_symptom_get( $data, 'findings.heading', 'AI姿勢分析と検査でわかったこと' ) ) );
+	printf( '<h2 style="margin-top: 2em;">%s</h2>', esc_html( abc_symptom_get( $data, 'findings.heading', 'AI姿勢分析と検査でわかったこと' ) ) );
 	abc_case_text( abc_symptom_get( $data, 'findings.body', '' ) );
 	abc_case_list( abc_symptom_get( $data, 'findings.tiles', array() ) );
 
@@ -142,7 +142,7 @@ function abc_case_render( $slug ) {
 	}
 
 	/* ===== 4 何をした？ ===== */
-	printf( '<h2>%s</h2>', esc_html( abc_symptom_get( $data, 'approach.heading', '行った施術と、その狙い' ) ) );
+	printf( '<h2 style="margin-top: 2em;">%s</h2>', esc_html( abc_symptom_get( $data, 'approach.heading', '行った施術と、その狙い' ) ) );
 	abc_case_text( abc_symptom_get( $data, 'approach.body', '' ) );
 
 	if ( abc_symptom_get( $data, 'approach.steps', array() ) ) {
@@ -158,12 +158,12 @@ function abc_case_render( $slug ) {
 	}
 
 	/* ===== 5 どう変わった？ ===== */
-	printf( '<h2>%s</h2>', esc_html( abc_symptom_get( $data, 'progress.heading', '経過' ) ) );
+	printf( '<h2 style="margin-top: 2em;">%s</h2>', esc_html( abc_symptom_get( $data, 'progress.heading', '経過' ) ) );
 	abc_case_list( abc_symptom_get( $data, 'progress.items', array() ), 'label' );
 	abc_case_note( abc_symptom_get( $data, 'progress.note' ) );
 
 	/* ===== 6 写真・声 ===== */
-	printf( '<h2>%s</h2>', esc_html( abc_symptom_get( $data, 'evidence.heading', 'Before / After とご感想' ) ) );
+	printf( '<h2 style="margin-top: 2em;">%s</h2>', esc_html( abc_symptom_get( $data, 'evidence.heading', 'Before / After とご感想' ) ) );
 
 	foreach ( abc_symptom_get( $data, 'evidence.items', array() ) as $item ) {
 		$image = abc_symptom_get( $item, 'image' );
@@ -182,6 +182,7 @@ function abc_case_render( $slug ) {
 		abc_case_text( abc_symptom_get( $item, 'detail', '' ) );
 	}
 
+	// ご感想は写真と説明のあとに置きます
 	if ( abc_symptom_get( $data, 'evidence.quote' ) ) {
 		printf( '<blockquote><p>%s</p></blockquote>', wp_kses_post( $data['evidence']['quote'] ) );
 
@@ -194,7 +195,7 @@ function abc_case_render( $slug ) {
 	abc_case_note( abc_symptom_get( $data, 'evidence.note' ) );
 
 	/* ===== 7 院長コメント ===== */
-	printf( '<h2>%s</h2>', esc_html( abc_symptom_get( $data, 'comment.heading', '似たお悩みの方へ' ) ) );
+	printf( '<h2 style="margin-top: 2em;">%s</h2>', esc_html( abc_symptom_get( $data, 'comment.heading', '似たお悩みの方へ' ) ) );
 	abc_case_text( abc_symptom_get( $data, 'comment.body', array() ) );
 
 	if ( abc_symptom_get( $data, 'comment.closing' ) ) {
@@ -206,13 +207,25 @@ function abc_case_render( $slug ) {
 	}
 
 	/* ===== ご予約 ===== */
-	printf( '<h2>%s</h2>', esc_html( abc_symptom_get( $data, 'cta.heading', 'ご相談ください' ) ) );
+	printf( '<h2 style="margin-top: 2em;">%s</h2>', esc_html( abc_symptom_get( $data, 'cta.heading', 'ご相談ください' ) ) );
 	abc_case_text( abc_symptom_get( $data, 'cta.lead', '' ) );
 
-	if ( abc_symptom_get( $cta, 'line_url' ) ) {
+	/*
+	 * ボタンはテーマ（STORY）のクイックタグを使います。
+	 * q_button_wrap / q_button / bt_blue / bt_green はテーマ側のクラスなので、
+	 * こちらでCSSを用意する必要はありません。
+	 */
+	if ( abc_symptom_get( $cta, 'contact_url' ) ) {
 		printf(
-			'<p><a href="%s" target="_blank" rel="noopener">LINEで予約・相談する</a></p>',
-			esc_url( abc_symptom_url( $cta['line_url'] ) )
+			'<div class="q_button_wrap" style="text-align: center;"><a class="q_button bt_blue" href="%s">お問合せはこちら</a></div>',
+			esc_url( $cta['contact_url'] )
+		);
+	}
+
+	if ( abc_symptom_get( $cta, 'reserve_url' ) ) {
+		printf(
+			'<div class="q_button_wrap" style="text-align: center; margin-top: 1em;"><a class="q_button bt_green" href="%s">ご予約はこちら</a></div>',
+			esc_url( $cta['reserve_url'] )
 		);
 	}
 
