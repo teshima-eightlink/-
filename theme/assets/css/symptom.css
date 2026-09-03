@@ -449,11 +449,9 @@
 	text-align: left;
 }
 
-/* ==========================================================================
-   ここから下は症例記事（ブログ）で使うパーツ
-   ========================================================================== */
-
-/* プロフィール表 */
+/* --------------------------------------------------------------------------
+   項目一覧（Before/Afterの施術内容・期間・回数など）
+   -------------------------------------------------------------------------- */
 .symptom__inner .symptom__profile {
 	margin: 0;
 	padding: 1.2em 1.4em;
@@ -472,69 +470,6 @@
 
 .symptom__inner .symptom__profile dd {
 	margin: 0;
-}
-
-/* 経過（回数ごと） */
-.symptom__inner .symptom__timeline {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.symptom__inner .symptom__timeline > li {
-	position: relative;
-	padding: 0 0 1.6em 1.8em;
-	border-left: 2px solid var(--symptom-border);
-}
-
-.symptom__inner .symptom__timeline > li:last-child {
-	padding-bottom: 0;
-	border-left-color: transparent;
-}
-
-.symptom__inner .symptom__timeline > li::before {
-	content: "";
-	position: absolute;
-	left: -.45em;
-	top: .35em;
-	width: .7em;
-	height: .7em;
-	background: var(--symptom-accent);
-	border-radius: 50%;
-}
-
-.symptom__inner .symptom__timeline-label {
-	display: block;
-	margin-bottom: .2em;
-	font-weight: 700;
-	color: var(--symptom-accent);
-}
-
-.symptom__inner .symptom__timeline-body {
-	display: block;
-}
-
-/* お客様の声 */
-.symptom__inner .symptom__quote {
-	margin: 0;
-	padding: 1.4em 1.6em;
-	background: var(--symptom-tint);
-	border-radius: var(--symptom-radius);
-	position: relative;
-}
-
-.symptom__inner .symptom__quote p {
-	margin: 0;
-	font-weight: 700;
-}
-
-.symptom__inner .symptom__quote cite {
-	display: block;
-	margin-top: .6em;
-	font-size: .85em;
-	font-style: normal;
-	opacity: .75;
-	text-align: right;
 }
 
 /* --------------------------------------------------------------------------

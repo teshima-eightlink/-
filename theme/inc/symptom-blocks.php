@@ -292,12 +292,10 @@ function abc_block_flow( $steps ) {
 	echo '</ol>';
 }
 
-/* ==========================================================================
-   ここから下は、症例記事（ブログ）で使うパーツです。
-   ========================================================================== */
-
 /**
- * プロフィール表（年代・性別・お仕事など）
+ * 項目一覧（「項目名：内容」の組を並べる）
+ *
+ * Before/After の施術内容・期間・回数の併記に使っています。
  *
  * @param array $rows array( '項目名' => '内容' )
  */
@@ -313,48 +311,4 @@ function abc_block_profile( $rows ) {
 		printf( '<dt>%s</dt><dd>%s</dd>', esc_html( $label ), wp_kses_post( $value ) );
 	}
 	echo '</dl>';
-}
-
-/**
- * 経過（回数ごとの変化）
- *
- * @param array $items array( array( 'label', 'body' ) )
- */
-function abc_block_timeline( $items ) {
-	if ( empty( $items ) ) {
-		return;
-	}
-	echo '<ol class="symptom__timeline">';
-	foreach ( $items as $item ) {
-		printf(
-			'<li><span class="symptom__timeline-label">%s</span><span class="symptom__timeline-body">%s</span></li>',
-			esc_html( $item['label'] ),
-			wp_kses_post( $item['body'] )
-		);
-	}
-	echo '</ol>';
-}
-
-/**
- * お客様の声（引用）
- *
- * ★実際にいただいたお言葉のみを載せてください。
- *   創作した体験談は景品表示法（ステマ規制）に抵触します。
- *
- * @param string $text 本文。
- * @param string $who  どなたの言葉か（例: 60代女性）。
- */
-function abc_block_quote( $text, $who = '' ) {
-	if ( ! $text ) {
-		return;
-	}
-
-	echo '<blockquote class="symptom__quote">';
-	printf( '<p>%s</p>', wp_kses_post( $text ) );
-
-	if ( $who ) {
-		printf( '<cite>%s</cite>', esc_html( $who ) );
-	}
-
-	echo '</blockquote>';
 }
