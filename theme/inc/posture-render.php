@@ -113,6 +113,7 @@ function abc_posture_render( $slug = 'shisei' ) {
 				foreach ( abc_symptom_get( $data, 'beforeafter.items', array() ) as $item ) {
 					abc_block_beforeafter( $item );
 				}
+				abc_block_profile( abc_symptom_get( $data, 'beforeafter.terms', array() ) );
 				abc_block_note( abc_symptom_get( $data, 'beforeafter.note' ) );
 				?>
 			</div>

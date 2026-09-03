@@ -164,16 +164,19 @@ function abc_block_cases( $cases ) {
 function abc_block_beforeafter( $item ) {
 	$image = abc_symptom_get( $item, 'image' );
 
-	if ( ! $image ) {
-		return;
-	}
-
 	echo '<figure class="symptom__ba">';
-	printf(
-		'<img src="%s" alt="%s" loading="lazy" decoding="async">',
-		esc_url( $image ),
-		esc_attr( abc_symptom_get( $item, 'alt', '施術前と施術後の姿勢の比較' ) )
-	);
+
+	if ( $image ) {
+		printf(
+			'<img src="%s" alt="%s" loading="lazy" decoding="async">',
+			esc_url( $image ),
+			esc_attr( abc_symptom_get( $item, 'alt', '施術前と施術後の姿勢の比較' ) )
+		);
+	} else {
+		// 画像は編集画面からメディアを挿入してください。
+		// 説明文は先に出しておくので、この位置に画像を入れれば形が整います。
+		echo "\n<!-- ▼ここにBefore/Afterの画像を挿入してください（メディアを追加）▼ -->\n";
+	}
 
 	$caption = abc_symptom_get( $item, 'caption' );
 	$detail  = abc_symptom_get( $item, 'detail' );
