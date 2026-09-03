@@ -220,6 +220,10 @@ function abc_preview_tidy( $html ) {
 	 */
 	$out = preg_replace( '/\s+/u', ' ', $out );        // すべての空白を1つの半角スペースに
 	$out = preg_replace( '/>\s+</u', ">\n<", $out );   // タグの境目だけ改行する
+
+	// 編集画面で扱いやすいよう、ブロック要素の前で改行する
+	// （空行は作らない。空行があると wpautop が余計な段落を差し込むため）
+	$out = preg_replace( '#><(h[1-6]|p|ul|ol|li|blockquote|figure|div|section)\b#u', ">\n<$1", $out );
 	$out = preg_replace( '/\s+(<\/(?:p|h[1-6]|li|dt|dd|small|strong|a)>)/u', '$1', $out );
 
 	return trim( $out );
@@ -249,6 +253,7 @@ foreach ( array( $output_dir, $paste_dir ) as $dir ) {
 function abc_preview_write( $slug, $type ) {
 	global $theme_dir, $output_dir, $paste_dir;
 
+	$body = '';
 	$dirs = array(
 		'posture' => '/inc/pages/',
 		'case'    => '/inc/posts/',
@@ -284,8 +289,16 @@ function abc_preview_write( $slug, $type ) {
 	file_put_contents( $output_dir . '/' . $slug . '.html', $html );
 	printf( "preview/%-22s （表示確認用 / %d bytes）\n", $slug . '.html', strlen( $html ) );
 
-	if ( preg_match( '#<section class="content_full">.*</section>#s', $html, $m ) ) {
+	// 症例記事はCSSを使わないため、本文をそのまま貼り付け用にする
+	$fragment = '';
+
+	if ( 'case' === $type ) {
+		$fragment = abc_preview_tidy( $body ) . "\n";
+	} elseif ( preg_match( '#<section class="content_full">.*</section>#s', $html, $m ) ) {
 		$fragment = abc_preview_tidy( $m[0] ) . "\n";
+	}
+
+	if ( '' !== $fragment ) {
 		file_put_contents( $paste_dir . '/' . $slug . '.html', $fragment );
 		printf( "paste/%-24s （本文貼り付け用 / %d bytes）\n", $slug . '.html', strlen( $fragment ) );
 	}
