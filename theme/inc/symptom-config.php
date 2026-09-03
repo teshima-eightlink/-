@@ -50,6 +50,17 @@ return array(
 
 		// 症例記事で使うボタン（テーマのボタンクイックタグを利用）
 		'contact_url' => 'https://abc-chiro.net/contact/',
+
+		/*
+		 * ★2026年10月にWeb予約（PeakManager）が終了予定です。
+		 *
+		 *   ・終了したら、この行を '' にしてください。以降に生成する
+		 *     記事HTMLから「ご予約はこちら」ボタンが消えます。
+		 *   ・すでに公開済みの記事は貼り付け済みのHTMLなので、
+		 *     記事ごとに該当の <div class="q_button_wrap"> を削除する
+		 *     手作業が必要です。それまでに公開する本数が増えるほど
+		 *     手間も増えるので、本数を把握しておいてください。
+		 */
 		'reserve_url' => 'https://www.peakmanager.com/online/index/m9u2k9/eNpLtDK0qi62MjSyUsovKMnMzytJTIPTFGyLrYys1IytrAwMDNQsq4FXDD1BAue',
 
 		'tel'         => '',
