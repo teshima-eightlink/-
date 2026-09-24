@@ -273,10 +273,19 @@ function syncCameraTasks() {
       `撮影日時：${Utilities.formatDate(shootDateTime, Session.getScriptTimeZone(), "yyyy/MM/dd HH:mm")}`;
 
 
-    const detailStart = calculateTaskTime(calendar, detailDate, "｜撮影詳細送付", detailEventId);
-    const detailEvent = createOrUpdateEvent(
+    // 先に更新対象の予定を特定しておく。
+    // こうしないと、自分自身を「その日にすでにある予定」として数えてしまい、
+    // 同期のたびに開始時刻が30分ずつ前へずれていく。
+    const detailTarget = resolveEvent(calendar, detailEventId, detailTitle, project);
+    const reminderTarget = resolveEvent(calendar, reminderEventId, reminderTitle, project);
+    const shootTarget = resolveEvent(calendar, shootEventId, shootTitle, project);
+    const deliveryTarget = resolveEvent(calendar, deliveryEventId, deliveryTitle, project);
+
+
+    const detailStart = calculateTaskTime(calendar, detailDate, "｜撮影詳細送付", detailTarget ? detailTarget.getId() : null);
+    const detailEvent = applyEvent(
       calendar,
-      detailEventId,
+      detailTarget,
       detailTitle,
       detailStart,
       new Date(detailStart.getTime() + 30 * 60 * 1000),
@@ -284,10 +293,10 @@ function syncCameraTasks() {
     );
 
 
-    const reminderStart = calculateTaskTime(calendar, reminderDate, "｜前日確認", reminderEventId);
-    const reminderEvent = createOrUpdateEvent(
+    const reminderStart = calculateTaskTime(calendar, reminderDate, "｜前日確認", reminderTarget ? reminderTarget.getId() : null);
+    const reminderEvent = applyEvent(
       calendar,
-      reminderEventId,
+      reminderTarget,
       reminderTitle,
       reminderStart,
       new Date(reminderStart.getTime() + 30 * 60 * 1000),
@@ -295,9 +304,9 @@ function syncCameraTasks() {
     );
 
 
-    const shootEvent = createOrUpdateEvent(
+    const shootEvent = applyEvent(
       calendar,
-      shootEventId,
+      shootTarget,
       shootTitle,
       shootDateTime,
       new Date(shootDateTime.getTime() + 60 * 60 * 1000),
@@ -305,10 +314,10 @@ function syncCameraTasks() {
     );
 
 
-    const deliveryStart = calculateTaskTime(calendar, deliveryDate, "｜データ納品", deliveryEventId);
-    const deliveryEvent = createOrUpdateEvent(
+    const deliveryStart = calculateTaskTime(calendar, deliveryDate, "｜データ納品", deliveryTarget ? deliveryTarget.getId() : null);
+    const deliveryEvent = applyEvent(
       calendar,
-      deliveryEventId,
+      deliveryTarget,
       deliveryTitle,
       deliveryStart,
       new Date(deliveryStart.getTime() + 30 * 60 * 1000),
@@ -403,10 +412,44 @@ function getEventByIdSafe(calendar, eventId) {
 }
 
 
-function createOrUpdateEvent(calendar, eventId, title, startTime, endTime, description) {
+/**
+ * タイトルが完全一致する予定を探す。見つからなければ null。
+ * ID列が空になってしまった行を再同期したときに、同じ予定を作り直さず付け直すために使う。
+ */
+function findEventByTitle(calendar, project, title) {
+  if (!project) return null;
+
+
+  const events = calendar.getEvents(
+    new Date("2020/01/01"),
+    new Date("2035/12/31"),
+    { search: `📷${project}` }
+  );
+
+
+  const matched = events.filter(event => event.getTitle() === title);
+  return matched.length > 0 ? matched[0] : null;
+}
+
+
+/**
+ * 更新対象の予定を特定する。見つからなければ null（＝新規作成する）。
+ * IDで見つからない場合は、同じタイトルの予定を探して付け直す
+ * （ID列が空になった行を再同期したときに、同じ予定を二重に作らないため）。
+ */
+function resolveEvent(calendar, eventId, title, project) {
   const event = getEventByIdSafe(calendar, eventId);
+  if (event) return event;
 
 
+  return findEventByTitle(calendar, project, title);
+}
+
+
+/**
+ * 予定に内容を書き込む。event が null なら新規作成する。
+ */
+function applyEvent(calendar, event, title, startTime, endTime, description) {
   if (event) {
     try {
       event.setTitle(title);
