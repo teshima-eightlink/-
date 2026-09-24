@@ -1,7 +1,11 @@
 /**
  * 撮影管理シート × Googleカレンダー連携
  *
- * 列レイアウト（「依頼シート担当チェック済」追加後・全29列）
+ * 【重要】列番号はスクリプトに固定していません。
+ *   1行目の見出し（案件名・撮影日・詳細送付ID …）を毎回探して列を決めるため、
+ *   列を挿入・移動しても動きます。逆に、見出しの文字列を変えると動かなくなります。
+ *
+ * 標準の列レイアウト（「依頼シート担当チェック済」追加後・全29列）
  *   A カメラマンマスタ      B 案件名          C 候補日メモ        D 撮影日          E 時間
  *   F 撮影場所            G カメラマン        H カメラマン住所      I カレンダー        J 状態
  *   K 撮影依頼シート作成 ☑   L 依頼シート担当チェック済 ☑             M 撮影依頼シート送付 ☑
@@ -14,81 +18,207 @@
  *   syncCameraTasks()     … カレンダー同期（メニュー）
  *   setSheetCameraTasks() … 初期設定（メニュー）
  *   moveFinishedDown()    … 「撮影終了」の行を下に移動＋未終了を撮影日時順に並べ替え
- *                           （B〜AC をセルごとまとめて移動）
- *   applyFinishedStatus() … 撮影終了/納品/UP のいずれかにチェックで J列を「撮影終了」に更新
+ *   applyFinishedStatus() … 撮影終了/納品/UP のいずれかにチェックで「状態」を「撮影終了」に更新
  *                           （「撮影終了を下に移動」メニューの実行時に呼ばれる）
  *   checkSyncCameraTasks()… 同期の診断（メニュー）
- *   handleCheckboxEdit()  … 編集時にQ〜Sのチェックで J列を「撮影終了」に（インストール型トリガー）
+ *   handleCheckboxEdit()  … 編集時に撮影終了/納品/UP のチェックで「状態」を更新（インストール型トリガー）
  *   installEditTrigger()  … 上記トリガーを登録（初回のみ・メニュー）
  */
 
+const CAMERA_SHEET_NAME = "撮影管理";
+const CAMERA_CALENDAR_ID = "a318a9f9c5467e98191e3441af7c94084983ab5c40624dae2581dea4fc333520@group.calendar.google.com";
+
+// 標準の見出し（setSheetCameraTasks で書き込む並び）
+const CAMERA_HEADERS = [
+  "カメラマンマスタ",
+  "案件名",
+  "候補日メモ",
+  "撮影日",
+  "時間",
+  "撮影場所",
+  "カメラマン",
+  "カメラマン住所",
+  "カレンダー",
+  "状態",
+  "撮影依頼シート作成",
+  "依頼シート担当チェック済",
+  "撮影依頼シート送付",
+  "前日LINE",
+  "当日LINE",
+  "合流チェック",
+  "撮影終了",
+  "納品",
+  "UP",
+  "データ譲渡",
+  "詳細送付ID",
+  "前日確認ID",
+  "撮影ID",
+  "納品ID",
+  "交通費",
+  "担当カスタマー",
+  "ドキュメント",
+  "メモ",
+  "予備"
+];
+
+// チェックボックスにする見出し（K〜T相当）
+const CAMERA_CHECKBOX_HEADERS = [
+  "撮影依頼シート作成",
+  "依頼シート担当チェック済",
+  "撮影依頼シート送付",
+  "前日LINE",
+  "当日LINE",
+  "合流チェック",
+  "撮影終了",
+  "納品",
+  "UP",
+  "データ譲渡"
+];
+
+// 非表示にする見出し（各種ID）
+const CAMERA_ID_HEADERS = ["詳細送付ID", "前日確認ID", "撮影ID", "納品ID"];
+
+
+/**
+ * 見出し行から「見出し名 → 列番号（1始まり）」の対応表を作る。
+ * 同じ見出しが複数あるときは左側を優先する。
+ */
+function getColumnMap(sheet) {
+  const lastColumn = sheet.getLastColumn();
+  if (lastColumn < 1) return {};
+
+  const headerValues = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  const columnMap = {};
+
+  headerValues.forEach(function(value, i) {
+    const name = String(value === null || value === undefined ? "" : value).trim();
+
+    if (name !== "" && !(name in columnMap)) {
+      columnMap[name] = i + 1;
+    }
+  });
+
+  return columnMap;
+}
+
+
+/**
+ * 必須の見出しのうち、見つからなかったものを返す。
+ */
+function findMissingHeaders(columnMap, requiredHeaders) {
+  return requiredHeaders.filter(function(name) {
+    return !(name in columnMap);
+  });
+}
+
+
+/**
+ * 必須の見出しが足りなければ知らせて null を返す。そろっていれば対応表を返す。
+ */
+function requireColumns(sheet, requiredHeaders, title) {
+  const columnMap = getColumnMap(sheet);
+  const missing = findMissingHeaders(columnMap, requiredHeaders);
+
+  if (missing.length > 0) {
+    SpreadsheetApp.getUi().alert(
+      title,
+      "1行目に次の見出しが見つかりません。見出しの文字列を確認してください。\n\n" +
+      missing.map(function(name) { return "・" + name; }).join("\n"),
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+    return null;
+  }
+
+  return columnMap;
+}
+
+
+/**
+ * 列番号（1始まり）を A / B / AA のような列名に変換する。
+ */
+function columnLetter(column) {
+  let letter = "";
+  let n = column;
+
+
+  while (n > 0) {
+    letter = String.fromCharCode(65 + ((n - 1) % 26)) + letter;
+    n = Math.floor((n - 1) / 26);
+  }
+
+
+  return letter;
+}
+
+
 function syncCameraTasks() {
-  const SHEET_NAME = "撮影管理";
-  const CALENDAR_ID = "a318a9f9c5467e98191e3441af7c94084983ab5c40624dae2581dea4fc333520@group.calendar.google.com";
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CAMERA_SHEET_NAME);
 
 
   if (!sheet) {
-    SpreadsheetApp.getUi().alert("エラー: 「" + SHEET_NAME + "」シートが見つかりません。");
+    SpreadsheetApp.getUi().alert("エラー: 「" + CAMERA_SHEET_NAME + "」シートが見つかりません。");
     return;
   }
 
 
-  const calendar = CalendarApp.getCalendarById(CALENDAR_ID);
+  const calendar = CalendarApp.getCalendarById(CAMERA_CALENDAR_ID);
 
 
   if (!calendar) {
     SpreadsheetApp.getUi().alert(
       "エラー: カレンダーが見つかりません。\n" +
-      "カレンダーID（" + CALENDAR_ID + "）が正しいか、または閲覧・編集権限があるか確認してください。"
+      "カレンダーID（" + CAMERA_CALENDAR_ID + "）が正しいか、または閲覧・編集権限があるか確認してください。"
     );
     return;
   }
 
 
-  // 列がずれたまま同期すると、ID列でない値（交通費など）を予定IDとして扱ってしまい
-  // 「このカレンダーの予定は存在しないか、既に削除されています。」で止まる。
-  // さらに別の予定のIDを書き換えてしまうため、ずれている間は実行しない。
-  const layoutProblems = findColumnLayoutProblems(sheet);
+  // 列番号は見出しから引く（列を挿入してもずれないようにするため）
+  const columnMap = requireColumns(sheet, [
+    "案件名",
+    "撮影日",
+    "時間",
+    "撮影場所",
+    "カメラマン",
+    "カメラマン住所",
+    "カレンダー",
+    "状態",
+    "データ譲渡",
+    "詳細送付ID",
+    "前日確認ID",
+    "撮影ID",
+    "納品ID"
+  ], "同期を中止しました");
 
 
-  if (layoutProblems.length > 0) {
-    SpreadsheetApp.getUi().alert(
-      "列レイアウトが合っていないため同期を中止しました",
-      "K列とL列の間に「依頼シート担当チェック済」を1列挿入してから実行してください。\n\n" +
-      layoutProblems.join("\n"),
-      SpreadsheetApp.getUi().ButtonSet.OK
-    );
-    return;
-  }
+  if (!columnMap) return;
 
 
-// 他の人が実行するとA列保護でエラーになるため、同期時は保護・フィルター再設定しない
-// updateFilterAndProtection(sheet);
+  const idColumns = CAMERA_ID_HEADERS.map(function(name) { return columnMap[name]; });
 
 
-const data = sheet.getDataRange().getValues();
+  const data = sheet.getDataRange().getValues();
 
 
   for (let i = 1; i < data.length; i++) {
     const row = i + 1;
 
 
-    const project = data[i][1];            // B：案件名
-    const shootDate = data[i][3];          // D：撮影日
-    const shootTime = data[i][4];          // E：時間
-    const shootLocation = data[i][5];      // F：撮影場所
-    const cameraman = data[i][6];          // G：カメラマン
-    const cameramanAddress = data[i][7];   // H：カメラマン住所
-    const calendarAction = data[i][8];     // I：同期
-    const status = data[i][9];             // J：状態
-    const dataTransfer = data[i][19];      // T：データ譲渡
+    const project = data[i][columnMap["案件名"] - 1];
+    const shootDate = data[i][columnMap["撮影日"] - 1];
+    const shootTime = data[i][columnMap["時間"] - 1];
+    const shootLocation = data[i][columnMap["撮影場所"] - 1];
+    const cameraman = data[i][columnMap["カメラマン"] - 1];
+    const cameramanAddress = data[i][columnMap["カメラマン住所"] - 1];
+    const calendarAction = data[i][columnMap["カレンダー"] - 1];
+    const status = data[i][columnMap["状態"] - 1];
+    const dataTransfer = data[i][columnMap["データ譲渡"] - 1];
 
 
-    const detailEventId = data[i][20];     // U：詳細送付ID
-    const reminderEventId = data[i][21];   // V：前日確認ID
-    const shootEventId = data[i][22];      // W：撮影ID
-    const deliveryEventId = data[i][23];   // X：納品ID
+    const detailEventId = data[i][columnMap["詳細送付ID"] - 1];
+    const reminderEventId = data[i][columnMap["前日確認ID"] - 1];
+    const shootEventId = data[i][columnMap["撮影ID"] - 1];
+    const deliveryEventId = data[i][columnMap["納品ID"] - 1];
 
 
     if (calendarAction === "削除する" || status === "中止") {
@@ -98,9 +228,9 @@ const data = sheet.getDataRange().getValues();
       deleteEventByIdOrTitle(calendar, deliveryEventId, project, "｜データ納品");
 
 
-      sheet.getRange(row, 9).setValue("削除済");   // I：同期
-      sheet.getRange(row, 10).setValue("中止");     // J：状態（削除済になったら中止）
-      sheet.getRange(row, 21, 1, 4).clearContent(); // U〜X：各種ID
+      sheet.getRange(row, columnMap["カレンダー"]).setValue("削除済");
+      sheet.getRange(row, columnMap["状態"]).setValue("中止");
+      clearEventIds(sheet, row, idColumns);
       continue;
     }
 
@@ -186,74 +316,58 @@ const data = sheet.getDataRange().getValues();
     );
 
 
-    sheet.getRange(row, 21, 1, 4).setValues([[
+    writeEventIds(sheet, row, idColumns, [
       detailEvent.getId(),
       reminderEvent.getId(),
       shootEvent.getId(),
       deliveryEvent.getId()
-    ]]);
+    ]);
 
 
-    sheet.getRange(row, 9).setValue("登録済");
+    sheet.getRange(row, columnMap["カレンダー"]).setValue("登録済");
   }
 }
 
 
 /**
- * 列番号（1始まり）を A / B / AA のような列名に変換する。
+ * 列が連続しているか。連続していれば1回の読み書きでまとめて扱える。
  */
-function columnLetter(column) {
-  let letter = "";
-  let n = column;
-
-
-  while (n > 0) {
-    letter = String.fromCharCode(65 + ((n - 1) % 26)) + letter;
-    n = Math.floor((n - 1) / 26);
-  }
-
-
-  return letter;
-}
-
-
-/**
- * 見出し行を見て、列レイアウトが新しい29列構成になっているか確認する。
- * 同期の読み書きに直結する列（状態・データ譲渡・各種ID）だけを対象にする。
- * 問題があればメッセージの配列を、問題なしなら空配列を返す。
- */
-function findColumnLayoutProblems(sheet) {
-  const EXPECTED_HEADERS = {
-    10: "状態",
-    20: "データ譲渡",
-    21: "詳細送付ID",
-    22: "前日確認ID",
-    23: "撮影ID",
-    24: "納品ID"
-  };
-
-
-  const lastColumn = Math.max(sheet.getLastColumn(), 24);
-  const headerValues = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
-  const problems = [];
-
-
-  Object.keys(EXPECTED_HEADERS).forEach(function(key) {
-    const column = Number(key);
-    const expected = EXPECTED_HEADERS[column];
-    const actual = String(headerValues[column - 1] || "").trim();
-
-
-    if (actual !== expected) {
-      problems.push(
-        columnLetter(column) + "列の見出しが「" + expected + "」ではありません" +
-        "（現在:「" + (actual || "空欄") + "」）"
-      );
-    }
+function isSequentialColumns(columns) {
+  return columns.every(function(column, i) {
+    return i === 0 || column === columns[i - 1] + 1;
   });
+}
 
 
-  return problems;
+/**
+ * 4つの予定IDを書き込む。ID列が離れていても動くようにしている。
+ */
+function writeEventIds(sheet, row, columns, ids) {
+  if (isSequentialColumns(columns)) {
+    sheet.getRange(row, columns[0], 1, columns.length).setValues([ids]);
+    return;
+  }
+
+
+  columns.forEach(function(column, i) {
+    sheet.getRange(row, column).setValue(ids[i]);
+  });
+}
+
+
+/**
+ * 4つの予定IDを消す。
+ */
+function clearEventIds(sheet, row, columns) {
+  if (isSequentialColumns(columns)) {
+    sheet.getRange(row, columns[0], 1, columns.length).clearContent();
+    return;
+  }
+
+
+  columns.forEach(function(column) {
+    sheet.getRange(row, column).clearContent();
+  });
 }
 
 
@@ -294,10 +408,14 @@ function createOrUpdateEvent(calendar, eventId, title, startTime, endTime, descr
 
 
   if (event) {
-    event.setTitle(title);
-    event.setTime(startTime, endTime);
-    event.setDescription(description);
-    return event;
+    try {
+      event.setTitle(title);
+      event.setTime(startTime, endTime);
+      event.setDescription(description);
+      return event;
+    } catch (err) {
+      // 取得できても、直後に削除済みだと更新時に例外になる。新規作成にフォールバックする。
+    }
   }
 
 
@@ -313,8 +431,13 @@ function deleteEventByIdOrTitle(calendar, eventId, project, titleKeyword) {
 
 
   if (event) {
-    event.deleteEvent();
-    deleted = true;
+    try {
+      event.deleteEvent();
+      deleted = true;
+    } catch (err) {
+      // すでに削除済みなら何もしなくてよい
+      deleted = true;
+    }
   }
 
 
@@ -337,69 +460,60 @@ function deleteEventByIdOrTitle(calendar, eventId, project, titleKeyword) {
  * setSheetCameraTasks()
  * 撮影管理シートの初期設定・見た目調整をまとめて行う関数
  *
+ * ※ この関数だけは「標準レイアウト（29列）」を前提に見出しを書き込む。
+ *   既存の見出しと違う場合は、上書きする前に確認を出す。
+ *
  * 主な処理：
  * ・1行目に見出しを設定（全29列）
  * ・見出し行の背景色、太字、中央寄せを設定
- * ・D列/E列（撮影日・時間）をセットに見えるよう背景色変更
+ * ・撮影日/時間の見出しをセットに見えるよう背景色変更
  * ・全行の高さを統一
- * ・I列「同期」にプルダウンを設定
- * ・J列「状態」にプルダウンを設定
- * ・K〜T列（各チェック項目・撮影終了・納品・UP・データ譲渡）にチェックボックスを設定
- * ・D列「撮影日」に日付形式と日付入力ルールを設定
- * ・E列「時間」に時刻形式を設定
- * ・A列「カメラマンマスタ」とH列「カメラマン住所」は切り詰め表示
+ * ・「カレンダー」にプルダウンを設定
+ * ・「状態」にプルダウンを設定
+ * ・各チェック項目にチェックボックスを設定
+ * ・「撮影日」に日付形式と日付入力ルールを設定
+ * ・「時間」に時刻形式を設定
+ * ・「カメラマンマスタ」と「カメラマン住所」は切り詰め表示
  * ・状態ごとの色設定を反映
  * ・フィルター、保護、非表示列を再設定
  */
 function setSheetCameraTasks() {
-  const SHEET_NAME = "撮影管理";
   const ROW_HEIGHT = 36;
+  const ui = SpreadsheetApp.getUi();
 
 
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CAMERA_SHEET_NAME);
 
 
   if (!sheet) {
-    SpreadsheetApp.getUi().alert("エラー: 「" + SHEET_NAME + "」シートが見つかりません。");
+    ui.alert("エラー: 「" + CAMERA_SHEET_NAME + "」シートが見つかりません。");
     return;
   }
 
 
-  const headers = [[
-    "カメラマンマスタ",
-    "案件名",
-    "候補日メモ",
-    "撮影日",
-    "時間",
-    "撮影場所",
-    "カメラマン",
-    "カメラマン住所",
-    "カレンダー",
-    "状態",
-    "撮影依頼シート作成",
-    "依頼シート担当チェック済",
-    "撮影依頼シート送付",
-    "前日LINE",
-    "当日LINE",
-    "合流チェック",
-    "撮影終了",
-    "納品",
-    "UP",
-    "データ譲渡",
-    "詳細送付ID",
-    "前日確認ID",
-    "撮影ID",
-    "納品ID",
-    "交通費",
-    "担当カスタマー",
-    "ドキュメント",
-    "メモ",
-    "予備"
-  ]];
+  // 既存の見出しと食い違う場合、列を挿入せずに実行すると見出しと中身がずれるので確認する
+  const mismatches = findHeaderMismatches(sheet);
 
 
-  const headerRange = sheet.getRange(1, 1, 1, 29);
-  headerRange.setValues(headers);
+  if (mismatches.length > 0) {
+    const answer = ui.alert(
+      "見出しが標準レイアウトと違います",
+      "次の列の見出しを書き換えます。列の挿入をまだ行っていない場合、見出しと中身がずれます。\n" +
+      "（この関数は見出しを書き換えるだけで、データの移動はしません）\n\n" +
+      mismatches.join("\n") + "\n\n続けますか？",
+      ui.ButtonSet.YES_NO
+    );
+
+
+    if (answer !== ui.Button.YES) {
+      ui.alert("中止しました。");
+      return;
+    }
+  }
+
+
+  const headerRange = sheet.getRange(1, 1, 1, CAMERA_HEADERS.length);
+  headerRange.setValues([CAMERA_HEADERS]);
 
 
   headerRange
@@ -408,8 +522,11 @@ function setSheetCameraTasks() {
     .setHorizontalAlignment("center");
 
 
-  // D/Eだけセットに見えるように見出し背景色変更
-  sheet.getRange(1, 4, 1, 2).setBackground("#d9ead3");
+  const columnMap = getColumnMap(sheet);
+
+
+  // 撮影日・時間だけセットに見えるように見出し背景色変更
+  sheet.getRange(1, columnMap["撮影日"], 1, 2).setBackground("#d9ead3");
 
 
   const lastRow = Math.max(sheet.getLastRow(), 2);
@@ -420,9 +537,9 @@ function setSheetCameraTasks() {
   sheet.setRowHeights(1, sheet.getMaxRows(), ROW_HEIGHT);
 
 
-  // I列：同期
-  const iRange = sheet.getRange(2, 9, totalRows, 1);
-  const iDropdownRule = SpreadsheetApp.newDataValidation()
+  // カレンダー（同期）
+  const syncRange = sheet.getRange(2, columnMap["カレンダー"], totalRows, 1);
+  const syncDropdownRule = SpreadsheetApp.newDataValidation()
     .requireValueInList([
       "登録・更新する",
       "登録済",
@@ -431,40 +548,42 @@ function setSheetCameraTasks() {
     ])
     .setAllowInvalid(false)
     .build();
-  iRange.setDataValidation(iDropdownRule);
+  syncRange.setDataValidation(syncDropdownRule);
 
 
-  // J列：状態
-  const jRange = sheet.getRange(2, 10, totalRows, 1);
-  const jDropdownRule = SpreadsheetApp.newDataValidation()
+  // 状態
+  const statusRange = sheet.getRange(2, columnMap["状態"], totalRows, 1);
+  const statusDropdownRule = SpreadsheetApp.newDataValidation()
     .requireValueInList([
       "中止",
       "撮影終了"
     ])
     .setAllowInvalid(false)
     .build();
-  jRange.setDataValidation(jDropdownRule);
+  statusRange.setDataValidation(statusDropdownRule);
 
 
-  // K〜T列：撮影依頼シート作成・依頼シート担当チェック済・送付・前日LINE・当日LINE・合流チェック・撮影終了・納品・UP・データ譲渡（チェックボックス）
-  sheet.getRange(2, 11, totalRows, 10).insertCheckboxes();
+  // 各チェック項目（チェックボックス）
+  CAMERA_CHECKBOX_HEADERS.forEach(function(name) {
+    sheet.getRange(2, columnMap[name], totalRows, 1).insertCheckboxes();
+  });
 
 
-  // D列：撮影日
-  const dRange = sheet.getRange(2, 4, totalRows, 1);
-  dRange.setNumberFormat("yyyy/mm/dd");
+  // 撮影日
+  const dateRange = sheet.getRange(2, columnMap["撮影日"], totalRows, 1);
+  dateRange.setNumberFormat("yyyy/mm/dd");
 
 
-  const dDateRule = SpreadsheetApp.newDataValidation()
+  const dateRule = SpreadsheetApp.newDataValidation()
     .requireDate()
     .setAllowInvalid(true)
     .build();
-  dRange.setDataValidation(dDateRule);
+  dateRange.setDataValidation(dateRule);
 
 
-  // E列：時間
-  const eRange = sheet.getRange(2, 5, totalRows, 1);
-  eRange.setNumberFormat("hh:mm");
+  // 時間
+  const timeRange = sheet.getRange(2, columnMap["時間"], totalRows, 1);
+  timeRange.setNumberFormat("hh:mm");
 
 
   // 通常は9:00〜19:00の30分刻みプルダウン
@@ -482,53 +601,85 @@ function setSheetCameraTasks() {
   }
 
 
-const eTimeRule = SpreadsheetApp.newDataValidation()
-  .requireValueInList(timeOptions, true)
-  .setAllowInvalid(true)
-  .build();
+  const timeRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(timeOptions, true)
+    .setAllowInvalid(true)
+    .build();
 
 
-eRange.setDataValidation(eTimeRule);
-  // A列・H列は「切り詰める」
-  sheet.getRange(1, 1, sheet.getMaxRows(), 1)
+  timeRange.setDataValidation(timeRule);
+
+
+  // カメラマンマスタ・カメラマン住所は「切り詰める」
+  sheet.getRange(1, columnMap["カメラマンマスタ"], sheet.getMaxRows(), 1)
     .setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
 
 
-  sheet.getRange(1, 8, sheet.getMaxRows(), 1)
+  sheet.getRange(1, columnMap["カメラマン住所"], sheet.getMaxRows(), 1)
     .setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
 
 
-  // D～E（撮影日・時間）
-  sheet.getRange(2, 4, totalRows, 2)
+  // 撮影日・時間
+  sheet.getRange(2, columnMap["撮影日"], totalRows, 2)
     .setHorizontalAlignment("center");
 
 
-  // F～H（撮影場所・カメラマン・カメラマン住所）
-  sheet.getRange(2, 6, totalRows, 3)
+  // 撮影場所・カメラマン・カメラマン住所
+  sheet.getRange(2, columnMap["撮影場所"], totalRows, 3)
     .setHorizontalAlignment("left");
 
 
-  // I～T（同期・状態・各チェック項目）
-  sheet.getRange(2, 9, totalRows, 12)
+  // カレンダー・状態・各チェック項目
+  sheet.getRange(2, columnMap["カレンダー"], totalRows, 12)
     .setHorizontalAlignment("center");
 
 
-  // Y～AC（交通費・担当カスタマー・ドキュメント・メモ・予備）
-  sheet.getRange(2, 25, totalRows, 5)
+  // 交通費・担当カスタマー・ドキュメント・メモ・予備
+  sheet.getRange(2, columnMap["交通費"], totalRows, 5)
     .setHorizontalAlignment("left");
 
 
-  setStatusColors(sheet, totalRows);
+  setStatusColors(sheet, totalRows, columnMap);
   updateFilterAndProtection(sheet);
 
 
-  SpreadsheetApp.getUi().alert("完了: 見出し、プルダウン、チェックボックス、行高、保護、非表示、フィルターを設定しました！");
+  ui.alert("完了: 見出し、プルダウン、チェックボックス、行高、保護、非表示、フィルターを設定しました！");
 }
 
 
-function setStatusColors(sheet, totalRows) {
-  const iRange = sheet.getRange(2, 9, totalRows, 1);
-  const jRange = sheet.getRange(2, 10, totalRows, 1);
+/**
+ * 現在の見出しと標準レイアウトの食い違いを返す（空欄どうしは無視する）。
+ */
+function findHeaderMismatches(sheet) {
+  const lastColumn = Math.max(sheet.getLastColumn(), CAMERA_HEADERS.length);
+  const headerValues = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  const mismatches = [];
+
+
+  CAMERA_HEADERS.forEach(function(expected, i) {
+    const actual = String(headerValues[i] === null || headerValues[i] === undefined ? "" : headerValues[i]).trim();
+
+
+    if (actual !== expected) {
+      mismatches.push(
+        columnLetter(i + 1) + "列：「" + (actual || "空欄") + "」 → 「" + expected + "」"
+      );
+    }
+  });
+
+
+  return mismatches;
+}
+
+
+function setStatusColors(sheet, totalRows, columnMap) {
+  const map = columnMap || getColumnMap(sheet);
+  const syncColumn = map["カレンダー"];
+  const statusColumn = map["状態"];
+
+
+  const syncRange = sheet.getRange(2, syncColumn, totalRows, 1);
+  const statusRange = sheet.getRange(2, statusColumn, totalRows, 1);
 
 
   const existingRules = sheet.getConditionalFormatRules();
@@ -543,7 +694,7 @@ function setStatusColors(sheet, totalRows) {
       const lastCol = col + range.getNumColumns() - 1;
 
 
-      return col <= 10 && lastCol >= 9;
+      return col <= statusColumn && lastCol >= syncColumn;
     });
   });
 
@@ -552,42 +703,42 @@ function setStatusColors(sheet, totalRows) {
     SpreadsheetApp.newConditionalFormatRule()
       .whenTextEqualTo("登録・更新する")
       .setBackground("#ffe599")
-      .setRanges([iRange])
+      .setRanges([syncRange])
       .build(),
 
 
     SpreadsheetApp.newConditionalFormatRule()
       .whenTextEqualTo("登録済")
       .setBackground("#b6d7a8")
-      .setRanges([iRange])
+      .setRanges([syncRange])
       .build(),
 
 
     SpreadsheetApp.newConditionalFormatRule()
       .whenTextEqualTo("削除する")
       .setBackground("#d9d9d9")
-      .setRanges([iRange])
+      .setRanges([syncRange])
       .build(),
 
 
     SpreadsheetApp.newConditionalFormatRule()
       .whenTextEqualTo("削除済")
       .setBackground("#b7b7b7")
-      .setRanges([iRange])
+      .setRanges([syncRange])
       .build(),
 
 
     SpreadsheetApp.newConditionalFormatRule()
       .whenTextEqualTo("中止")
       .setBackground("#b7b7b7")
-      .setRanges([jRange])
+      .setRanges([statusRange])
       .build(),
 
 
     SpreadsheetApp.newConditionalFormatRule()
       .whenTextEqualTo("撮影終了")
       .setBackground("#9fc5e8")
-      .setRanges([jRange])
+      .setRanges([statusRange])
       .build()
   ];
 
@@ -598,7 +749,8 @@ function setStatusColors(sheet, totalRows) {
 
 function updateFilterAndProtection(sheet) {
   const lastRow = Math.max(sheet.getLastRow(), 1);
-  const maxColumns = Math.max(sheet.getLastColumn(), 29);
+  const maxColumns = Math.max(sheet.getLastColumn(), CAMERA_HEADERS.length);
+  const columnMap = getColumnMap(sheet);
 
 
   if (sheet.getFilter()) {
@@ -610,10 +762,20 @@ function updateFilterAndProtection(sheet) {
   sheet.getRange(1, 2, lastRow, maxColumns - 1).createFilter();
 
 
-  // 列の表示状態をいったんリセットしてから、A列とU〜X列（各種ID）を非表示
+  // 列の表示状態をいったんリセットしてから、カメラマンマスタと各種IDを非表示
   sheet.showColumns(1, sheet.getMaxColumns());
-  sheet.hideColumns(1);
-  sheet.hideColumns(21, 4);
+
+
+  if (columnMap["カメラマンマスタ"]) {
+    sheet.hideColumns(columnMap["カメラマンマスタ"]);
+  }
+
+
+  CAMERA_ID_HEADERS.forEach(function(name) {
+    if (columnMap[name]) {
+      sheet.hideColumns(columnMap[name]);
+    }
+  });
 
 
   const protections = sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
@@ -629,8 +791,9 @@ function updateFilterAndProtection(sheet) {
   });
 
 
-  const aRange = sheet.getRange(1, 1, sheet.getMaxRows(), 1);
-  const protection = aRange.protect().setDescription("A列カメラマンマスタ保護");
+  const masterColumn = columnMap["カメラマンマスタ"] || 1;
+  const masterRange = sheet.getRange(1, masterColumn, sheet.getMaxRows(), 1);
+  const protection = masterRange.protect().setDescription("A列カメラマンマスタ保護");
 
 
   const editors = protection.getEditors();
@@ -644,38 +807,50 @@ function updateFilterAndProtection(sheet) {
 
 
 /**
- * 撮影終了・納品・UP（Q〜S列）のいずれかにチェックが入っている行の
- * J列（状態）を「撮影終了」に更新する。
+ * 撮影終了・納品・UP のいずれかにチェックが入っている行の
+ * 「状態」を「撮影終了」に更新する。
  * ※ onEdit（自動トリガー）は他のGASと競合するため使わず、
  *   「撮影終了を下に移動」メニューの実行時にも呼ばれる。
  *
- * 書き戻すのは J列だけ。Q〜S のチェックボックスまで setValues で上書きすると
+ * 書き戻すのは「状態」列だけ。チェックボックスまで setValues で上書きすると
  * 入力規則やリッチテキストを壊す可能性があるため。
  */
-function applyFinishedStatus(sheet) {
+function applyFinishedStatus(sheet, columnMap) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return;
+
+
+  const map = columnMap || getColumnMap(sheet);
+  const finishedHeaders = ["撮影終了", "納品", "UP"];
+
+
+  if (!map["状態"] || findMissingHeaders(map, finishedHeaders).length > 0) return;
 
 
   const totalRows = lastRow - 1;
 
 
-  const statusRange = sheet.getRange(2, 10, totalRows, 1);      // J：状態
+  const statusRange = sheet.getRange(2, map["状態"], totalRows, 1);
   const statusValues = statusRange.getValues();
-  const checkValues = sheet.getRange(2, 17, totalRows, 3).getValues(); // Q〜S
+
+
+  // チェック列が離れていても読めるよう、左端から右端までまとめて読む
+  const checkColumns = finishedHeaders.map(function(name) { return map[name]; });
+  const firstColumn = Math.min.apply(null, checkColumns);
+  const lastColumn = Math.max.apply(null, checkColumns);
+  const checkValues = sheet.getRange(2, firstColumn, totalRows, lastColumn - firstColumn + 1).getValues();
 
 
   let changed = false;
 
 
   for (let i = 0; i < totalRows; i++) {
-    const status = statusValues[i][0];
-    const shootDone = checkValues[i][0] === true; // Q：撮影終了
-    const delivered = checkValues[i][1] === true; // R：納品
-    const uploaded = checkValues[i][2] === true;  // S：UP
+    const isFinished = checkColumns.some(function(column) {
+      return checkValues[i][column - firstColumn] === true;
+    });
 
 
-    if ((shootDone || delivered || uploaded) && status !== "撮影終了") {
+    if (isFinished && statusValues[i][0] !== "撮影終了") {
       statusValues[i][0] = "撮影終了";
       changed = true;
     }
@@ -701,7 +876,7 @@ function isBlankCellValue(value) {
 
 
 /**
- * B〜AC のすべてが空なら true（＝完全な空行）。
+ * 並べ替え対象の範囲がすべて空なら true（＝完全な空行）。
  */
 function isBlankRowValues(rowValues) {
   return rowValues.every(function(value) {
@@ -711,9 +886,9 @@ function isBlankRowValues(rowValues) {
 
 
 /**
- * D列（撮影日）とE列（時間）から並べ替え用のタイムスタンプ（ミリ秒）を作る。
+ * 撮影日と時間から並べ替え用のタイムスタンプ（ミリ秒）を作る。
  * 撮影日が未入力・日付として読めない場合は null を返す。
- * E列（時間）が空のときは 0:00 として扱う。
+ * 時間が空のときは 0:00 として扱う。
  */
 function getShootTimestamp(shootDate, shootTime) {
   if (isBlankCellValue(shootDate)) return null;
@@ -730,7 +905,7 @@ function getShootTimestamp(shootDate, shootTime) {
 
 /**
  * 状態が「撮影終了」の行を下（一番下）へ移動しつつ、
- * 撮影終了になっていない行を D列（撮影日）＋E列（時間）の早い順に並べ替える。
+ * 撮影終了になっていない行を撮影日＋時間の早い順に並べ替える。
  *
  * 並び順
  *   1. 未終了（撮影日時の昇順。撮影日が未入力の行は UNDATED_FIRST の設定に従う）
@@ -742,36 +917,44 @@ function getShootTimestamp(shootDate, shootTime) {
  *
  * 【重要】値の入れ替え（getValues → setValues）では
  *   背景色・文字色・罫線・メモ・チェックボックスの入力規則・
- *   AA列「ドキュメント」のスマートチップ／リンクが元の行に残ってしまい、
+ *   「ドキュメント」列のスマートチップ／リンクが元の行に残ってしまい、
  *   中身と書式がばらける（チップはただの文字列になってリンクが切れる）。
  *   そのためシート標準の並べ替え（Range.sort＝セルごと移動）を使う。
  *   並べ替えキーは右端に一時列を2つ作って持たせ、終わったら必ず削除する。
  */
 function moveFinishedDown() {
-  const SHEET_NAME = "撮影管理";
-
   // 撮影日が未入力の未終了行を上に置く（false にすると未終了の一番下に置く）
   const UNDATED_FIRST = true;
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAME);
+  const sheet = ss.getSheetByName(CAMERA_SHEET_NAME);
 
 
   if (!sheet) {
-    SpreadsheetApp.getUi().alert("エラー: 「" + SHEET_NAME + "」シートが見つかりません。");
+    SpreadsheetApp.getUi().alert("エラー: 「" + CAMERA_SHEET_NAME + "」シートが見つかりません。");
     return;
   }
 
 
+  const columnMap = requireColumns(sheet, ["撮影日", "時間", "状態"], "並べ替えを中止しました");
+  if (!columnMap) return;
+
+
   // まず撮影終了・納品・UP のチェックを状態に反映してから並べ替える
-  applyFinishedStatus(sheet);
+  applyFinishedStatus(sheet, columnMap);
 
 
-  const START_COL = 2;   // B列
-  const NUM_COLS = 28;   // B〜AC列（2〜29）
-  const DATE_IDX = 2;    // D列（B起点で 4-2=2）
-  const TIME_IDX = 3;    // E列（B起点で 5-2=3）
-  const STATUS_IDX = 8;  // J列（B起点で 10-2=8）
+  const START_COL = 2;   // B列（A列のカメラマンマスタは動かさない）
+  const lastColumn = sheet.getLastColumn();
+
+
+  if (lastColumn < START_COL) return;
+
+
+  const NUM_COLS = lastColumn - START_COL + 1;
+  const DATE_IDX = columnMap["撮影日"] - START_COL;
+  const TIME_IDX = columnMap["時間"] - START_COL;
+  const STATUS_IDX = columnMap["状態"] - START_COL;
 
 
   const lastRow = sheet.getLastRow();
@@ -1027,17 +1210,15 @@ function isHolidayOrWeekend(date) {
 
 /**
  * 診断用：syncCameraTasks で各行が登録されるか／されない理由を確認する。
- * カレンダーの接続確認と、行ごとの判定結果をポップアップ＆ログに出す。
+ * カレンダーの接続確認、見出しから引いた列番号、行ごとの判定結果を出す。
  */
 function checkSyncCameraTasks() {
-  const SHEET_NAME = "撮影管理";
-  const CALENDAR_ID = "a318a9f9c5467e98191e3441af7c94084983ab5c40624dae2581dea4fc333520@group.calendar.google.com";
   const ui = SpreadsheetApp.getUi();
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CAMERA_SHEET_NAME);
 
 
   if (!sheet) {
-    ui.alert("エラー: 「" + SHEET_NAME + "」シートが見つかりません。シート名を確認してください。");
+    ui.alert("エラー: 「" + CAMERA_SHEET_NAME + "」シートが見つかりません。シート名を確認してください。");
     return;
   }
 
@@ -1046,7 +1227,7 @@ function checkSyncCameraTasks() {
 
 
   // 1) カレンダー接続チェック
-  const calendar = CalendarApp.getCalendarById(CALENDAR_ID);
+  const calendar = CalendarApp.getCalendarById(CAMERA_CALENDAR_ID);
   if (!calendar) {
     lines.push("■カレンダー：接続NG（IDが違う or 権限なし）");
     lines.push("  → カレンダー設定でこのアカウントに共有・編集権限があるか確認してください。");
@@ -1055,15 +1236,32 @@ function checkSyncCameraTasks() {
   }
 
 
-  // 2) 列レイアウトチェック
-  const layoutProblems = findColumnLayoutProblems(sheet);
+  // 2) 見出しから引いた列
+  const columnMap = getColumnMap(sheet);
+  const requiredHeaders = [
+    "案件名", "撮影日", "時間", "撮影場所", "カメラマン", "カメラマン住所",
+    "カレンダー", "状態", "データ譲渡", "詳細送付ID", "前日確認ID", "撮影ID", "納品ID"
+  ];
+  const missing = findMissingHeaders(columnMap, requiredHeaders);
 
 
-  if (layoutProblems.length > 0) {
-    lines.push("■列レイアウト：NG（K列とL列の間に「依頼シート担当チェック済」を挿入してください）");
-    layoutProblems.forEach(problem => lines.push("  → " + problem));
+  if (missing.length > 0) {
+    lines.push("■見出し：NG（次の見出しが1行目に見つかりません）");
+    missing.forEach(name => lines.push("  → 「" + name + "」"));
+    lines.push("  ※ 見出しが見つからないと同期は実行されません。");
   } else {
-    lines.push("■列レイアウト：OK（29列構成）");
+    lines.push("■見出し：OK");
+    lines.push("  " + requiredHeaders.map(function(name) {
+      return name + "=" + columnLetter(columnMap[name]) + "列";
+    }).join(" / "));
+  }
+
+
+  if (missing.length > 0) {
+    const message = lines.join("\n");
+    Logger.log(message);
+    ui.alert("同期診断結果", message, ui.ButtonSet.OK);
+    return;
   }
 
 
@@ -1077,11 +1275,11 @@ function checkSyncCameraTasks() {
 
   for (let i = 1; i < data.length; i++) {
     const row = i + 1;
-    const project = data[i][1];        // B
-    const shootDate = data[i][3];      // D
-    const shootTime = data[i][4];      // E
-    const cameraman = data[i][6];      // G
-    const calendarAction = data[i][8]; // I
+    const project = data[i][columnMap["案件名"] - 1];
+    const shootDate = data[i][columnMap["撮影日"] - 1];
+    const shootTime = data[i][columnMap["時間"] - 1];
+    const cameraman = data[i][columnMap["カメラマン"] - 1];
+    const calendarAction = data[i][columnMap["カレンダー"] - 1];
 
 
     // 完全な空行はスキップ表示しない
@@ -1089,11 +1287,11 @@ function checkSyncCameraTasks() {
 
 
     const reasons = [];
-    if (calendarAction !== "登録・更新する") reasons.push("I列が「登録・更新する」でない（現在:「" + (calendarAction || "空欄") + "」）");
-    if (!project) reasons.push("B列 案件名 が空");
-    if (!shootDate) reasons.push("D列 撮影日 が空");
-    if (!shootTime) reasons.push("E列 時間 が空");
-    if (!cameraman) reasons.push("G列 カメラマン が空");
+    if (calendarAction !== "登録・更新する") reasons.push("カレンダー列が「登録・更新する」でない（現在:「" + (calendarAction || "空欄") + "」）");
+    if (!project) reasons.push("案件名 が空");
+    if (!shootDate) reasons.push("撮影日 が空");
+    if (!shootTime) reasons.push("時間 が空");
+    if (!cameraman) reasons.push("カメラマン が空");
 
 
     if (reasons.length === 0) {
@@ -1115,8 +1313,8 @@ function checkSyncCameraTasks() {
 
 
 /**
- * 【編集時に自動実行】撮影終了・納品・UP（Q〜S列）のいずれかにチェックが入ったら、
- * その行の J列（状態）を「撮影終了」に自動変更する。
+ * 【編集時に自動実行】撮影終了・納品・UP のいずれかにチェックが入ったら、
+ * その行の「状態」を「撮影終了」に自動変更する。
  *
  * ※ 関数名は onEdit ではないため、他のGASの onEdit と衝突しません。
  *   この関数は「インストール型トリガー」で編集時に呼ばれます。
@@ -1126,26 +1324,37 @@ function handleCheckboxEdit(e) {
   if (!e || !e.range) return;
 
   const sheet = e.range.getSheet();
-  if (sheet.getName() !== "撮影管理") return;
+  if (sheet.getName() !== CAMERA_SHEET_NAME) return;
+
+  const columnMap = getColumnMap(sheet);
+  const finishedHeaders = ["撮影終了", "納品", "UP"];
+
+  if (!columnMap["状態"] || findMissingHeaders(columnMap, finishedHeaders).length > 0) return;
+
+  const checkColumns = finishedHeaders.map(function(name) { return columnMap[name]; });
 
   const startRow = e.range.getRow();
   const startCol = e.range.getColumn();
   const numRows = e.range.getNumRows();
   const endCol = startCol + e.range.getNumColumns() - 1;
 
-  // 編集範囲に Q(17)撮影終了 / R(18)納品 / S(19)UP のいずれかを含むか
-  if (endCol < 17 || startCol > 19) return;
+  // 編集範囲に撮影終了・納品・UP のいずれかを含むか
+  const touched = checkColumns.some(function(column) {
+    return column >= startCol && column <= endCol;
+  });
+
+  if (!touched) return;
 
   for (let r = 0; r < numRows; r++) {
     const row = startRow + r;
     if (row < 2) continue;
 
-    const shootDone = sheet.getRange(row, 17).getValue() === true; // Q：撮影終了
-    const delivered = sheet.getRange(row, 18).getValue() === true; // R：納品
-    const uploaded = sheet.getRange(row, 19).getValue() === true;  // S：UP
+    const isFinished = checkColumns.some(function(column) {
+      return sheet.getRange(row, column).getValue() === true;
+    });
 
-    if (shootDone || delivered || uploaded) {
-      const statusCell = sheet.getRange(row, 10); // J：状態
+    if (isFinished) {
+      const statusCell = sheet.getRange(row, columnMap["状態"]);
       if (statusCell.getValue() !== "撮影終了") {
         statusCell.setValue("撮影終了");
       }
@@ -1174,7 +1383,7 @@ function installEditTrigger() {
     .onEdit()
     .create();
 
-  ui.alert("設定完了", "編集時の自動反映を有効にしました。\nQ〜S（撮影終了・納品・UP）にチェックを入れると、J列が自動で「撮影終了」になります。", ui.ButtonSet.OK);
+  ui.alert("設定完了", "編集時の自動反映を有効にしました。\n撮影終了・納品・UP にチェックを入れると、状態が自動で「撮影終了」になります。", ui.ButtonSet.OK);
 }
 
 
