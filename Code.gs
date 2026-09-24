@@ -46,6 +46,23 @@ function syncCameraTasks() {
   }
 
 
+  // 列がずれたまま同期すると、ID列でない値（交通費など）を予定IDとして扱ってしまい
+  // 「このカレンダーの予定は存在しないか、既に削除されています。」で止まる。
+  // さらに別の予定のIDを書き換えてしまうため、ずれている間は実行しない。
+  const layoutProblems = findColumnLayoutProblems(sheet);
+
+
+  if (layoutProblems.length > 0) {
+    SpreadsheetApp.getUi().alert(
+      "列レイアウトが合っていないため同期を中止しました",
+      "K列とL列の間に「依頼シート担当チェック済」を1列挿入してから実行してください。\n\n" +
+      layoutProblems.join("\n"),
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+    return;
+  }
+
+
 // 他の人が実行するとA列保護でエラーになるため、同期時は保護・フィルター再設定しない
 // updateFilterAndProtection(sheet);
 
@@ -182,13 +199,98 @@ const data = sheet.getDataRange().getValues();
 }
 
 
-function createOrUpdateEvent(calendar, eventId, title, startTime, endTime, description) {
-  let event = null;
+/**
+ * 列番号（1始まり）を A / B / AA のような列名に変換する。
+ */
+function columnLetter(column) {
+  let letter = "";
+  let n = column;
 
 
-  if (eventId) {
-    event = calendar.getEventById(eventId);
+  while (n > 0) {
+    letter = String.fromCharCode(65 + ((n - 1) % 26)) + letter;
+    n = Math.floor((n - 1) / 26);
   }
+
+
+  return letter;
+}
+
+
+/**
+ * 見出し行を見て、列レイアウトが新しい29列構成になっているか確認する。
+ * 同期の読み書きに直結する列（状態・データ譲渡・各種ID）だけを対象にする。
+ * 問題があればメッセージの配列を、問題なしなら空配列を返す。
+ */
+function findColumnLayoutProblems(sheet) {
+  const EXPECTED_HEADERS = {
+    10: "状態",
+    20: "データ譲渡",
+    21: "詳細送付ID",
+    22: "前日確認ID",
+    23: "撮影ID",
+    24: "納品ID"
+  };
+
+
+  const lastColumn = Math.max(sheet.getLastColumn(), 24);
+  const headerValues = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  const problems = [];
+
+
+  Object.keys(EXPECTED_HEADERS).forEach(function(key) {
+    const column = Number(key);
+    const expected = EXPECTED_HEADERS[column];
+    const actual = String(headerValues[column - 1] || "").trim();
+
+
+    if (actual !== expected) {
+      problems.push(
+        columnLetter(column) + "列の見出しが「" + expected + "」ではありません" +
+        "（現在:「" + (actual || "空欄") + "」）"
+      );
+    }
+  });
+
+
+  return problems;
+}
+
+
+/**
+ * 予定IDらしき文字列か。
+ * 列ずれなどで交通費・案件名といった別の値が渡ってきたときに
+ * getEventById を呼ばないようにするための入口チェック。
+ * CalendarApp が返すIDは "xxxxxxxx@google.com" の形。
+ */
+function isLikelyEventId(value) {
+  if (typeof value !== "string") return false;
+
+  const id = value.trim();
+  return id !== "" && id.indexOf("@") !== -1;
+}
+
+
+/**
+ * 予定を安全に取得する。見つからなければ null。
+ *
+ * ※ getEventById は「予定が削除済み」「別カレンダーの予定」「IDが壊れている」場合に
+ *   null ではなく例外（このカレンダーの予定は存在しないか、既に削除されています。）を投げる。
+ *   ここで受け止めておけば、古いIDが残っていても同期は止まらず新規作成にフォールバックする。
+ */
+function getEventByIdSafe(calendar, eventId) {
+  if (!isLikelyEventId(eventId)) return null;
+
+  try {
+    return calendar.getEventById(eventId);
+  } catch (err) {
+    return null;
+  }
+}
+
+
+function createOrUpdateEvent(calendar, eventId, title, startTime, endTime, description) {
+  const event = getEventByIdSafe(calendar, eventId);
 
 
   if (event) {
@@ -207,12 +309,12 @@ function deleteEventByIdOrTitle(calendar, eventId, project, titleKeyword) {
   let deleted = false;
 
 
-  if (eventId) {
-    const event = calendar.getEventById(eventId);
-    if (event) {
-      event.deleteEvent();
-      deleted = true;
-    }
+  const event = getEventByIdSafe(calendar, eventId);
+
+
+  if (event) {
+    event.deleteEvent();
+    deleted = true;
   }
 
 
@@ -953,7 +1055,19 @@ function checkSyncCameraTasks() {
   }
 
 
-  // 2) 行ごとの判定
+  // 2) 列レイアウトチェック
+  const layoutProblems = findColumnLayoutProblems(sheet);
+
+
+  if (layoutProblems.length > 0) {
+    lines.push("■列レイアウト：NG（K列とL列の間に「依頼シート担当チェック済」を挿入してください）");
+    layoutProblems.forEach(problem => lines.push("  → " + problem));
+  } else {
+    lines.push("■列レイアウト：OK（29列構成）");
+  }
+
+
+  // 3) 行ごとの判定
   const data = sheet.getDataRange().getValues();
   lines.push("■データ行数：" + (data.length - 1));
 
