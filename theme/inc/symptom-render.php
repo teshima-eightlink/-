@@ -14,6 +14,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once __DIR__ . '/symptom-loader.php';
+require_once __DIR__ . '/symptom-blocks.php';
+
+/**
+ * そのページにしかないセクションを出力する。
+ *
+ * 症状ページは同じ型で作るとテンプレート感が強く出るため、
+ * 1ページに1つだけ「そこにしかない話」を入れられるようにしています。
+ * 原稿ファイルの extra に after（どこの後に出すか）と、
+ * items / tiles / compare / steps のいずれかを書きます。
+ *
+ * @param array  $data  症状データ。
+ * @param string $after 'cause' | 'check' | 'policy'
+ */
+function abc_symptom_extra( $data, $after ) {
+	$extra = abc_symptom_get( $data, 'extra', array() );
+
+	if ( empty( $extra ) || abc_symptom_get( $extra, 'after' ) !== $after ) {
+		return;
+	}
+
+	echo '<div class="symptom__box" id="extra">';
+	abc_symptom_heading( $extra );
+
+	abc_block_checklist( abc_symptom_get( $extra, 'items', array() ) );
+	abc_block_tiles( abc_symptom_get( $extra, 'tiles', array() ) );
+	abc_block_compare( abc_symptom_get( $extra, 'compare', array() ) );
+	abc_block_steps( abc_symptom_get( $extra, 'steps', array() ) );
+
+	abc_block_conclusion( abc_symptom_get( $extra, 'closing' ) );
+	abc_block_note( abc_symptom_get( $extra, 'note' ) );
+
+	echo '</div>';
+}
 
 /**
  * 症状ページの本文HTMLを返す。
@@ -100,6 +133,8 @@ function abc_symptom_render( $slug = '' ) {
 			</div>
 		<?php endif; ?>
 
+		<?php abc_symptom_extra( $abc_data, 'cause' ); ?>
+
 		<?php /* ============ ③ 評価 ─ ABCでは何を確認する？ ============ */ ?>
 		<?php if ( abc_symptom_get( $abc_data, 'check.items', array() ) ) : ?>
 			<div class="symptom__box" id="check">
@@ -120,6 +155,8 @@ function abc_symptom_render( $slug = '' ) {
 			</div>
 		<?php endif; ?>
 
+		<?php abc_symptom_extra( $abc_data, 'check' ); ?>
+
 		<?php /* ============ ④ 方針 ─ どう施術する？ ============ */ ?>
 		<?php if ( abc_symptom_get( $abc_data, 'policy.steps', array() ) ) : ?>
 			<div class="symptom__box" id="policy">
@@ -139,6 +176,8 @@ function abc_symptom_render( $slug = '' ) {
 				<?php endif; ?>
 			</div>
 		<?php endif; ?>
+
+		<?php abc_symptom_extra( $abc_data, 'policy' ); ?>
 
 		<?php /* ============ ⑤ 実例 ─ 症例ページへ ============ */ ?>
 		<?php if ( abc_symptom_get( $abc_data, 'cases.heading' ) ) : ?>
