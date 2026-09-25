@@ -53,6 +53,16 @@ function abc_symptom_render( $slug = '' ) {
 			<p class="symptom__lead"><?php echo wp_kses_post( $abc_data['hero']['lead'] ); ?></p>
 		<?php endif; ?>
 
+		<?php
+		/*
+		 * 医療機関の領域と重なる症状（しびれ・めまい・関節の痛みなど）では、
+		 * 受診をすすめる一文を本文の前に出します。原稿ファイルの caution_top です。
+		 */
+		if ( abc_symptom_get( $abc_data, 'caution_top' ) ) :
+			?>
+			<p class="symptom__note"><?php echo wp_kses_post( $abc_data['caution_top'] ); ?></p>
+		<?php endif; ?>
+
 		<?php /* ============ ① 共感 ─ 悩み ============ */ ?>
 		<?php if ( abc_symptom_get( $abc_data, 'empathy.items', array() ) ) : ?>
 			<div class="symptom__box" id="empathy">
