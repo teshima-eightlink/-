@@ -268,8 +268,14 @@ function abc_preview_write( $slug, $type ) {
 
 	if ( 'posture' === $type || 'case' === $type ) {
 		if ( 'posture' === $type ) {
-			require_once $theme_dir . '/inc/posture-render.php';
-			$body = abc_posture_render( $slug );
+			// 同じ inc/pages/ でも、layout の指定でレイアウトを変える
+			if ( 'index' === ( $data['layout'] ?? '' ) ) {
+				require_once $theme_dir . '/inc/index-render.php';
+				$body = abc_index_render( $slug );
+			} else {
+				require_once $theme_dir . '/inc/posture-render.php';
+				$body = abc_posture_render( $slug );
+			}
 		} else {
 			require_once $theme_dir . '/inc/case-render.php';
 			$body = abc_case_render( $slug );

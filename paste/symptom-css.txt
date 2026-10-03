@@ -357,6 +357,43 @@ margin-top: .3em;
 font-size: .9em;
 opacity: .85;
 }
+.symptom__inner .symptom__menu {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(16em, 1fr));
+gap: 1em;
+}
+.symptom__inner .symptom__menu-item {
+display: block;
+padding: 1.3em 1.5em;
+background: rgba(0, 255, 255, .08);
+border: 1px solid rgba(0, 128, 128, .22);
+border-radius: 6px;
+text-decoration: none;
+color: inherit;
+transition: border-color .2s ease, transform .2s ease;
+}
+.symptom__inner .symptom__menu-item:hover,
+.symptom__inner .symptom__menu-item:focus-visible {
+border-color: #008080;
+transform: translateY(-2px);
+}
+.symptom__inner .symptom__menu-title {
+display: block;
+margin-bottom: .4em;
+font-weight: 700;
+font-size: 1.1em;
+color: #008080;
+}
+.symptom__inner .symptom__menu-title::after {
+content: "→";
+margin-left: .5em;
+font-size: .9em;
+}
+.symptom__inner .symptom__menu-text {
+display: block;
+font-size: .9em;
+line-height: 1.7;
+}
 .symptom__inner .symptom__linkbox {
 margin: 1.5em 0 0;
 text-align: center;

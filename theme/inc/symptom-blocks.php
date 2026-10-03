@@ -312,3 +312,39 @@ function abc_block_profile( $rows ) {
 	}
 	echo '</dl>';
 }
+
+/**
+ * 症状一覧のリンクカード
+ *
+ * 一覧ページで、各症状ページへ誘導するために使います。
+ * カード全体がリンクになります。
+ *
+ * @param array $items array( array( 'title', 'text', 'url' ) )
+ */
+function abc_block_symptom_links( $items ) {
+	if ( empty( $items ) ) {
+		return;
+	}
+
+	echo '<div class="symptom__menu">';
+
+	foreach ( $items as $item ) {
+		$url = abc_symptom_url( abc_symptom_get( $item, 'url' ) );
+
+		if ( ! $url ) {
+			continue;
+		}
+
+		printf(
+			'<a class="symptom__menu-item" href="%s">'
+				. '<span class="symptom__menu-title">%s</span>'
+				. '<span class="symptom__menu-text">%s</span>'
+				. '</a>',
+			esc_url( $url ),
+			esc_html( $item['title'] ),
+			esc_html( $item['text'] )
+		);
+	}
+
+	echo '</div>';
+}
