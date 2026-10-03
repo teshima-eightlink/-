@@ -359,7 +359,7 @@ opacity: .85;
 }
 .symptom__inner .symptom__menu {
 display: grid;
-grid-template-columns: repeat(auto-fit, minmax(16em, 1fr));
+grid-template-columns: repeat(3, 1fr);
 gap: 1em;
 }
 .symptom__inner .symptom__menu-item {
@@ -490,7 +490,8 @@ font-size: .8em;
 opacity: .7;
 }
 @media (max-width: 900px) {
-.symptom__inner .symptom__check-inner {
+.symptom__inner .symptom__check-inner,
+.symptom__inner .symptom__menu {
 grid-template-columns: repeat(2, 1fr);
 }
 }
@@ -505,7 +506,8 @@ margin-bottom: 2.2em;
 .symptom__inner .symptom__cta {
 padding: 1.3em;
 }
-.symptom__inner .symptom__check-inner {
+.symptom__inner .symptom__check-inner,
+.symptom__inner .symptom__menu {
 grid-template-columns: 1fr;
 }
 .symptom__inner .symptom__compare-row {

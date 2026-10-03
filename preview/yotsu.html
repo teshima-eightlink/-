@@ -545,6 +545,57 @@
 }
 
 /* --------------------------------------------------------------------------
+   症状一覧のリンクカード
+   5枚でも最終行が欠けて見えないよう、罫線でつなぐのではなく
+   独立したカードを並べる形にしています。
+   -------------------------------------------------------------------------- */
+.symptom__inner .symptom__menu {
+	display: grid;
+	/* 列数は固定します。auto-fit だと画面幅次第で4列になり、
+	   5枚のときに「4枚＋1枚」という不揃いな並びになるためです。
+	   3列なら 3＋2、2列なら 2＋2＋1 と、見た目が安定します。 */
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1em;
+}
+
+.symptom__inner .symptom__menu-item {
+	display: block;
+	padding: 1.3em 1.5em;
+	background: var(--symptom-tint);
+	border: 1px solid var(--symptom-border);
+	border-radius: var(--symptom-radius);
+	text-decoration: none;
+	color: inherit;
+	transition: border-color .2s ease, transform .2s ease;
+}
+
+.symptom__inner .symptom__menu-item:hover,
+.symptom__inner .symptom__menu-item:focus-visible {
+	border-color: var(--symptom-accent);
+	transform: translateY(-2px);
+}
+
+.symptom__inner .symptom__menu-title {
+	display: block;
+	margin-bottom: .4em;
+	font-weight: 700;
+	font-size: 1.1em;
+	color: var(--symptom-accent);
+}
+
+.symptom__inner .symptom__menu-title::after {
+	content: "→";
+	margin-left: .5em;
+	font-size: .9em;
+}
+
+.symptom__inner .symptom__menu-text {
+	display: block;
+	font-size: .9em;
+	line-height: 1.7;
+}
+
+/* --------------------------------------------------------------------------
    内部リンク（⑤・⑥）
    -------------------------------------------------------------------------- */
 .symptom__inner .symptom__linkbox {
@@ -671,7 +722,8 @@
    スマートフォン
    -------------------------------------------------------------------------- */
 @media (max-width: 900px) {
-	.symptom__inner .symptom__check-inner {
+	.symptom__inner .symptom__check-inner,
+	.symptom__inner .symptom__menu {
 		grid-template-columns: repeat(2, 1fr);
 	}
 }
@@ -690,7 +742,8 @@
 		padding: 1.3em;
 	}
 
-	.symptom__inner .symptom__check-inner {
+	.symptom__inner .symptom__check-inner,
+	.symptom__inner .symptom__menu {
 		grid-template-columns: 1fr;
 	}
 

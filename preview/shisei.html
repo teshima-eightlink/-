@@ -551,7 +551,10 @@
    -------------------------------------------------------------------------- */
 .symptom__inner .symptom__menu {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(16em, 1fr));
+	/* 列数は固定します。auto-fit だと画面幅次第で4列になり、
+	   5枚のときに「4枚＋1枚」という不揃いな並びになるためです。
+	   3列なら 3＋2、2列なら 2＋2＋1 と、見た目が安定します。 */
+	grid-template-columns: repeat(3, 1fr);
 	gap: 1em;
 }
 
@@ -719,7 +722,8 @@
    スマートフォン
    -------------------------------------------------------------------------- */
 @media (max-width: 900px) {
-	.symptom__inner .symptom__check-inner {
+	.symptom__inner .symptom__check-inner,
+	.symptom__inner .symptom__menu {
 		grid-template-columns: repeat(2, 1fr);
 	}
 }
@@ -738,7 +742,8 @@
 		padding: 1.3em;
 	}
 
-	.symptom__inner .symptom__check-inner {
+	.symptom__inner .symptom__check-inner,
+	.symptom__inner .symptom__menu {
 		grid-template-columns: 1fr;
 	}
 
