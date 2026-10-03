@@ -63,13 +63,13 @@ theme/                              ← この中身を子テーマにアップ�
 │   │   ├── shisei.php              ★姿勢改善ページの原稿
 │   │   └── symptoms.php            ★お悩み別（症状一覧）ページの原稿
 │   └── symptoms/
-│       ├── kubikori-katakori.php   ★首こり・肩こりの原稿
+│       ├── neck-shoulder.php   ★首こり・肩こりの原稿
 │       └── _template.php           新しい症状を追加するときのコピー元
 └── assets/css/symptom.css          症状ページ専用のCSS
 
-preview/kubikori-katakori.html      ブラウザで表示確認できるプレビュー
+preview/neck-shoulder.html      ブラウザで表示確認できるプレビュー
 preview/shisei.html                 姿勢改善ページのプレビュー
-paste/kubikori-katakori.html        ★本文に貼り付けるHTML（方式A用）
+paste/neck-shoulder.html        ★本文に貼り付けるHTML（方式A用）
 paste/shisei.html                   ★姿勢改善ページの本文HTML
 paste/case-template.html            ★症例記事のひな形HTML（毎回コピー）
 paste/case-60f-zutsu.html           症例記事の記入例HTML
@@ -96,7 +96,7 @@ tools/test-css.js                   CSSの描画結果が変わらないか検�
 /wp-content/themes/【子テーマ名】/page-symptom.php
 /wp-content/themes/【子テーマ名】/inc/symptom-config.php
 /wp-content/themes/【子テーマ名】/inc/symptom-loader.php
-/wp-content/themes/【子テーマ名】/inc/symptoms/kubikori-katakori.php
+/wp-content/themes/【子テーマ名】/inc/symptoms/neck-shoulder.php
 /wp-content/themes/【子テーマ名】/inc/symptoms/_template.php
 /wp-content/themes/【子テーマ名】/assets/css/symptom.css
 ```
@@ -109,8 +109,8 @@ tools/test-css.js                   CSSの描画結果が変わらないか検�
 |---|---|
 | `cta.line_url` | ✅ 設定済み（`https://lin.ee/VG1WL3J`） |
 | `wrapper.outer` / `wrapper.inner` | ✅ 既存ページのHTMLに合わせて設定済み |
-| `links.case` | ⚠️ `/case/` 暫定。症例ページの実URLに合わせてください |
-| `links.posture` | ⚠️ `/posture/` 暫定。姿勢改善ページの実URLに合わせてください |
+| `links.case` | ✅ `/category/case/`（症例カテゴリー） |
+| `links.posture` | ✅ `/posture/` |
 | `clinic.*` / `cta.tel` / `cta.web_url` / `cta.first_price` | ⬜ 空欄＝**非表示**（変更の可能性があるため未掲載） |
 
 **空欄にした項目は、ページ上に自動で表示されません。**
@@ -125,11 +125,11 @@ tools/test-css.js                   CSSの描画結果が変わらないか検�
 | 設定 | 値 |
 |---|---|
 | タイトル | 首こり・肩こり |
-| **スラッグ（URL）** | `kubikori-katakori` ← **原稿ファイル名と同じにする** |
+| **スラッグ（URL）** | `neck-shoulder` ← **原稿ファイル名と同じにする** |
 | ページ属性 → テンプレート | **症状ページ（共通テンプレート）** |
 | 本文 | 空のままでOK |
 
-公開して `https://abc-chiro.net/kubikori-katakori/` を開けば完成です。
+公開して `https://abc-chiro.net/neck-shoulder/` を開けば完成です。
 
 > テンプレート側で `<h1>` を出力しています。テーマのページタイトルは
 > WordPress の設定で非表示にしてください。
@@ -257,8 +257,8 @@ CSSを貼る場所は2つあります。どちらでも構いません。
 ### 手順3　固定ページを作る
 
 1. 「固定ページ」→「新規追加」
-2. タイトル：`首こり・肩こり`、スラッグ：`kubikori-katakori`
-3. 本文欄に `paste/kubikori-katakori.html` の中身を**全文コピーして貼り付け**
+2. タイトル：`首こり・肩こり`、スラッグ：`neck-shoulder`
+3. 本文欄に `paste/neck-shoulder.html` の中身を**全文コピーして貼り付け**
 4. 公開
 
 ### 注意点
@@ -302,7 +302,7 @@ require_once get_theme_file_path( 'inc/symptom-shortcode.php' );
 固定ページの本文に置くのは、この1行だけです。
 
 ```
-[symptom slug="kubikori-katakori"]
+[symptom slug="neck-shoulder"]
 ```
 
 姿勢改善ページは次のショートコードです。
@@ -361,12 +361,12 @@ require_once get_theme_file_path( 'inc/symptom-shortcode.php' );
 
 ## 表示を確認する（アップロード前）
 
-`preview/kubikori-katakori.html` をブラウザで開けば、レイアウトを確認できます。
+`preview/neck-shoulder.html` をブラウザで開けば、レイアウトを確認できます。
 原稿を書き換えたあとに作り直すには、PHP が入った環境で次を実行します。
 
 ```bash
 php tools/build-preview.php                     # 全症状ぶんを再生成
-php tools/build-preview.php kubikori-katakori   # 1つだけ再生成
+php tools/build-preview.php neck-shoulder   # 1つだけ再生成
 ```
 
 ヘッダー・フッターと、フォント・見出しの書式は「仮テーマ」のものです。

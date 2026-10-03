@@ -10,7 +10,7 @@
  *   本文に置くのを次の1行だけにすれば、エディタは
  *   ただの文字列としてしか扱わないため、何度切り替えても壊れません。
  *
- *       [symptom slug="kubikori-katakori"]
+ *       [symptom slug="neck-shoulder"]
  *
  * ▼使い方
  *   子テーマの functions.php に、次の1行を追加してください。
@@ -37,7 +37,7 @@ require_once __DIR__ . '/posture-render.php';
 require_once __DIR__ . '/index-render.php';
 
 /**
- * [symptom slug="kubikori-katakori"] を症状ページの本文に置き換える。
+ * [symptom slug="neck-shoulder"] を症状ページの本文に置き換える。
  *
  * @param array $atts ショートコード属性。
  * @return string

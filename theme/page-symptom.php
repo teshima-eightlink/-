@@ -10,8 +10,8 @@
  *   レイアウトが壊れることがありません。原稿はテーマ内のファイルで管理します。
  *
  * 【表示するデータの決まり方】
- *   固定ページのスラッグ（例: kubikori-katakori）と同じ名前の
- *   inc/symptoms/kubikori-katakori.php が読み込まれます。
+ *   固定ページのスラッグ（例: neck-shoulder）と同じ名前の
+ *   inc/symptoms/neck-shoulder.php が読み込まれます。
  *   スラッグとファイル名を変えたい場合は、固定ページのカスタムフィールドに
  *   symptom_slug = ファイル名 を設定してください。
  *
