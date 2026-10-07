@@ -12,7 +12,7 @@ const path = require('path');
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 
 const root = path.join(__dirname, '..');
-const html = fs.readFileSync(path.join(root, 'preview/kubikori-katakori.html'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'preview/neck-shoulder.html'), 'utf8');
 const safeCss = fs.readFileSync(path.join(root, 'paste/symptom-css.txt'), 'utf8');
 
 // 比較するプロパティ（色・余白・線・レイアウト）

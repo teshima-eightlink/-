@@ -14,7 +14,7 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright');
   console.log('幅      列数  行数  空きマス');
   for (const w of widths) {
     const page = await browser.newPage({ viewport: { width: w, height: 900 } });
-    await page.goto('file:///home/user/-/preview/kubikori-katakori.html');
+    await page.goto('file:///home/user/-/preview/neck-shoulder.html');
     const r = await page.locator('.symptom__check-inner').evaluate((el) => {
       const cols = getComputedStyle(el).gridTemplateColumns.split(' ').length;
       const n = el.children.length;
