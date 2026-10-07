@@ -486,7 +486,8 @@
 .symptom__inner .symptom__ba img {
 	display: block;
 	width: 100%;
-	max-width: 640px;
+	/* 正方形の画像なので、幅を広く取ると縦に伸びて目立ちすぎます */
+	max-width: 440px;
 	height: auto;
 	margin: 0 auto;
 	border-radius: var(--symptom-radius);

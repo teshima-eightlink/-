@@ -338,7 +338,7 @@ text-align: center;
 .symptom__inner .symptom__ba img {
 display: block;
 width: 100%;
-max-width: 640px;
+max-width: 440px;
 height: auto;
 margin: 0 auto;
 border-radius: 6px;
