@@ -100,6 +100,7 @@ function abc_posture_render( $slug = 'shisei' ) {
 				<?php
 				abc_symptom_heading( $data['care'] );
 				abc_block_steps( $data['care']['steps'] );
+				abc_block_conclusion( abc_symptom_get( $data, 'care.closing' ) );
 				abc_block_note( abc_symptom_get( $data, 'care.note' ) );
 				?>
 			</div>
