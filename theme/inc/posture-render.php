@@ -86,6 +86,12 @@ function abc_posture_render( $slug = 'shisei' ) {
 				abc_symptom_heading( $data['ai'] );
 				abc_block_flow( $data['ai']['flow'] );
 				abc_block_text( abc_symptom_get( $data, 'ai.closing' ) );
+				// ショートコードはdivで包みます。裸のまま置くと wpautop に
+				// <br> を差し込まれ、ビジュアルタブ経由で崩れます。
+				$ai_shortcode = abc_symptom_get( $data, 'ai.shortcode' );
+				if ( $ai_shortcode ) {
+					printf( '<div class="symptom__embed">%s</div>', $ai_shortcode );
+				}
 				abc_block_external_link(
 					abc_symptom_get( $data, 'ai.link_url' ),
 					abc_symptom_get( $data, 'ai.link_label', 'くわしく見る' )

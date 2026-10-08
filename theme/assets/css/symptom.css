@@ -390,6 +390,10 @@
 /* --------------------------------------------------------------------------
    流れ（横並びの番号付きステップ）
    -------------------------------------------------------------------------- */
+.symptom__inner .symptom__embed {
+	margin-top: 1.4em;
+}
+
 .symptom__inner .symptom__flow {
 	margin: 0;
 	padding: 0;
@@ -493,7 +497,7 @@
 	border-radius: var(--symptom-radius);
 }
 
-.symptom__inner .symptom__ba figcaption {
+.symptom__inner .symptom__ba-caption {
 	margin-top: .8em;
 	text-align: left;
 }

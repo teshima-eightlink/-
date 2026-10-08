@@ -259,6 +259,9 @@ text-align: right;
 font-size: .9em;
 opacity: .75;
 }
+.symptom__inner .symptom__embed {
+margin-top: 1.4em;
+}
 .symptom__inner .symptom__flow {
 margin: 0;
 padding: 0;
@@ -343,7 +346,7 @@ height: auto;
 margin: 0 auto;
 border-radius: 6px;
 }
-.symptom__inner .symptom__ba figcaption {
+.symptom__inner .symptom__ba-caption {
 margin-top: .8em;
 text-align: left;
 }

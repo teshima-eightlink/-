@@ -182,14 +182,15 @@ function abc_block_beforeafter( $item ) {
 	$detail  = abc_symptom_get( $item, 'detail' );
 
 	if ( $caption || $detail ) {
-		echo '<figcaption>';
+		// <figcaption> は wpautop が figure と誤認し、直前に <br> を入れてしまうため div を使います。
+		echo '<div class="symptom__ba-caption">';
 		if ( $caption ) {
 			printf( '<span class="symptom__ba-title">%s</span>', esc_html( $caption ) );
 		}
 		if ( $detail ) {
 			printf( '<span class="symptom__ba-detail">%s</span>', wp_kses_post( $detail ) );
 		}
-		echo '</figcaption>';
+		echo '</div>';
 	}
 
 	echo '</figure>';
