@@ -287,7 +287,12 @@ function abc_symptom_schema( $data, $config ) {
 			'@type'       => 'WebPage',
 			'@id'         => $url,
 			'url'         => $url,
-			'name'        => $title . '｜' . abc_symptom_get( $config, 'clinic.name', '' ),
+			// seo.title があればそれを使い、無ければ「ページ名｜院名」を組み立てます。
+			'name'        => abc_symptom_get(
+				$data,
+				'seo.title',
+				$title . '｜' . abc_symptom_get( $config, 'clinic.name', '' )
+			),
 			'description' => abc_symptom_get( $data, 'seo.description', '' ),
 			'inLanguage'  => 'ja',
 		),

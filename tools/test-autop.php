@@ -41,7 +41,7 @@ function wp_autop( string $pee, bool $br = true ): string {
 	return $pee;
 }
 
-$slug = $argv[1] ?? 'kubikori-katakori';
+$slug = $argv[1] ?? 'neck-shoulder';
 $src  = file_get_contents( __DIR__ . '/../paste/' . $slug . '.html' );
 $after = wp_autop( $src );
 
