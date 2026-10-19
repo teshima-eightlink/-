@@ -245,10 +245,22 @@ function installDeliveryLightListTrigger() {
     .atHour(7)      // 朝7時台に実行
     .create();
 
+  // 登録直後に1回だけ即更新（「登録したのに変わらない」を防ぐ）
+  let nowMsg;
+  try {
+    const n = syncDeliveryLightList_();
+    const input = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DELIVERY_CONFIG.INPUT_SHEET_NAME);
+    if (input) applyDeliveryNameDropdown_(input);
+    nowMsg = "・今すぐ1回更新しました：" + n + "件";
+  } catch (e) {
+    nowMsg = "⚠ 今すぐの更新は失敗：" + e.message;
+  }
+
   SpreadsheetApp.getUi().alert(
     "設定完了",
     "顧客名リストの自動更新を有効にしました。\n\n" +
-    "・3日ごと（朝7時台）に軽量版案件一覧から顧客名リストを更新します。\n" +
+    nowMsg + "\n" +
+    "・今後は3日ごと（朝7時台）に自動で更新します。\n" +
     "・新しい顧客が増えても、B列のプルダウンに自動で反映されます。",
     SpreadsheetApp.getUi().ButtonSet.OK
   );
