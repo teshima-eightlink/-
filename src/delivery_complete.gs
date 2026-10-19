@@ -4,6 +4,9 @@
 //   setupDeliveryInputSheet            最初だけ。入力シート・ログシート・顧客名プルダウンを作る
 //   setupFollowSystemColumns           最初だけ。1年サポートにBA・BBを作る
 //   syncDeliveryLightList              軽量版案件一覧の顧客名リストを更新（プルダウン更新）
+//   syncDeliveryLightListAuto          ↑のトリガー用（UI無し）。時間主導型トリガーから呼ぶ
+//   installDeliveryLightListTrigger    最初だけ。顧客名リスト自動更新を3日ごとに登録
+//   removeDeliveryLightListTrigger     顧客名リストの自動更新を止めたいとき
 //   lookupDeliveryCustomerNoFromNames  B列の顧客名から顧客Noを軽量版で逆引きしてC列へ
 //   checkDeliveryInput                 顧客名・納品日を入れたら実行。内容確認用
 //   runDeliveryComplete                「反映済」でない入力行をまとめて本番反映（チェック不要）
@@ -201,6 +204,68 @@ function syncDeliveryLightList_() {
 
   listSheet.hideSheet();
   return map.list.length;
+}
+
+//==================================================
+// 【トリガー用】顧客名リストを自動更新（UI安全版・アラート無し）
+//   ・時間主導型トリガーから呼ばれる想定（getUi は使わない）
+//   ・リスト更新 → 入力シートのプルダウンを再適用
+//   ・結果は Logger と（可能なら）トーストで通知
+//==================================================
+function syncDeliveryLightListAuto() {
+  try {
+    const n = syncDeliveryLightList_();
+    const input = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DELIVERY_CONFIG.INPUT_SHEET_NAME);
+    if (input) applyDeliveryNameDropdown_(input);
+
+    const msg = "顧客名リスト自動更新：" + n + "件（軽量版案件一覧C列より）";
+    Logger.log(msg);
+    try {
+      SpreadsheetApp.getActiveSpreadsheet().toast(msg, "納品完了入力", 5);
+    } catch (e) {}
+  } catch (e) {
+    Logger.log("⚠ 顧客名リスト自動更新に失敗：" + e.message);
+  }
+}
+
+//==================================================
+// 【初回のみ】顧客名リスト自動更新のトリガーを登録（3日ごと・朝7時台）
+//   ・重複しないよう既存の同名トリガーは削除してから作り直す
+//==================================================
+function installDeliveryLightListTrigger() {
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === "syncDeliveryLightListAuto") {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+
+  ScriptApp.newTrigger("syncDeliveryLightListAuto")
+    .timeBased()
+    .everyDays(3)   // 3日ごと
+    .atHour(7)      // 朝7時台に実行
+    .create();
+
+  SpreadsheetApp.getUi().alert(
+    "設定完了",
+    "顧客名リストの自動更新を有効にしました。\n\n" +
+    "・3日ごと（朝7時台）に軽量版案件一覧から顧客名リストを更新します。\n" +
+    "・新しい顧客が増えても、B列のプルダウンに自動で反映されます。",
+    SpreadsheetApp.getUi().ButtonSet.OK
+  );
+}
+
+//==================================================
+// 顧客名リスト自動更新のトリガーを解除（止めたいとき用）
+//==================================================
+function removeDeliveryLightListTrigger() {
+  let removed = 0;
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === "syncDeliveryLightListAuto") {
+      ScriptApp.deleteTrigger(t);
+      removed++;
+    }
+  });
+  SpreadsheetApp.getUi().alert("顧客名リストの自動更新トリガーを解除しました（" + removed + "件）。");
 }
 
 //==================================================
