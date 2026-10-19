@@ -4,7 +4,8 @@
 //   1年サポートの BA(顧客No) が空欄の行に、案件一覧の顧客Noを安全に紐付ける。
 //   本体シートへは直接書かず、専用チェックシートで確認 → チェックしたものだけ反映。
 //
-//   runExtractCustomerNoCandidates … 候補を「顧客No候補チェック」へ出力
+//   runAutoLinkCustomerNo          … ★基本はこれ。◎は自動反映、怪しいものだけチェックシートへ
+//   runExtractCustomerNoCandidates … 候補を全部「顧客No候補チェック」へ出力（自動反映なし）
 //   runApplyCustomerNo             … チェックONの行だけ 1年サポート BA へ反映
 //
 //   ※ onOpen は使わない。図形ボタン or Apps Script から手動実行。
@@ -15,7 +16,7 @@
 
 const CUSTOMER_LINK_CONFIG = {
   // 案件一覧（別ID）
-  PROJECT_SS_ID: "1vQmZWABfGcE4AGJV7CWIKJwYdxJ-V1-V",
+  PROJECT_SS_ID: "1ROGUwwU2VhY_oRN6btT49jMAAnZNtzR1jr7TSFIlWiQ",
   PROJECT_SHEET_NAME: "案件一覧",
   PROJECT_COL: {
     customerNo: 1,      // A 顧客No
@@ -24,7 +25,7 @@ const CUSTOMER_LINK_CONFIG = {
   },
 
   // 1年サポート（別ID）
-  FOLLOW_SS_ID: "1vQmZWABfGcE4AGJV7CWIKJwYdxJ-V1-V",
+  FOLLOW_SS_ID: "1JIXNvOuK_5qLcNaQw6vXg8ciaw7-VgKh6sBXoZAMEqA",
   FOLLOW_SHEET_NAME: "1年サポート",
   FOLLOW_COL: {
     customerName: 3,    // C 顧客名
@@ -193,6 +194,107 @@ function runApplyCustomerNo() {
 
   if (ui) ui.alert("顧客No反映", done, ui.ButtonSet.OK);
   else Logger.log(done);
+}
+
+//==================================================
+// ★ 自動紐付け（基本はこれ1発）
+//   ◎（確実：顧客名＋代表者一致）は、その場で 1年サポート BA へ自動反映。
+//   ○△⚫× など「怪しい/判断いる」ものだけ「顧客No候補チェック」へ出力し、
+//   人が確認 → チェック → runApplyCustomerNo で反映する運用。
+//   ※ ◎でも顧客№が重複（既にBAにある/今回複数行）するものは安全のため自動反映せず
+//     チェックシートに回す。
+//==================================================
+function runAutoLinkCustomerNo() {
+  const ui = clTryUi_();
+
+  const projectIndex = clBuildProjectIndex_(); // { byName, byRep }
+  const targets = clReadFollowTargets_();      // BA空欄の行
+
+  const followSheet = clGetFollowSheet_();
+  const existingNos = clExistingFollowNos_(followSheet); // 既に BA にある顧客No
+
+  // 各対象を照合
+  const matched = targets.map(t => ({ t: t, m: clMatch_(t, projectIndex) }));
+
+  // ◎候補の顧客№が今回バッチ内で重複しないか数える
+  const autoNoCount = {};
+  matched.forEach(x => {
+    if (x.m.symbol === "◎" && x.m.no) autoNoCount[x.m.no] = (autoNoCount[x.m.no] || 0) + 1;
+  });
+
+  const toApply = [];    // 自動反映する◎
+  const reviewRows = []; // チェックシートに残す行
+  let cDup = 0;          // ◎だが重複でスキップ
+  let cNeed = 0, cRep = 0, cMulti = 0, cNone = 0;
+
+  matched.forEach(x => {
+    const t = x.t;
+    const m = x.m;
+    const isAuto = (m.symbol === "◎") && !!m.no;
+    const dupExisting = m.no && existingNos[m.no];
+    const dupBatch = m.no && autoNoCount[m.no] > 1;
+
+    if (isAuto && !dupExisting && !dupBatch) {
+      toApply.push({ followRow: t.row, no: m.no, name: t.name });
+      return;
+    }
+
+    // ここに来るものは全部チェックシートへ
+    let reason = m.reason;
+    if (isAuto && dupExisting) { reason = "◎だが顧客№が既にBAに存在 → 自動反映せず要確認"; cDup++; }
+    else if (isAuto && dupBatch) { reason = "◎だが同じ顧客№が今回複数行 → 自動反映せず要確認"; cDup++; }
+    else if (m.symbol === "○") cNeed++;
+    else if (m.symbol === "△") cRep++;
+    else if (m.symbol === "⚫") cMulti++;
+    else cNone++;
+
+    reviewRows.push({
+      check: false,
+      followRow: t.row,
+      followName: t.name,
+      followRep: t.rep,
+      candNo: m.no,
+      candName: m.name,
+      candRep: m.rep,
+      score: m.score,
+      verdict: clVerdictLabel_(m.symbol),
+      reason: reason
+    });
+  });
+
+  // ◎を自動反映（BAへ書き込み＆ログ）
+  if (toApply.length > 0) {
+    const logSheet = clGetLogSheet_();
+    const now = new Date();
+    const user = clGetUser_();
+    const logRows = [];
+
+    toApply.forEach(a => {
+      followSheet.getRange(a.followRow, CUSTOMER_LINK_CONFIG.FOLLOW_COL.customerNo).setValue(a.no); // BA
+      logRows.push([now, a.followRow, a.no, a.name || "", user, "自動反映（◎）"]);
+    });
+
+    logSheet.getRange(logSheet.getLastRow() + 1, 1, logRows.length, 6).setValues(logRows);
+  }
+
+  // 怪しい/判断いるものをチェックシートへ
+  clWriteCheckSheet_(reviewRows);
+
+  const msg =
+    "自動紐付け完了！\n\n" +
+    "対象（BA空欄）：" + targets.length + "件\n" +
+    "✅ 自動反映した（◎）：" + toApply.length + "件\n\n" +
+    "― 要確認（「" + CUSTOMER_LINK_CONFIG.CHECK_SHEET_NAME + "」に出力）―\n" +
+    "○ 顧客名のみ一致：" + cNeed + "件\n" +
+    "△ 代表者のみ一致：" + cRep + "件\n" +
+    "⚫ 候補複数：" + cMulti + "件\n" +
+    "× 候補なし：" + cNone + "件\n" +
+    "◎だが重複でスキップ：" + cDup + "件\n\n" +
+    "※ 要確認のものは「" + CUSTOMER_LINK_CONFIG.CHECK_SHEET_NAME + "」で中身を確認し、\n" +
+    "　OKならA列にチェック → runApplyCustomerNo を実行して反映してください。";
+
+  if (ui) ui.alert("顧客No 自動紐付け", msg, ui.ButtonSet.OK);
+  else Logger.log(msg);
 }
 
 //==================================================
