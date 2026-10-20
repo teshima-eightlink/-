@@ -10,9 +10,8 @@
 //   installCustomerLinkTrigger     … 最初だけ。runAutoLinkCustomerNo を毎週月曜朝に自動実行
 //   removeCustomerLinkTrigger      … 自動実行を止めたいとき
 //
-//   ※ メニュー「顧客No紐付け」から各関数を実行できる（onOpenで作成）。
-//     ⚠ このスプレッドシートに別GASの onOpen が既にある場合は、二重定義になるので
-//       この onOpen は貼らず、addItem の行を既存の onOpen に足し込んでください。
+//   ※ onOpen は使わない（GASを増やすとメニューが衝突するため）。
+//     各関数は「図形ボタン」に割り当てて実行する or Apps Scriptから手動実行。
 //   ※ 大量データ対応：getDataRange は使わず、必要列だけ取得。
 //   ※ 案件一覧/1年サポートは別ID。テストは同じダミーIDでOK。
 //   ※ 将来：案件一覧→1年サポートへ新規行自動作成へ拡張しやすい構成。
@@ -344,22 +343,6 @@ function removeCustomerLinkTrigger() {
   });
   const msg = "顧客No 自動紐付けの定期実行を解除しました（" + removed + "件）。";
   if (ui) ui.alert(msg); else Logger.log(msg);
-}
-
-// スプレッドシートに「顧客No紐付け」メニューを追加
-//   ⚠ 同じスプレッドシートに別GASの onOpen が既にある場合は二重定義になります。
-//     その場合はこの onOpen を貼らず、.addItem(...) の行を既存の onOpen に足してください。
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu("顧客No紐付け")
-    .addItem("自動紐付け（◎は自動・残りは要確認）", "runAutoLinkCustomerNo")
-    .addItem("チェックした行を反映", "runApplyCustomerNo")
-    .addSeparator()
-    .addItem("候補を抽出（全部チェックシートへ）", "runExtractCustomerNoCandidates")
-    .addSeparator()
-    .addItem("【初回のみ】毎週月曜の自動紐付けを設定", "installCustomerLinkTrigger")
-    .addItem("自動紐付けを停止", "removeCustomerLinkTrigger")
-    .addToUi();
 }
 
 //==================================================
