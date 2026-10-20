@@ -7,8 +7,12 @@
 //   runAutoLinkCustomerNo          … ★基本はこれ。◎は自動反映、怪しいものだけチェックシートへ
 //   runExtractCustomerNoCandidates … 候補を全部「顧客No候補チェック」へ出力（自動反映なし）
 //   runApplyCustomerNo             … チェックONの行だけ 1年サポート BA へ反映
+//   installCustomerLinkTrigger     … 最初だけ。runAutoLinkCustomerNo を毎週月曜朝に自動実行
+//   removeCustomerLinkTrigger      … 自動実行を止めたいとき
 //
-//   ※ onOpen は使わない。図形ボタン or Apps Script から手動実行。
+//   ※ メニュー「顧客No紐付け」から各関数を実行できる（onOpenで作成）。
+//     ⚠ このスプレッドシートに別GASの onOpen が既にある場合は、二重定義になるので
+//       この onOpen は貼らず、addItem の行を既存の onOpen に足し込んでください。
 //   ※ 大量データ対応：getDataRange は使わず、必要列だけ取得。
 //   ※ 案件一覧/1年サポートは別ID。テストは同じダミーIDでOK。
 //   ※ 将来：案件一覧→1年サポートへ新規行自動作成へ拡張しやすい構成。
@@ -295,6 +299,67 @@ function runAutoLinkCustomerNo() {
 
   if (ui) ui.alert("顧客No 自動紐付け", msg, ui.ButtonSet.OK);
   else Logger.log(msg);
+}
+
+//==================================================
+// 定期実行トリガー＆メニュー
+//==================================================
+
+// 【初回のみ】runAutoLinkCustomerNo を毎週月曜 朝7時台に自動実行する
+//   ・重複しないよう既存の同名トリガーは削除してから作り直す
+//   ・登録するだけ（今すぐ反映したい場合は runAutoLinkCustomerNo を手動実行）
+function installCustomerLinkTrigger() {
+  const ui = clTryUi_();
+
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === "runAutoLinkCustomerNo") {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+
+  ScriptApp.newTrigger("runAutoLinkCustomerNo")
+    .timeBased()
+    .onWeekDay(ScriptApp.WeekDay.MONDAY)
+    .atHour(7)
+    .create();
+
+  const msg =
+    "顧客No 自動紐付けの定期実行を有効にしました。\n\n" +
+    "・毎週月曜（朝7時台）に runAutoLinkCustomerNo を自動実行します。\n" +
+    "・◎（確実）は自動でBAに反映、◯△などはチェックシートに出ます。\n" +
+    "・今すぐ反映したいときは runAutoLinkCustomerNo を手動実行してください。";
+  if (ui) ui.alert("設定完了", msg, ui.ButtonSet.OK);
+  else Logger.log(msg);
+}
+
+// 自動実行を止めたいとき用
+function removeCustomerLinkTrigger() {
+  const ui = clTryUi_();
+  let removed = 0;
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === "runAutoLinkCustomerNo") {
+      ScriptApp.deleteTrigger(t);
+      removed++;
+    }
+  });
+  const msg = "顧客No 自動紐付けの定期実行を解除しました（" + removed + "件）。";
+  if (ui) ui.alert(msg); else Logger.log(msg);
+}
+
+// スプレッドシートに「顧客No紐付け」メニューを追加
+//   ⚠ 同じスプレッドシートに別GASの onOpen が既にある場合は二重定義になります。
+//     その場合はこの onOpen を貼らず、.addItem(...) の行を既存の onOpen に足してください。
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu("顧客No紐付け")
+    .addItem("自動紐付け（◎は自動・残りは要確認）", "runAutoLinkCustomerNo")
+    .addItem("チェックした行を反映", "runApplyCustomerNo")
+    .addSeparator()
+    .addItem("候補を抽出（全部チェックシートへ）", "runExtractCustomerNoCandidates")
+    .addSeparator()
+    .addItem("【初回のみ】毎週月曜の自動紐付けを設定", "installCustomerLinkTrigger")
+    .addItem("自動紐付けを停止", "removeCustomerLinkTrigger")
+    .addToUi();
 }
 
 //==================================================
