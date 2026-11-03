@@ -18,10 +18,10 @@
  *   syncCameraTasks()     … カレンダー同期（メニュー）
  *   setSheetCameraTasks() … 初期設定（メニュー）
  *   moveFinishedDown()    … 「撮影終了」の行を下に移動＋未終了を撮影日時順に並べ替え
- *   applyFinishedStatus() … 撮影終了/納品/UP のいずれかにチェックで「状態」を「撮影終了」に更新
+ *   applyFinishedStatus() … 撮影終了(Q)にチェックで「状態」を「撮影終了」に、外すとクリア
  *                           （「撮影終了を下に移動」メニューの実行時に呼ばれる）
  *   checkSyncCameraTasks()… 同期の診断（メニュー）
- *   handleCheckboxEdit()  … 編集時に撮影終了/納品/UP のチェックで「状態」を更新（インストール型トリガー）
+ *   handleCheckboxEdit()  … 編集時に撮影終了(Q)のチェックで「状態」を更新（外すとクリア・インストール型トリガー）
  *   installEditTrigger()  … 上記トリガーを登録（初回のみ・メニュー）
  */
 
@@ -850,8 +850,10 @@ function updateFilterAndProtection(sheet) {
 
 
 /**
- * 撮影終了・納品・UP のいずれかにチェックが入っている行の
- * 「状態」を「撮影終了」に更新する。
+ * 撮影終了(Q列)のチェックに合わせて「状態」を更新する。
+ *   ・チェックON  → 状態を「撮影終了」にする
+ *   ・チェックOFF → 状態が「撮影終了」ならクリアする（「中止」など他の状態は触らない）
+ * ※ 納品・UP では状態を変えない。
  * ※ onEdit（自動トリガー）は他のGASと競合するため使わず、
  *   「撮影終了を下に移動」メニューの実行時にも呼ばれる。
  *
@@ -864,10 +866,9 @@ function applyFinishedStatus(sheet, columnMap) {
 
 
   const map = columnMap || getColumnMap(sheet);
-  const finishedHeaders = ["撮影終了", "納品", "UP"];
 
 
-  if (!map["状態"] || findMissingHeaders(map, finishedHeaders).length > 0) return;
+  if (!map["状態"] || !map["撮影終了"]) return;
 
 
   const totalRows = lastRow - 1;
@@ -877,24 +878,23 @@ function applyFinishedStatus(sheet, columnMap) {
   const statusValues = statusRange.getValues();
 
 
-  // チェック列が離れていても読めるよう、左端から右端までまとめて読む
-  const checkColumns = finishedHeaders.map(function(name) { return map[name]; });
-  const firstColumn = Math.min.apply(null, checkColumns);
-  const lastColumn = Math.max.apply(null, checkColumns);
-  const checkValues = sheet.getRange(2, firstColumn, totalRows, lastColumn - firstColumn + 1).getValues();
+  const checkValues = sheet.getRange(2, map["撮影終了"], totalRows, 1).getValues();
 
 
   let changed = false;
 
 
   for (let i = 0; i < totalRows; i++) {
-    const isFinished = checkColumns.some(function(column) {
-      return checkValues[i][column - firstColumn] === true;
-    });
+    const checked = checkValues[i][0] === true;
+    const status = statusValues[i][0];
 
 
-    if (isFinished && statusValues[i][0] !== "撮影終了") {
+    if (checked && status !== "撮影終了") {
       statusValues[i][0] = "撮影終了";
+      changed = true;
+    } else if (!checked && status === "撮影終了") {
+      // チェックを外したら「撮影終了」だけ消す（中止などは残す）
+      statusValues[i][0] = "";
       changed = true;
     }
   }
@@ -1360,8 +1360,9 @@ function checkSyncCameraTasks() {
 
 
 /**
- * 【編集時に自動実行】撮影終了・納品・UP のいずれかにチェックが入ったら、
- * その行の「状態」を「撮影終了」に自動変更する。
+ * 【編集時に自動実行】撮影終了(Q列)のチェックに合わせて「状態」を変更する。
+ *   ・チェックON  → 状態を「撮影終了」にする
+ *   ・チェックOFF → 状態が「撮影終了」ならクリアする（「中止」などは触らない）
  *
  * ※ 関数名は onEdit ではないため、他のGASの onEdit と衝突しません。
  *   この関数は「インストール型トリガー」で編集時に呼ばれます。
@@ -1374,37 +1375,32 @@ function handleCheckboxEdit(e) {
   if (sheet.getName() !== CAMERA_SHEET_NAME) return;
 
   const columnMap = getColumnMap(sheet);
-  const finishedHeaders = ["撮影終了", "納品", "UP"];
 
-  if (!columnMap["状態"] || findMissingHeaders(columnMap, finishedHeaders).length > 0) return;
+  if (!columnMap["状態"] || !columnMap["撮影終了"]) return;
 
-  const checkColumns = finishedHeaders.map(function(name) { return columnMap[name]; });
+  const finishedCol = columnMap["撮影終了"];
 
   const startRow = e.range.getRow();
   const startCol = e.range.getColumn();
   const numRows = e.range.getNumRows();
   const endCol = startCol + e.range.getNumColumns() - 1;
 
-  // 編集範囲に撮影終了・納品・UP のいずれかを含むか
-  const touched = checkColumns.some(function(column) {
-    return column >= startCol && column <= endCol;
-  });
-
-  if (!touched) return;
+  // 編集範囲に撮影終了(Q列)を含むか
+  if (finishedCol < startCol || finishedCol > endCol) return;
 
   for (let r = 0; r < numRows; r++) {
     const row = startRow + r;
     if (row < 2) continue;
 
-    const isFinished = checkColumns.some(function(column) {
-      return sheet.getRange(row, column).getValue() === true;
-    });
+    const checked = sheet.getRange(row, finishedCol).getValue() === true;
+    const statusCell = sheet.getRange(row, columnMap["状態"]);
+    const status = statusCell.getValue();
 
-    if (isFinished) {
-      const statusCell = sheet.getRange(row, columnMap["状態"]);
-      if (statusCell.getValue() !== "撮影終了") {
-        statusCell.setValue("撮影終了");
-      }
+    if (checked) {
+      if (status !== "撮影終了") statusCell.setValue("撮影終了");
+    } else {
+      // チェックを外したら「撮影終了」だけ消す（中止などは残す）
+      if (status === "撮影終了") statusCell.setValue("");
     }
   }
 }
@@ -1430,7 +1426,7 @@ function installEditTrigger() {
     .onEdit()
     .create();
 
-  ui.alert("設定完了", "編集時の自動反映を有効にしました。\n撮影終了・納品・UP にチェックを入れると、状態が自動で「撮影終了」になります。", ui.ButtonSet.OK);
+  ui.alert("設定完了", "編集時の自動反映を有効にしました。\n撮影終了にチェックを入れると状態が「撮影終了」に、外すと状態がクリアされます。", ui.ButtonSet.OK);
 }
 
 
