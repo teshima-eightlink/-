@@ -951,10 +951,11 @@ function getShootTimestamp(shootDate, shootTime) {
  * 撮影終了になっていない行を撮影日＋時間の早い順に並べ替える。
  *
  * 並び順
- *   1. 未終了（撮影日時の昇順。撮影日が未入力の行は UNDATED_FIRST の設定に従う）
+ *   1. 未終了（案件名あり。撮影日時の昇順。撮影日が未入力の行は UNDATED_FIRST の設定に従う）
  *   2. 区切りの空行（1行）
  *   3. 撮影終了（元の並び順を維持）
- *   4. 残りの空行
+ *   4. 案件名が空の未終了行（撮影終了より下・空行より上。元の並び順を維持）
+ *   5. 残りの空行
  *
  * ・A列（カメラマンマスタ）は固定したまま、B列から右だけをまとめて並べ替える
  *
@@ -983,7 +984,7 @@ function moveFinishedDown() {
   }
 
 
-  const columnMap = requireColumns(sheet, ["撮影日", "時間", "状態"], "並べ替えを中止しました");
+  const columnMap = requireColumns(sheet, ["案件名", "撮影日", "時間", "状態"], "並べ替えを中止しました");
   if (!columnMap) return;
 
 
@@ -999,6 +1000,7 @@ function moveFinishedDown() {
 
 
   const NUM_COLS = lastColumn - START_COL + 1;
+  const NAME_IDX = columnMap["案件名"] - START_COL;
   const DATE_IDX = columnMap["撮影日"] - START_COL;
   const TIME_IDX = columnMap["時間"] - START_COL;
   const STATUS_IDX = columnMap["状態"] - START_COL;
@@ -1011,11 +1013,12 @@ function moveFinishedDown() {
   const values = sheet.getRange(2, START_COL, lastRow - 1, NUM_COLS).getValues();
 
 
-  // 第1キー：グループ
-  const GROUP_ACTIVE = 0;    // 未終了
+  // 第1キー：グループ（小さいほど上）
+  const GROUP_ACTIVE = 0;    // 未終了（案件名あり）
   const GROUP_SEPARATOR = 1; // 区切りの空行
   const GROUP_FINISHED = 2;  // 撮影終了
-  const GROUP_BLANK = 3;     // 残りの空行
+  const GROUP_NONAME = 3;    // 案件名が空の未終了行（撮影終了より下・空行より上）
+  const GROUP_BLANK = 4;     // 残りの空行
 
 
   // 第2キー：未終了は撮影日時のミリ秒。撮影日が未入力の行は実在する日時から
@@ -1027,6 +1030,7 @@ function moveFinishedDown() {
   const orders = [];
   let undatedSeq = 0;
   let finishedSeq = 0;
+  let nonameSeq = 0;
   let blankSeq = 0;
   let finishedCount = 0;
   let separatorIdx = -1;
@@ -1051,6 +1055,15 @@ function moveFinishedDown() {
       finishedCount++;
       groups.push(GROUP_FINISHED);
       orders.push(finishedSeq++);
+      return;
+    }
+
+
+    // 案件名(B)が空の未終了行は、撮影終了より下・空行より上にまとめる（元の並び順を維持）
+    const hasName = String(rowValues[NAME_IDX] == null ? "" : rowValues[NAME_IDX]).trim() !== "";
+    if (!hasName) {
+      groups.push(GROUP_NONAME);
+      orders.push(nonameSeq++);
       return;
     }
 
