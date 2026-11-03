@@ -7,7 +7,8 @@
 //
 //   ボタンに割り当てる関数：
 //     copyKanseiHoukoku / copyKanseiHoukokuNew /
-//     copyLoginInfo / copyLoginInfoNew / copyAfterFollow
+//     copyLoginInfo / copyLoginInfoNew / copyAfterFollow /
+//     copyJishaKappu / copyJishaKappuNew
 //==================================================
 
 const COPY_CONFIG = {
@@ -18,7 +19,9 @@ const COPY_CONFIG = {
     "完成報告（新規アドレス）": "A1:A95",
     "ログイン情報": "A1:A60",
     "ログイン情報 （新規アドレス）": "A1:A89",
-    "アフターフォロー": "A1:A90"
+    "アフターフォロー": "A1:A94",
+    "自社割賦": "A1:A44",
+    "自社割賦（新規アドレス）": "A1:A72"
   }
 };
 
@@ -30,6 +33,8 @@ function copyKanseiHoukokuNew() { copyToClipboard_("完成報告（新規アド�
 function copyLoginInfo()        { copyToClipboard_("ログイン情報"); }
 function copyLoginInfoNew()     { copyToClipboard_("ログイン情報 （新規アドレス）"); }
 function copyAfterFollow()      { copyToClipboard_("アフターフォロー"); }
+function copyJishaKappu()       { copyToClipboard_("自社割賦"); }
+function copyJishaKappuNew()    { copyToClipboard_("自社割賦（新規アドレス）"); }
 
 //==================================================
 // 指定シートの内容をコピー用ポップアップで開く
